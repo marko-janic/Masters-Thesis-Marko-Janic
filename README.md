@@ -2,11 +2,14 @@
 This repository contains all code used for my Master's thesis.
 
 ## Development
-Activate pip environment:
+Create virtual environment:
 ```
-source mthesis_env/bin/activate
+python -m venv venv
 ```
-
+Activate virtual environment (Windows):
+```
+.\venv\Scripts\activate
+```
 Install requirements:
 ```
 pip install -r requirements.txt
@@ -16,4 +19,3 @@ pip install -r requirements.txt
 - Vision Transformer Model Google
     - https://arxiv.org/abs/2010.11929
     - Colab Notebook: https://colab.research.google.com/github/google-research/vision_transformer/blob/main/vit_jax_augreg.ipynb
-- 
