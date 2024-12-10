@@ -1,6 +1,7 @@
 # Folders
 mthesis_env
 models/
+.obsidian
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
