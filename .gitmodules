@@ -1,3 +1,0 @@
-[submodule "vision_transformer"]
-	path = vision_transformer
-	url = https://github.com/google-research/vision_transformer/

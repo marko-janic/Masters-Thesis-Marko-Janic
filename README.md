@@ -19,3 +19,6 @@ pip install -r requirements.txt
 - Vision Transformer Model Google
     - https://arxiv.org/abs/2010.11929
     - Colab Notebook: https://colab.research.google.com/github/google-research/vision_transformer/blob/main/vit_jax_augreg.ipynb
+- Pytorch implementation of ViTs:
+  - Implementation: https://pytorch.org/vision/main/models/vision_transformer.html
+  - Fine tuning it?: https://github.com/jeonsworld/ViT-pytorch

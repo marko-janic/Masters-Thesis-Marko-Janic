@@ -1,6 +1,7 @@
 # Folders
 mthesis_env
 models/
+dataset
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
