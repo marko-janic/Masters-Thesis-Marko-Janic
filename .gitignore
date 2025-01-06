@@ -2,6 +2,7 @@
 mthesis_env
 models/
 dataset
+.obsidian
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
