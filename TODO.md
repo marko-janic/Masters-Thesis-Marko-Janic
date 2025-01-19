@@ -1,0 +1,1 @@
+- Add plotting of loss that saves during training

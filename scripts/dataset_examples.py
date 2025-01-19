@@ -1,8 +1,11 @@
 import argparse
 import mrcfile
+import os
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 
+from itertools import islice
 from torchvision.models import VisionTransformer
 
 
@@ -11,28 +14,29 @@ def main():
     # General
 
     # Training
-    parser.add_argument("--batch_size", type=int, default=32, help="Size of each training batch")
-    parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
+    parser.add_argument("--dataset_path", type=str, default="../dataset/10017/micrographs", help="")
+    parser.add_argument("--no_micrographs", type=int, default=5, help="")
+    parser.add_argument("--result_dir", type=str, default="../media/example_micrographs", help="")
 
     args = parser.parse_args()
 
-    with mrcfile.open("dataset/10017/micrographs/Falcon_2012_06_12-15_30_21_0.mrc") as mrc:
-        data = mrc.data
-        print(data.shape)
+    # Ensure result_dir exists
+    if not os.path.exists(args.result_dir):
+        os.makedirs(args.result_dir)
 
-    # Find the maximum value
-    max_value = np.max(data)
+    # Pick first 10 micrographs in folder
+    with os.scandir(args.dataset_path) as entries:
+        micrograph_path_list = [os.path.join(args.dataset_path, entry.name)
+                                for entry in islice(entries, args.no_micrographs) if entry.is_file()]
 
-    # Find the minimum value
-    min_value = np.min(data)
+    # Save them as figures
+    for i, micrograph_path in enumerate(micrograph_path_list):
+        with mrcfile.open(micrograph_path) as mrc:
+            data = mrc.data
 
-    print(f"Maximum value: {max_value}")
-    print(f"Minimum value: {min_value}")
-
-    plt.imshow(data, cmap="gray")
-    plt.axis('off')
-    plt.savefig("")
+        plt.imshow(data, cmap="gray")
+        plt.axis('off')
+        plt.savefig(args.result_dir + "/example" + str(i))
 
 
 if __name__ == "__main__":
