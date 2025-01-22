@@ -53,40 +53,25 @@ def main():
     # Here we replace the method of the class to use our own one that doesn't use the classification head.
     vit_model.forward = types.MethodType(get_latent_representation, vit_model)
 
-    # Transform to preprocess the image (resize, normalization, etc.)
-    preprocess = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-    ])
+    image = torch.rand(args.batch_size, 3, 224, 224)
 
-    img = Image.open("media/example_micrographs/example0.png")
-    img_tensor = preprocess(img).unsqueeze(0)
-    img_tensor = img_tensor[:, 0:3]
-    print("Input image shape: ", img_tensor.shape)
-
-    output = vit_model(img_tensor)
+    output = vit_model(image)
 
     print("Default patch size: ", vit_model.patch_size)
     print("Output shape after ViT: ", output.shape)
 
-    # Training =========================================================================================================
-    model = ParticlePicker(args.latent_dim, args.num_particles)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-
-    for epoch in range(args.epochs):
-        model.train()
-        optimizer.zero_grad()
-
-        predictions = "placeholder"
-
-        loss = criterion()
-
-        loss.backward()
-        optimizer.step()
-
-        print("Epoch " + str())
+    ## Training ========================================================================================================
+    #model = ParticlePicker(args.latent_dim, args.num_particles)
+    #criterion = nn.MSELoss()
+    #optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    #for epoch in range(args.epochs):
+    #    model.train()
+    #    optimizer.zero_grad()
+    #    predictions = "placeholder"
+    #    loss = criterion()
+    #    loss.backward()
+    #    optimizer.step()
+    #    print("Epoch " + str())
 
 
 if __name__ == "__main__":

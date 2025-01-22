@@ -16,7 +16,7 @@ def main():
     # Training
     parser.add_argument("--dataset_path", type=str, default="../dataset/10017/micrographs", help="")
     parser.add_argument("--no_micrographs", type=int, default=5, help="")
-    parser.add_argument("--result_dir", type=str, default="../media/example_micrographs", help="")
+    parser.add_argument("--result_dir", type=str, default="../media/empiar_example_micrographs", help="")
 
     args = parser.parse_args()
 

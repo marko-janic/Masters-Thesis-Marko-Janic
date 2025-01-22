@@ -44,7 +44,7 @@ def main():
         transforms.ToTensor(),
     ])
 
-    img = Image.open("../media/example_micrographs/example0.png")
+    img = Image.open("../media/empiar_example_micrographs/example0.png")
     print("Image before transformations: ", img.size)
     img_tensor = preprocess(img).unsqueeze(0)
     img_tensor = img_tensor[:, 0:3]
