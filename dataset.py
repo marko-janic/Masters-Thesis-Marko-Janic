@@ -1,27 +1,40 @@
 import os
 
 import mrcfile as mrc
+import numpy as np
 
 from torch.utils.data import Dataset
+from numpy.lib.stride_tricks import as_strided
 
 
-def create_sub_micrographs(image, crop_size):
-    height, width = image.shape
-    num_crops_y = height // crop_size
-    num_crops_x = width // crop_size
+def create_sub_micrographs(micrograph, crop_size, sampling_points):
+    height, width = micrograph.shape
+    print(f"Height: {height}")
+    print(f"Width: {width}")
 
-    assert num_crops_x > 0 and num_crops_y > 0, \
-        "Image is smaller than crop size."
+    assert sampling_points <= (width - crop_size), "Number of sampling points can't be larger than width - crop_size"
 
-    image = image[:num_crops_y * crop_size, :num_crops_x * crop_size]
+    # Calculate step size based on number of points per side
+    step_size_x = (width - crop_size) // (sampling_points - 1)
+    step_size_y = (height - crop_size) // (sampling_points - 1)
 
-    crops = (
-        image
-        .reshape(num_crops_y, crop_size, num_crops_x, crop_size)  # Create blocks
-        .transpose(0, 2, 1, 3)  # Reorder dimensions to (blocks_y, blocks_x, crop_size, crop_size)
-        .reshape(-1, crop_size, crop_size)  # Flatten into list of crops
-    )
-    return crops
+    print(f"step_size_x: {step_size_x}")
+    print(f"step_size_y: {step_size_y}")
+
+    sub_micrographs = []
+
+    for i in range(sampling_points):  # horizontal steps
+        for j in range(sampling_points):  # vertical steps
+            start_x = i * step_size_x
+            start_y = j * step_size_y
+            end_x = start_x + crop_size
+            end_y = start_y + crop_size
+
+            # Ensure we don't go out of bounds
+            if end_x <= width and end_y <= height:
+                sub_micrographs.append(micrograph[start_x:end_x, start_y:end_y])
+
+    return sub_micrographs
 
 
 class ShrecDataset(Dataset):
