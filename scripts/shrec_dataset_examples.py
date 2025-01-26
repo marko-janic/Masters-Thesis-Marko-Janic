@@ -34,14 +34,14 @@ def crop_sub_micrographs_example(micrograph, crop_size, result_dir, model_number
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    crops = create_sub_micrographs(micrograph, crop_size, 3)
+    sub_micrographs = create_sub_micrographs(micrograph, crop_size, 5)
 
-    print(f"Crops shape: {crops.shape}")
-
-    for i in tqdm(range(len(crops)), desc="Saving sub micrographs"):
-        sub_micrograph = crops[i]
+    for i in tqdm(range(len(sub_micrographs)), desc="Saving sub micrographs"):
+        sub_micrograph = sub_micrographs.iloc[i]["sub_micrograph"]
+        coordinates = sub_micrographs.iloc[i]["top_left_coordinates"]
 
         # Save them as figures
+        plt.title(f'Top left point: {coordinates[0]}, {coordinates[1]}')
         plt.imshow(sub_micrograph, cmap="gray")
         plt.axis('off')
         plt.savefig(result_dir + f'/example_model_{model_number}_sub_micrograph_{i}')
@@ -106,7 +106,8 @@ def main():
     columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
     particle_locations = pd.read_csv(os.path.join(args.dataset_path,
                                                   f'model_{args.model_number}/particle_locations.txt'),
-                                     delim_whitespace=True, names=columns)
+                                     delim_whitespace=True, names=columns).drop(columns=['Z', 'rotation_Z1',
+                                                                                         'rotation_X', 'rotation_Z2'])
     print("Shape of particle locations: ", particle_locations.shape)
 
     # Example visualization of one micrograph ==========================================================================
