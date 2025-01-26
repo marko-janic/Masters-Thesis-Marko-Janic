@@ -21,7 +21,7 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
     print(f"step_size_x: {step_size_x}")
     print(f"step_size_y: {step_size_y}")
 
-    sub_micrographs = []
+    sub_micrographs = np.zeros((sampling_points * sampling_points, crop_size, crop_size))
 
     for i in range(sampling_points):  # horizontal steps
         for j in range(sampling_points):  # vertical steps
@@ -32,14 +32,14 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
 
             # Ensure we don't go out of bounds
             if end_x <= width and end_y <= height:
-                sub_micrographs.append(micrograph[start_x:end_x, start_y:end_y])
+                sub_micrographs[i + j] = micrograph[start_x:end_x, start_y:end_y]
 
     return sub_micrographs
 
 
 class ShrecDataset(Dataset):
     num_models = 10  # See shrec dataset
-    projection_number = 29  # Which projection to use out of the 61 available. See alignment_simulated.txt files
+    projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
     vit_input_size = 224  # The size we want our micrographs to be
     micrograph_size = 1024  # See shrec dataset
     num_crops_side = micrograph_size // vit_input_size  # We divide the micrograph into "sub-micrographs"

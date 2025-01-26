@@ -3,6 +3,7 @@ import mrcfile
 import os
 import random
 import warnings
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,7 +36,7 @@ def crop_sub_micrographs_example(micrograph, crop_size, result_dir, model_number
 
     crops = create_sub_micrographs(micrograph, crop_size, 3)
 
-    #print(f"Crops shape: {crops.shape}")
+    print(f"Crops shape: {crops.shape}")
 
     for i in tqdm(range(len(crops)), desc="Saving sub micrographs"):
         sub_micrograph = crops[i]
