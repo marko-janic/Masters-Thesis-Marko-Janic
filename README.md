@@ -15,6 +15,9 @@ Install requirements:
 pip install -r requirements.txt
 ```
 
+### Recommended Folder structure
+TODO: Add script for creating folder structure, describe folder structure
+
 ## Relevant Papers:
 - Vision Transformer Model Google
     - https://arxiv.org/abs/2010.11929
