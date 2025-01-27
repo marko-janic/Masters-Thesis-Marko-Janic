@@ -1,36 +1,34 @@
 import matplotlib
-matplotlib.use('Agg')  # Use this to avoid the error: _tkinter.TclError: no display name and no $DISPLAY environment variable
+import os
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
+matplotlib.use('Agg')  # To avoid error: _tkinter.TclError: no display name and no $DISPLAY environment variable
 
-def show_image_with_bounding_boxes(image_tensor, coordinates, size):
+
+def save_image_with_bounding_boxes(image_tensor, particle_locations, box_size, result_dir, file_name, box_color='r'):
     """
     Show the image and draw bounding boxes around the given pixel coordinates.
 
-    Parameters:
-    - image_tensor: Tensor representing the image.
-    - coordinates: NumPy array of shape (N, 2) representing pixel coordinates.
-    - size: Size of the bounding box.
+    :param image_tensor: Tensor representing the image.
+    :param particle_locations: Pandas Dataframe of shape (N, 2) representing pixel coordinates.
+    :param box_size: Size of the bounding box.
+    :param result_dir: Result directory to save to
+    :param file_name: File name of file that is saved
+    :param box_color: Border color of drawn boxes
     """
-    fig, ax = plt.subplots(1)
-    ax.imshow(image_tensor)
+    if not os.path.exists(result_dir):
+        raise Exception("The folder you are trying to save to doesn't exist.")
 
-    for (x, y) in coordinates:
-        rect = patches.Rectangle((x - size // 2, y - size // 2), size, size, linewidth=1, edgecolor='r', facecolor='none')
+    fig, ax = plt.subplots(1)
+    ax.imshow(image_tensor, cmap='gray')
+
+    for _, row in particle_locations.iterrows():
+        x = row['X']
+        y = row['Y']
+        rect = patches.Rectangle((x, y), box_size, box_size, linewidth=1, edgecolor=box_color, facecolor='none')
         ax.add_patch(rect)
 
-    plt.savefig("example.png")
-
-
-def main():
-    # Image with bounding boxes example
-    image_tensor = np.ones((100, 100))
-    pixel_coordinates = np.array([[20, 20], [50, 50], [80, 80]])
-    size = 10
-    show_image_with_bounding_boxes(image_tensor, pixel_coordinates, size)
-
-
-if __name__ == "__main__":
-    main()
+    plt.savefig(os.path.join(result_dir, file_name))

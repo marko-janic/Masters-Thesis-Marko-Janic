@@ -60,18 +60,19 @@ def main():
     print("Default patch size: ", vit_model.patch_size)
     print("Output shape after ViT: ", output.shape)
 
-    ## Training ========================================================================================================
-    #model = ParticlePicker(args.latent_dim, args.num_particles)
-    #criterion = nn.MSELoss()
-    #optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-    #for epoch in range(args.epochs):
-    #    model.train()
-    #    optimizer.zero_grad()
-    #    predictions = "placeholder"
-    #    loss = criterion()
-    #    loss.backward()
-    #    optimizer.step()
-    #    print("Epoch " + str())
+    # Training ========================================================================================================
+    model = ParticlePicker(args.latent_dim, args.num_particles)
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+
+    for epoch in range(args.epochs):
+        model.train()
+        optimizer.zero_grad()
+        predictions = "placeholder"
+        loss = criterion()
+        loss.backward()
+        optimizer.step()
+        print("Epoch " + str())
 
 
 if __name__ == "__main__":
