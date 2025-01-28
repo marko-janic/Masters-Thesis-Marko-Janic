@@ -27,7 +27,7 @@ def shrec_dataset_example(result_dir):
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    dataset = ShrecDataset(dataset_path="../dataset/shrec21_full_dataset/")
+    dataset = ShrecDataset(sampling_points=5, dataset_path="../dataset/shrec21_full_dataset/")
 
     print("Shape of data in ShrecDataset: ", dataset.sub_micrographs.shape)
     print("Head: ")
@@ -40,20 +40,20 @@ def shrec_dataset_example(result_dir):
 
     selected_particles = get_particle_locations_from_coordinates(coordinates, dataset.sub_micrograph_size,
                                                                  dataset.particle_locations)
-    #print("Selected particles: ")
-    #print(selected_particles)
 
     save_image_with_bounding_boxes(dataset.micrograph, dataset.particle_locations, 4, result_dir,
-                                   "test_all")
-    #dataset.micrograph[412:512, 0:100] = 0
-    #fig, ax = plt.subplots(1)
-    #ax.imshow(dataset.micrograph, cmap='gray')
-    #box_size = 6
-    #rect = patches.Rectangle((0, 0), box_size, box_size, linewidth=1, edgecolor='r', facecolor='none')
-    #ax.add_patch(rect)
-    #plt.savefig("TEST")
+                                   "test_micrograph")
 
-    save_image_with_bounding_boxes(sub_micrograph, selected_particles, 5, result_dir, "Test0")
+    save_image_with_bounding_boxes(sub_micrograph, selected_particles, 4, result_dir,
+                                   "test_sub_micrograph_first")
+
+    sub_micrograph_entry = dataset.__getitem__(3)
+    sub_micrograph = sub_micrograph_entry.iloc[0]
+    coordinates = sub_micrograph_entry.iloc[1]
+    selected_particles = get_particle_locations_from_coordinates(coordinates, dataset.sub_micrograph_size,
+                                                                 dataset.particle_locations)
+    save_image_with_bounding_boxes(sub_micrograph, selected_particles, 4, result_dir,
+                                   "test_sub_micrograph_middle")
 
 
 def noisy_micrograph_example(micrograph, model_number, result_dir):

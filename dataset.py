@@ -57,8 +57,8 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
 
     assert sampling_points <= (width - crop_size), "Number of sampling points can't be larger than width - crop_size"
 
-    step_size_x = (height - crop_size) // (sampling_points - 1)
-    step_size_y = (width - crop_size) // (sampling_points - 1)
+    step_size_x = (width - crop_size) // (sampling_points - 1)
+    step_size_y = (height - crop_size) // (sampling_points - 1)
 
     #print(f"step_size_x: {step_size_x}")
     #print(f"step_size_y: {step_size_y}")
@@ -66,14 +66,14 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
     sub_micrographs_list = []
     for i in range(sampling_points):  # horizontal steps
         for j in range(sampling_points):  # vertical steps
-            start_y = i * step_size_y
-            start_x = j * step_size_x
+            start_x = i * step_size_x
+            start_y = j * step_size_y
             end_y = start_y + crop_size
             end_x = start_x + crop_size
 
             # Ensure we don't go out of bounds
             if end_x <= width and end_y <= height:
-                sub_micrographs_list.append((micrograph[start_x:end_x, start_y:end_y], (start_x, start_y)))
+                sub_micrographs_list.append((micrograph[start_y:end_y, start_x:end_x], (start_x, start_y)))
 
     # The reason we did a list first is because of this:
     # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
@@ -87,17 +87,18 @@ class ShrecDataset(Dataset):
     model_number = 1  # Model to select for this iteration
     dataset_path = "dataset/shrec21_full_dataset/"
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
-    sub_micrograph_size = 100  # The size we want our micrographs to be
+    sub_micrograph_size = 150  # The size we want our micrographs to be
     micrograph_size = 512  # See shrec dataset
     sampling_points = 2  # Determines number of sub_micrographs
 
-    def __init__(self, dataset_path="dataset/shrec21_full_dataset/"):
+    def __init__(self, sampling_points, dataset_path="dataset/shrec21_full_dataset/"):
+        self.sampling_points = sampling_points
         self.dataset_path = dataset_path
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
             pd.read_csv(os.path.join(self.dataset_path, f'model_{self.model_number}/particle_locations.txt'),
-                        sep=r'\s+', names=columns).drop(columns=['class', 'Z', 'rotation_Z1', 'rotation_X',
+                        sep=r'\s+', names=columns).drop(columns=['Z', 'rotation_Z1', 'rotation_X',
                                                                  'rotation_Z2']))
 
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
