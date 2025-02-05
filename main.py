@@ -12,10 +12,12 @@ from PIL import Image
 from torchvision.models import vit_b_16, VisionTransformer
 from torchvision import transforms
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 # Local imports
 from model import ParticlePicker
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
+from loss import ParticlePickingLoss
 
 
 # We use this model to override the normal implementation since we don't want the classification head:
@@ -40,11 +42,11 @@ def get_latent_representation(self, x: torch.Tensor):
 def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=2, help="Size of each training batch")
+    parser.add_argument("--batch_size", type=int, default=4, help="Size of each training batch")
     parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
-    parser.add_argument("--num_particles", type=int, default=50,
+    parser.add_argument("--num_particles", type=int, default=10,
                         help="Number of particles that the model outputs as predictions")
 
     args = parser.parse_args()
@@ -57,16 +59,22 @@ def main():
 
     # Training =========================================================================================================
     model = ParticlePicker(args.latent_dim, args.num_particles)
-    criterion_class = nn.BCELoss()
-    criterion_coordinates = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-
-    dataset = ShrecDataset(4)
+    loss_fn = ParticlePickingLoss()
+    dataset = ShrecDataset(16)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
     for epoch in range(args.epochs):
-        particle_locations_list = []
+        model.train()
+        running_loss = 0.0
+
+        # Loading bar for the outer loop (epochs)
+        epoch_bar = tqdm(range(len(dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
+
         for sub_micrographs, coordinate_tl_list in dataloader:
+            particle_locations_list = []
+
+            # Loading bar for the inner loop (batches within each epoch)
             for coordinate_tl in coordinate_tl_list:
                 particle_locations = get_particle_locations_from_coordinates(coordinate_tl,
                                                                              dataset.sub_micrograph_size,
@@ -76,19 +84,18 @@ def main():
             latent_sub_micrographs = vit_model(sub_micrographs)
             predictions = model(latent_sub_micrographs)
 
-            pass
-            # TODO
-            exit(0)
-
-            # Go through each element and compute loss
-
-
-            loss_coordinates = criterion_coordinates()
-            loss_class = criterion_class()
-            loss = 0.5 * loss_coordinates + 0.5 * loss_class
+            loss = loss_fn(particle_locations_list, predictions)
 
             loss.backward()
             optimizer.step()
+
+            running_loss += loss.item()
+
+            epoch_bar.set_postfix(loss=running_loss / (epoch_bar.n + 1))  # Update the postfix with the running loss
+            epoch_bar.update(1)  # Update the progress bar after each batch
+
+        avg_loss = running_loss / len(dataloader)
+        print(f'Epoch [{epoch + 1}/{args.epochs}], Loss: {avg_loss:.4f}')
 
 
 if __name__ == "__main__":
