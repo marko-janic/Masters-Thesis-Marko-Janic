@@ -14,6 +14,7 @@ import pandas as pd
 from itertools import islice
 from torchvision.models import VisionTransformer
 from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 # Local imports
 from dataset import create_sub_micrographs, get_particle_locations_from_coordinates, ShrecDataset
@@ -21,6 +22,20 @@ from plotting import save_image_with_bounding_boxes
 from utils import print_separator
 
 warnings.simplefilter('ignore')  # to mute some warnings produced when opening the tomos
+
+
+def shrec_dataloader_example(result_dir):
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+
+    dataset = ShrecDataset(sampling_points=5, dataset_path="../dataset/shrec21_full_dataset/")
+
+    dataloader = DataLoader(dataset, 5)
+
+    for sub_micrograph, coordinates_tl in dataloader:
+        print(f'Sub micrograph shape: {sub_micrograph.shape}')
+        print(f'Top left most point coordinates: {coordinates_tl}')
+        break
 
 
 def shrec_dataset_example(result_dir):
@@ -33,10 +48,7 @@ def shrec_dataset_example(result_dir):
     print("Head: ")
     print(dataset.sub_micrographs.head(3))
     print("Getting one specific sub micrograph: ")
-    sub_micrograph_entry = dataset.__getitem__(0)
-    sub_micrograph = sub_micrograph_entry.iloc[0]
-    coordinates = sub_micrograph_entry.iloc[1]
-    print(sub_micrograph_entry)
+    sub_micrograph, coordinates = dataset.__getitem__(0)
 
     selected_particles = get_particle_locations_from_coordinates(coordinates, dataset.sub_micrograph_size,
                                                                  dataset.particle_locations)
@@ -47,9 +59,7 @@ def shrec_dataset_example(result_dir):
     save_image_with_bounding_boxes(sub_micrograph, selected_particles, 4, result_dir,
                                    "test_sub_micrograph_first")
 
-    sub_micrograph_entry = dataset.__getitem__(3)
-    sub_micrograph = sub_micrograph_entry.iloc[0]
-    coordinates = sub_micrograph_entry.iloc[1]
+    sub_micrograph, coordinates = dataset.__getitem__(3)
     selected_particles = get_particle_locations_from_coordinates(coordinates, dataset.sub_micrograph_size,
                                                                  dataset.particle_locations)
     save_image_with_bounding_boxes(sub_micrograph, selected_particles, 4, result_dir,
@@ -176,6 +186,12 @@ def main():
     if run_3:
         print_separator(label="Checking implementation of ShrecDataset class")
         shrec_dataset_example(os.path.join(args.result_dir, f'dataset_testing_model_{args.model_number}'))
+
+    # Dataloader testing ===============================================================================================
+    run_4 = False
+    if run_4:
+        print_separator(label="Testing dataloader with dataset implementation")
+        shrec_dataloader_example(os.path.join(args.result_dir, f'dataloader_testing_model_{args.model_number}'))
 
 
 if __name__ == "__main__":
