@@ -79,7 +79,7 @@ def main():
     criterion = build(args)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
 
-    dataset = ShrecDataset(16)
+    dataset = ShrecDataset(4)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
     for epoch in range(args.epochs):
@@ -149,9 +149,7 @@ def main():
 
             epoch_bar.set_postfix(loss=running_loss / (epoch_bar.n + 1))  # Update the postfix with the running loss
             epoch_bar.update(1)  # Update the progress bar after each batch
-
-        #avg_loss = running_loss / len(dataloader)
-        #print(f'Epoch [{epoch + 1}/{args.epochs}], Loss: {avg_loss:.4f}')
+        epoch_bar.close()
 
 
 if __name__ == "__main__":
