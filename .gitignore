@@ -2,6 +2,7 @@
 mthesis_env
 models/
 dataset
+documents/
 .obsidian
 media
 

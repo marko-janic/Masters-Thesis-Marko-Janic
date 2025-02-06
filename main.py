@@ -42,13 +42,16 @@ def get_latent_representation(self, x: torch.Tensor):
 def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=4, help="Size of each training batch")
+    # Training
+    parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
     parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
     parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
-    parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
-    parser.add_argument("--num_particles", type=int, default=500,
-                        help="Number of particles that the model outputs as predictions")
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
+
+    # Data
+    parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
+    parser.add_argument("--num_particles", type=int, default=500, # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
+                        help="Number of particles that the model outputs as predictions")
 
     # Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -79,7 +82,7 @@ def main():
     criterion = build(args)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
 
-    dataset = ShrecDataset(4)
+    dataset = ShrecDataset(32)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
     for epoch in range(args.epochs):
