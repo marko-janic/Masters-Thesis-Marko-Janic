@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
     parser.add_argument("--checkpoint_interval", type=int, default=1, help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt", help="File to save running loss for each epoch")
+    parser.add_argument("--sampling_points", type=int, default=32, help="Number of sampling points when creating sub micrographs: sampling_points*sampling_points equals total number of sub micrographs")
 
     # Data
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
@@ -107,7 +108,7 @@ def main():
     criterion = build(args)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
 
-    dataset = ShrecDataset(32)
+    dataset = ShrecDataset(args.sampling_points)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
     for epoch in range(args.epochs):
@@ -187,6 +188,8 @@ def main():
         if (epoch + 1) % args.checkpoint_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoint_epoch_{epoch + 1}.pth'))
 
+    # Save final checkpoint
+    torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
 
 if __name__ == "__main__":
     main()
