@@ -52,7 +52,7 @@ def main():
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
     parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
-    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
     parser.add_argument("--checkpoint_interval", type=int, default=1, help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt", help="File to save running loss for each epoch")
@@ -182,11 +182,11 @@ def main():
 
         # Save running loss to log file
         with open(loss_log_path, 'a') as f:
-            f.write(f"{epoch + 1},{running_loss.item()}\n")
+            f.write(f"{epoch + 1},{running_loss.item()}\n")  # TODO: change this since the current value is weird
 
         # Save checkpoint
         if (epoch + 1) % args.checkpoint_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoint_epoch_{epoch + 1}.pth'))
+            torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_epoch_{epoch + 1}.pth'))
 
     # Save final checkpoint
     torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
