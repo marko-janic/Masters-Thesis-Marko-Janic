@@ -42,11 +42,15 @@ def get_latent_representation(self, x: torch.Tensor):
 def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
+    # Experiment Results
+    parser.add_argument("--result_dir", type=str, default=f'experiments/experiment_{datetime.datetime.now().strftime("%d%m%Y_%H%M%S")}', help="Directory to save results to")
+
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
     parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
     parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
+    parser.add_argument("--checkpoint_interval", type=int, default=1, help="Save model checkpoint every checkpoint_interval epochs")
 
     # Data
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
@@ -69,6 +73,17 @@ def main():
                         help="Relative classification weight of the no-object class")
 
     args = parser.parse_args()
+
+    # Create necessary folders if not present ==========================================================================
+    if not os.path.exists(args.result_dir):
+        os.makedirs(args.result_dir)
+    if not os.path.exists(os.path.join(args.result_dir, 'checkpoints')):
+        os.makedirs(os.path.join(args.result_dir, 'checkpoints'))	
+
+    # Save Training information into file ==============================================================================
+    with open(os.path.join(args.result_dir, 'arguments.txt'), 'w') as f:
+        for arg in vars(args):
+            f.write(f"{arg}: {getattr(args, arg)}\n")
 
     # ==================================================================================================================
     vit_model = vit_b_16(weights="IMAGENET1K_V1", progress=True)
@@ -153,6 +168,10 @@ def main():
             epoch_bar.set_postfix(loss=running_loss / (epoch_bar.n + 1))  # Update the postfix with the running loss
             epoch_bar.update(1)  # Update the progress bar after each batch
         epoch_bar.close()
+
+        # Save checkpoint
+        if (epoch + 1) % args.checkpoint_interval == 0:
+            torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoint_epoch_{epoch + 1}.pth'))
 
 
 if __name__ == "__main__":
