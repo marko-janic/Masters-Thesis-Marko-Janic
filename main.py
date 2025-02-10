@@ -47,7 +47,7 @@ def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Experiment Results
-    parser.add_argument("--result_dir", type=str, default=f'experiments/experiment_{datetime.datetime.now().strftime("%d%m%Y_%H%M%S")}', help="Directory to save results to")
+    parser.add_argument("--result_dir", type=str, default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}', help="Directory to save results to")
 
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
