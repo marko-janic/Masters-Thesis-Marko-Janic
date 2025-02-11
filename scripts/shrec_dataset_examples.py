@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 # Local imports
 from dataset import create_sub_micrographs, get_particle_locations_from_coordinates, ShrecDataset
 from plotting import save_image_with_bounding_boxes
-from utils import print_separator
+from util.utils import print_separator
 
 warnings.simplefilter('ignore')  # to mute some warnings produced when opening the tomos
 
