@@ -89,7 +89,7 @@ class ShrecDataset(Dataset):
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
 
     def __init__(self, sampling_points, micrograph_size=512, sub_micrograph_size=224, model_number=1,
-                 dataset_path="dataset/shrec21_full_dataset/"):
+                 dataset_path='dataset/shrec21_full_dataset/'):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -115,7 +115,7 @@ class ShrecDataset(Dataset):
 
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
                       permissive=True) as f:
-            self.micrograph = np.sum(f.data, axis=0)
+            self.micrograph = torch.tensor(f.data.sum(axis=0))
 
         self.sub_micrographs = create_sub_micrographs(self.micrograph, self.sub_micrograph_size, self.sampling_points)
 
@@ -129,5 +129,5 @@ class ShrecDataset(Dataset):
         """
         sub_micrograph_entry = self.sub_micrographs.iloc[idx]
         # TODO: look at if we want to do the channels like this (just repetition)
-        return (np.repeat(np.expand_dims(sub_micrograph_entry['sub_micrograph'], axis=0), 3, axis=0),
+        return (sub_micrograph_entry['sub_micrograph'].unsqueeze(0).repeat(3, 1, 1),
                 sub_micrograph_entry['top_left_coordinates'])

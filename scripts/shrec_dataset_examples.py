@@ -158,13 +158,13 @@ def main():
     print("Shape of particle locations: ", particle_locations.shape)
 
     # Example visualization of one micrograph ==========================================================================
-    run_0 = False
+    run_0 = True
     if run_0:
         print_separator(label="Visualizing one noisy micrograph")
         noisy_micrograph_example(noisy_projections[29], args.model_number, args.result_dir)
 
     # Cropping sub micrographs =========================================================================================
-    run_1 = False
+    run_1 = True
     if run_1:
         print_separator(label="Creating and saving sub micrographs")
         crop_sub_micrographs_example(micrograph=micrograph, crop_size=224,
@@ -173,7 +173,7 @@ def main():
                                      model_number=args.model_number, particle_locations=particle_locations)
 
     # Grandmodel micrograph ============================================================================================
-    run_2 = False
+    run_2 = True
     if run_2:
         print_separator(label="Checking and saving grandmodel with summed dimensions")
         grandmodel_dimension_summing_example(dataset_path=args.dataset_path, model_number=args.model_number,
@@ -188,7 +188,7 @@ def main():
         shrec_dataset_example(os.path.join(args.result_dir, f'dataset_testing_model_{args.model_number}'))
 
     # Dataloader testing ===============================================================================================
-    run_4 = False
+    run_4 = True
     if run_4:
         print_separator(label="Testing dataloader with dataset implementation")
         shrec_dataloader_example(os.path.join(args.result_dir, f'dataloader_testing_model_{args.model_number}'))

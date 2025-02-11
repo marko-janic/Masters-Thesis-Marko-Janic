@@ -50,7 +50,7 @@ def main():
 
     # Data
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
-    parser.add_argument("--num_particles", type=int, default=500, # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
+    parser.add_argument("--num_particles", type=int, default=500,  # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
                         help="Number of particles that the model outputs as predictions")
 
     # Matcher
