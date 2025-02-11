@@ -17,7 +17,8 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
     :param sub_micrograph_size: Size of the sub micrographs, usually 224
     :param particle_locations: Pandas DataFrame containing all particle locations of the micrograph
     :param orientation: TODO
-    :return: Pandas DataFrame with the particles present in the sub micrograph
+    :return: Pandas DataFrame with columns ['X', 'Y', 'Z'] which corresponds to the particles present in the
+        sub micrograph determined by coordinate_tl
     """
     if orientation == "normal":
         x_min = coordinates_tl[0].item()
@@ -110,7 +111,7 @@ class ShrecDataset(Dataset):
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
             pd.read_csv(os.path.join(self.dataset_path, f'model_{self.model_number}/particle_locations.txt'),
-                        sep=r'\s+', names=columns).drop(columns=['Z', 'rotation_Z1', 'rotation_X',
+                        sep=r'\s+', names=columns).drop(columns=['rotation_Z1', 'rotation_X',
                                                                  'rotation_Z2']))
 
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
