@@ -89,7 +89,7 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
 class ShrecDataset(Dataset):
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
 
-    def __init__(self, sampling_points, micrograph_size=512, sub_micrograph_size=224, model_number=1,
+    def __init__(self, sampling_points, micrograph_size=512, sub_micrograph_size=224, model_number=1, particle_size=8  # TODO: check if this is a good particle size
                  dataset_path='dataset/shrec21_full_dataset/'):
         """
         Dataset Loader for Shrec21 Dataset.
@@ -98,6 +98,7 @@ class ShrecDataset(Dataset):
         :param micrograph_size: See shrec dataset
         :param sub_micrograph_size: The size we want our sub micrographs to be
         :param model_number: Model to select for this iteration
+        :param particle_size: Size of the particles in the micrograph
         :param dataset_path: Path to dataset
         """
 
@@ -106,6 +107,7 @@ class ShrecDataset(Dataset):
         self.micrograph_size = micrograph_size
         self.num_models = 10  # See shrec dataset
         self.sampling_points = sampling_points
+        self.particle_size = particle_size
         self.dataset_path = dataset_path
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']

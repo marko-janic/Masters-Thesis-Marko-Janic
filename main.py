@@ -103,6 +103,22 @@ def main():
     vit_model.forward = types.MethodType(get_latent_representation, vit_model)
 
     # Training =========================================================================================================
+    dataset = ShrecDataset(args.sampling_points)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size)
+
+    # Save Dataset information into file ===============================================================================
+    with open(os.path.join(args.result_dir, 'dataset_info.txt'), 'w') as f:
+        f.write(f"Model Number: {dataset.model_number}\n")
+        f.write(f"Sub Micrograph Size: {dataset.sub_micrograph_size}\n")
+        f.write(f"Micrograph Size: {dataset.micrograph_size}\n")
+        f.write(f"Number of Models: {dataset.num_models}\n")
+        f.write(f"Sampling Points: {dataset.sampling_points}\n")
+        f.write(f"Particle Size: {dataset.particle_size}\n")
+        f.write(f"Dataset Path: {dataset.dataset_path}\n")
+        f.write(f"Particle Locations:\n{dataset.particle_locations.head(2)}\n")
+
+    # ==================================================================================================================
+
     model = ParticlePicker(args.latent_dim, args.num_particles)
     model.to(args.device)
     criterion = build(args)
