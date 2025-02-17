@@ -20,6 +20,7 @@ from tqdm import tqdm
 from model import ParticlePicker
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
 from loss import SetCriterion, build
+from evaluate import evaluate
 
 
 def get_latent_representation(self, x: torch.Tensor):
@@ -46,6 +47,10 @@ def get_latent_representation(self, x: torch.Tensor):
 def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
+    # Program Arguments
+    parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
+    parser.add_argument("--existing_result_folder", type=str, default=None, help="Path to existing result folder to load model from.")
+
     # Experiment Results
     parser.add_argument("--result_dir", type=str, default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}', help="Directory to save results to")
 
@@ -82,20 +87,25 @@ def main():
     args = parser.parse_args()
 
     # Create necessary folders if not present ==========================================================================
+    if existing_result_folder is not None:
+        args.result_dir = existing_result_folder
+
     if not os.path.exists(args.result_dir):
         os.makedirs(args.result_dir)
     if not os.path.exists(os.path.join(args.result_dir, 'checkpoints')):
         os.makedirs(os.path.join(args.result_dir, 'checkpoints'))	
 
     # Save Training information into file ==============================================================================
-    with open(os.path.join(args.result_dir, 'arguments.txt'), 'w') as f:
-        for arg in vars(args):
-            f.write(f"{arg}: {getattr(args, arg)}\n")
+    if args.mode not "eval":
+        with open(os.path.join(args.result_dir, 'arguments.txt'), 'w') as f:
+            for arg in vars(args):
+                f.write(f"{arg}: {getattr(args, arg)}\n")
 
     # Initialize loss log file =========================================================================================
-    loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
-    with open(loss_log_path, 'w') as f:
-        f.write("epoch,running_loss\n")
+    if args.mode not "eval":
+        loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
+        with open(loss_log_path, 'w') as f:
+            f.write("epoch,running_loss\n")
 
     # ==================================================================================================================
     vit_model = vit_b_16(weights="IMAGENET1K_V1", progress=True)
@@ -117,85 +127,89 @@ def main():
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
     eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size)
 
-    for epoch in range(args.epochs):
-        model.train()
-        criterion.train()
-        running_loss = 0.0
-        # Loading bar for the outer loop (epochs)
-        epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
+    if args.mode == "train":
+        for epoch in range(args.epochs):
+            model.train()
+            criterion.train()
+            running_loss = 0.0
+            # Loading bar for the outer loop (epochs)
+            epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
-        for sub_micrographs, coordinate_tl_list in train_dataloader:
-            targets = []
-            # Loading bar for the inner loop (batches within each epoch)
-            for index, coordinate_tl in enumerate(coordinate_tl_list):
-                particle_locations = get_particle_locations_from_coordinates(coordinate_tl,
-                                                                             dataset.sub_micrograph_size,
-                                                                             dataset.particle_locations)
-                # We do this so that it fits into the loss function given by cryo transformer
-                boxes = torch.tensor(particle_locations[['X', 'Y']].values)
-                zero_columns = torch.ones((boxes.shape[0], 2)) * 0.01  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
-                boxes = torch.cat((boxes, zero_columns), dim=1)
-                labels = torch.ones(boxes.shape[0])
-                orig_size = torch.tensor([dataset.sub_micrograph_size, dataset.sub_micrograph_size])
-                size = torch.tensor([dataset.sub_micrograph_size, dataset.sub_micrograph_size])
+            for sub_micrographs, coordinate_tl_list in train_dataloader:
+                targets = []
+                # Loading bar for the inner loop (batches within each epoch)
+                for index, coordinate_tl in enumerate(coordinate_tl_list):
+                    particle_locations = get_particle_locations_from_coordinates(coordinate_tl,
+                                                                                 dataset.sub_micrograph_size,
+                                                                                 dataset.particle_locations)
+                    # We do this so that it fits into the loss function given by cryo transformer
+                    boxes = torch.tensor(particle_locations[['X', 'Y']].values)
+                    zero_columns = torch.ones((boxes.shape[0], 2)) * 0.01  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
+                    boxes = torch.cat((boxes, zero_columns), dim=1)
+                    labels = torch.ones(boxes.shape[0])
+                    orig_size = torch.tensor([dataset.sub_micrograph_size, dataset.sub_micrograph_size])
+                    size = torch.tensor([dataset.sub_micrograph_size, dataset.sub_micrograph_size])
 
-                # Pad boxes to 500 entries (padded with 0, 0 for coordinates and 0.01 for other values)
-                pad_size = args.num_particles - boxes.shape[0]
-                if pad_size > 0:
-                    padding = torch.zeros(pad_size, 4)  # Pad with 0, 0, 0, 0 (4 elements for each box)
-                    boxes = torch.cat((boxes, padding), dim=0)
+                    # Pad boxes to 500 entries (padded with 0, 0 for coordinates and 0.01 for other values)
+                    pad_size = args.num_particles - boxes.shape[0]
+                    if pad_size > 0:
+                        padding = torch.zeros(pad_size, 4)  # Pad with 0, 0, 0, 0 (4 elements for each box)
+                        boxes = torch.cat((boxes, padding), dim=0)
 
-                # Now, pad 'labels' to a fixed size of 500 with 0s
-                label_pad_size = args.num_particles - labels.shape[0]
-                if label_pad_size > 0:
-                    label_padding = torch.zeros(label_pad_size)  # Padding for labels (all 0s)
-                    labels = torch.cat((labels, label_padding), dim=0)
+                    # Now, pad 'labels' to a fixed size of 500 with 0s
+                    label_pad_size = args.num_particles - labels.shape[0]
+                    if label_pad_size > 0:
+                        label_padding = torch.zeros(label_pad_size)  # Padding for labels (all 0s)
+                        labels = torch.cat((labels, label_padding), dim=0)
 
-                target = {
-                    "boxes": boxes,
-                    "labels": labels,
-                    "orig_size": orig_size,
-                    "image_id": size,
+                    target = {
+                        "boxes": boxes,
+                        "labels": labels,
+                        "orig_size": orig_size,
+                        "image_id": size,
+                    }
+                    targets.append(target)
+
+                latent_sub_micrographs = vit_model(sub_micrographs)
+                predictions = model(latent_sub_micrographs)
+
+                # Again we do it to fit the cryo transformer loss
+                predictions_classes = predictions[:, :, 2:4]
+                predictions_coordinates = predictions[:, :, :2]
+                zeros = torch.ones(args.batch_size, args.num_particles, 2) * 0.01  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
+                predictions_coordinates = torch.cat((predictions_coordinates, zeros), dim=2)
+                outputs = {
+                    "pred_logits": predictions_classes,
+                    "pred_boxes": predictions_coordinates
                 }
-                targets.append(target)
 
-            latent_sub_micrographs = vit_model(sub_micrographs)
-            predictions = model(latent_sub_micrographs)
+                loss_dict = criterion(outputs, targets)
+                weight_dict = criterion.weight_dict
+                losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
-            # Again we do it to fit the cryo transformer loss
-            predictions_classes = predictions[:, :, 2:4]
-            predictions_coordinates = predictions[:, :, :2]
-            zeros = torch.ones(args.batch_size, args.num_particles, 2) * 0.01  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
-            predictions_coordinates = torch.cat((predictions_coordinates, zeros), dim=2)
-            outputs = {
-                "pred_logits": predictions_classes,
-                "pred_boxes": predictions_coordinates
-            }
+                optimizer.zero_grad()
+                losses.backward()
+                optimizer.step()
 
-            loss_dict = criterion(outputs, targets)
-            weight_dict = criterion.weight_dict
-            losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+                running_loss += losses
 
-            optimizer.zero_grad()
-            losses.backward()
-            optimizer.step()
+                epoch_bar.set_postfix(loss=running_loss / (epoch_bar.n + 1))  # Update the postfix with the running loss
+                epoch_bar.update(1)  # Update the progress bar after each batch
+            epoch_bar.close()
 
-            running_loss += losses
+            # Save running loss to log file
+            with open(loss_log_path, 'a') as f:
+                f.write(f"{epoch + 1},{running_loss.item()}\n")  # TODO: change this since the current value is weird
 
-            epoch_bar.set_postfix(loss=running_loss / (epoch_bar.n + 1))  # Update the postfix with the running loss
-            epoch_bar.update(1)  # Update the progress bar after each batch
-        epoch_bar.close()
+            # Save checkpoint
+            if (epoch + 1) % args.checkpoint_interval == 0:
+                torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_epoch_{epoch + 1}.pth'))
 
-        # Save running loss to log file
-        with open(loss_log_path, 'a') as f:
-            f.write(f"{epoch + 1},{running_loss.item()}\n")  # TODO: change this since the current value is weird
+        # Save final checkpoint
+        torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
 
-        # Save checkpoint
-        if (epoch + 1) % args.checkpoint_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_epoch_{epoch + 1}.pth'))
-
-    # Save final checkpoint
-    torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
+    if args.mode == "eval":
+        evaluate(model, vit_model, eval_dataloader, criterion, args.device)
 
 if __name__ == "__main__":
     main()
