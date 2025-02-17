@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from torchvision.models import vit_b_16, VisionTransformer
 from torchvision import transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
 # Local imports
@@ -56,7 +56,8 @@ def main():
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
     parser.add_argument("--checkpoint_interval", type=int, default=1, help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt", help="File to save running loss for each epoch")
-    parser.add_argument("--sampling_points", type=int, default=32, help="Number of sampling points when creating sub micrographs: sampling_points*sampling_points equals total number of sub micrographs")
+    parser.add_argument("--sampling_points", type=int, default=16, help="Number of sampling points when creating sub micrographs: sampling_points*sampling_points equals total number of sub micrographs")
+    parser.add_argument("--train_eval_split", type=float, default=0.9, help="Ratio of training to evaluation split. 0.9 means that 90% of the data is used for training and 10% for evaluation")
 
     # Data
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
@@ -109,16 +110,21 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
 
     dataset = ShrecDataset(args.sampling_points)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size)
+    train_size = int(args.train_eval_split * len(dataset))
+    eval_size = len(dataset) - train_size
+    train_dataset, eval_dataset = random_split(dataset, [train_size, eval_size])
+
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+    eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size)
 
     for epoch in range(args.epochs):
         model.train()
         criterion.train()
         running_loss = 0.0
         # Loading bar for the outer loop (epochs)
-        epoch_bar = tqdm(range(len(dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
+        epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
-        for sub_micrographs, coordinate_tl_list in dataloader:
+        for sub_micrographs, coordinate_tl_list in train_dataloader:
             targets = []
             # Loading bar for the inner loop (batches within each epoch)
             for index, coordinate_tl in enumerate(coordinate_tl_list):
