@@ -43,6 +43,25 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         raise Exception(f'The orientation {orientation} is not a valid orientation')
 
 
+def get_coordinates_in_sub_micrograph(coordinates_in_original_image, coordinate_tl):
+    """
+    Scales the coordinates from the original micrograph to the sub micrograph.
+
+    :param coordinates_in_original_image: A tensor of coordinates in the original micrograph.
+    :param sub_micrograph_size: Size of the sub micrograph.
+    :param coordinate_tl: The top left coordinate of the sub micrograph.
+    :return: A tensor of coordinates in the sub micrograph.
+    """
+    x_min = coordinate_tl[0].item()
+    y_min = coordinate_tl[1].item()
+
+    scaled_coordinates = coordinates_in_original_image.clone()
+    scaled_coordinates[:, 0] -= x_min
+    scaled_coordinates[:, 1] -= y_min
+
+    return scaled_coordinates
+
+
 def create_sub_micrographs(micrograph, crop_size, sampling_points):
     """
     Creates sub micrographs of the given micrograph by sliding a window of size crop_size x crop_size across the image
