@@ -1,4 +1,6 @@
-result_dir: experiments/experiment_17-02-2025_09-11-13
+mode: train
+existing_result_folder: None
+result_dir: experiments/experiment_18-02-2025_11-38-47
 batch_size: 8
 learning_rate: 0.001
 epochs: 10
@@ -6,6 +8,7 @@ device: cpu
 checkpoint_interval: 1
 loss_log_file: loss_log.txt
 sampling_points: 16
+train_eval_split: 0.9
 latent_dim: 768
 num_particles: 500
 set_cost_class: 1
@@ -17,4 +20,4 @@ bbox_loss_coef: 5
 giou_loss_coef: 2
 eos_coef: 0.1
 
-This training sessions had the bounding boxes hardcoded to 0.01 x 0.01 size
+This training sessions had the bounding boxes hardcoded to 5 x 5 size

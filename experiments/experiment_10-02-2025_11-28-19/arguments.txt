@@ -16,3 +16,5 @@ dice_loss_coef: 1
 bbox_loss_coef: 5
 giou_loss_coef: 2
 eos_coef: 0.1
+
+This training sessions had the bounding boxes hardcoded to 0.01 x 0.01 size
