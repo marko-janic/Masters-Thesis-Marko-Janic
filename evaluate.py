@@ -1,18 +1,29 @@
+import os
 import torch
+import datetime
+import pandas as pd
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+# Local imports
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
 from model import ParticlePicker
 from loss import SetCriterion, build
+from util.utils import create_folder_if_missing
+from plotting import compare_predictions_with_ground_truth
 
-def evaluate(model, vit_model, dataset, criterion, device):
+
+def evaluate(model, vit_model, dataset, test_dataloader, criterion, experiment_dir, example_predictions, device):
+    result_dir = os.path.join(experiment_dir, f'evaluation_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}')
+    create_folder_if_missing(result_dir)
+
     model.eval()
     criterion.eval()
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
     running_loss = 0.0
 
+    example_counter = 0
     with torch.no_grad():
-        for sub_micrographs, coordinate_tl_list in tqdm(dataloader, desc="Evaluating"):
+        for sub_micrographs, coordinate_tl_list in tqdm(test_dataloader, desc="Evaluating"):
             targets = []
             for index, coordinate_tl in enumerate(coordinate_tl_list):
                 particle_locations = get_particle_locations_from_coordinates(coordinate_tl,
@@ -61,5 +72,24 @@ def evaluate(model, vit_model, dataset, criterion, device):
 
             running_loss += losses.item()
 
-    avg_loss = running_loss / len(dataloader)
+            if example_counter < example_predictions:  # TODO: needs a lot of refactoring
+                # Transform predictions coordinates tensor into a dataframe
+                ground_truth_df = pd.DataFrame(targets[0]['boxes'][:, :2].cpu().numpy(), columns=['X', 'Y'])
+                pred_coords_df = pd.DataFrame(predictions_coordinates[0, :, :2].cpu().numpy(), columns=['X', 'Y'])
+                compare_predictions_with_ground_truth(
+                    image_tensor=sub_micrographs[0].cpu(),
+                    ground_truth=ground_truth_df,
+                    predictions=pred_coords_df,
+                    circle_radius=5,
+                    result_dir=result_dir,
+                    file_name=f'example_{example_counter}.png'
+                )
+                example_counter += 1
+
+    avg_loss = running_loss / len(test_dataloader)
     print(f"Average evaluation loss: {avg_loss}")
+
+    # Logging the running loss to a txt file
+    log_file_path = os.path.join(result_dir, "evaluation_log.txt")
+    with open(log_file_path, "a") as log_file:
+        log_file.write(f"Average evaluation loss: {avg_loss}\n")

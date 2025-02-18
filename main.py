@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 # Local imports
 from model import ParticlePicker
+from util.utils import create_folder_if_missing
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
 from loss import SetCriterion, build
 from evaluate import evaluate
@@ -48,8 +49,8 @@ def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Program Arguments
-    parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default=None, help="Path to existing result folder to load model from.")
+    parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_17-02-2025_09-11-13", help="Path to existing result folder to load model from.")
 
     # Experiment Results
     parser.add_argument("--result_dir", type=str, default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}', help="Directory to save results to")
@@ -87,22 +88,20 @@ def main():
     args = parser.parse_args()
 
     # Create necessary folders if not present ==========================================================================
-    if existing_result_folder is not None:
-        args.result_dir = existing_result_folder
+    if args.existing_result_folder is not None:
+        args.result_dir = os.path.join('experiments', args.existing_result_folder)
 
-    if not os.path.exists(args.result_dir):
-        os.makedirs(args.result_dir)
-    if not os.path.exists(os.path.join(args.result_dir, 'checkpoints')):
-        os.makedirs(os.path.join(args.result_dir, 'checkpoints'))	
+    create_folder_if_missing(args.result_dir)
+    create_folder_if_missing(os.path.join(args.result_dir, 'checkpoints'))
 
     # Save Training information into file ==============================================================================
-    if args.mode not "eval":
+    if args.mode != "eval":
         with open(os.path.join(args.result_dir, 'arguments.txt'), 'w') as f:
             for arg in vars(args):
                 f.write(f"{arg}: {getattr(args, arg)}\n")
 
     # Initialize loss log file =========================================================================================
-    if args.mode not "eval":
+    if args.mode != "eval":
         loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
         with open(loss_log_path, 'w') as f:
             f.write("epoch,running_loss\n")
@@ -121,11 +120,11 @@ def main():
 
     dataset = ShrecDataset(args.sampling_points)
     train_size = int(args.train_eval_split * len(dataset))
-    eval_size = len(dataset) - train_size
-    train_dataset, eval_dataset = random_split(dataset, [train_size, eval_size])
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
-    eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size)
+    test_dataloader = DataLoader(test_dataset, batch_size=1)
 
     if args.mode == "train":
         for epoch in range(args.epochs):
@@ -137,7 +136,6 @@ def main():
 
             for sub_micrographs, coordinate_tl_list in train_dataloader:
                 targets = []
-                # Loading bar for the inner loop (batches within each epoch)
                 for index, coordinate_tl in enumerate(coordinate_tl_list):
                     particle_locations = get_particle_locations_from_coordinates(coordinate_tl,
                                                                                  dataset.sub_micrograph_size,
@@ -209,7 +207,15 @@ def main():
         torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
 
     if args.mode == "eval":
-        evaluate(model, vit_model, eval_dataloader, criterion, args.device)
+        checkpoint_path = os.path.join(args.result_dir, 'checkpoint_final.pth')
+        if os.path.exists(checkpoint_path):
+            model.load_state_dict(torch.load(checkpoint_path, map_location=args.device))
+        else:
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+
+        evaluate(experiment_dir=args.result_dir, criterion=criterion, vit_model=vit_model, model=model,
+                 dataset=dataset, test_dataloader=test_dataloader, device=args.device, example_predictions=4)
+
 
 if __name__ == "__main__":
     main()

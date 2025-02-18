@@ -1,3 +1,6 @@
+import os
+
+
 def print_separator(label="", char="=", length=100):
     print()
     if label:
@@ -6,3 +9,8 @@ def print_separator(label="", char="=", length=100):
     else:
         print(char * length)
     print()
+
+
+def create_folder_if_missing(result_dir):
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
