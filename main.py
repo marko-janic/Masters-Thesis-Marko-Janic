@@ -50,7 +50,7 @@ def main():
     parser = argparse.ArgumentParser()
     # Program Arguments
     parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_17-02-2025_09-11-13", help="Path to existing result folder to load model from.")
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_18-02-2025_11-38-47", help="Path to existing result folder to load model from.")
 
     # Experiment Results
     parser.add_argument("--result_dir", type=str, default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}', help="Directory to save results to")
@@ -88,7 +88,7 @@ def main():
     args = parser.parse_args()
 
     # Create necessary folders if not present ==========================================================================
-    if args.existing_result_folder is not None:
+    if args.existing_result_folder is not None and args.mode == "eval":
         args.result_dir = os.path.join('experiments', args.existing_result_folder)
 
     create_folder_if_missing(args.result_dir)
@@ -123,7 +123,7 @@ def main():
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)  # Important to set drop_last=True otherwise certain bath_size + dataset combinations don't work since every batch needs to be of size args.batch_size
     test_dataloader = DataLoader(test_dataset, batch_size=1)
 
     if args.mode == "train":
@@ -142,7 +142,7 @@ def main():
                                                                                  dataset.particle_locations)
                     # We do this so that it fits into the loss function given by cryo transformer
                     boxes = torch.tensor(particle_locations[['X', 'Y']].values)
-                    zero_columns = torch.ones((boxes.shape[0], 2)) * 0.01  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
+                    zero_columns = torch.ones((boxes.shape[0], 2)) * 5  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
                     boxes = torch.cat((boxes, zero_columns), dim=1)
                     labels = torch.ones(boxes.shape[0])
                     orig_size = torch.tensor([dataset.sub_micrograph_size, dataset.sub_micrograph_size])
@@ -174,8 +174,8 @@ def main():
                 # Again we do it to fit the cryo transformer loss
                 predictions_classes = predictions[:, :, 2:4]
                 predictions_coordinates = predictions[:, :, :2]
-                zeros = torch.ones(args.batch_size, args.num_particles, 2) * 0.01  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
-                predictions_coordinates = torch.cat((predictions_coordinates, zeros), dim=2)
+                box_sizes = torch.ones(args.batch_size, args.num_particles, 2) * 5  # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
+                predictions_coordinates = torch.cat((predictions_coordinates, box_sizes), dim=2)
                 outputs = {
                     "pred_logits": predictions_classes,
                     "pred_boxes": predictions_coordinates

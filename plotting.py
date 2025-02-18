@@ -58,7 +58,7 @@ def save_image_with_bounding_circles(image_tensor, particle_locations, circle_ra
 
 
 def compare_predictions_with_ground_truth(image_tensor, ground_truth, predictions, circle_radius, result_dir,
-                                          file_name, gt_color='g', pred_color='b', z_threshold=9999):
+                                          file_name, gt_color='g', pred_color='g', z_threshold=9999):
     """
     Visualize model predictions side by side with the ground truth.
 

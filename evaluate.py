@@ -74,8 +74,10 @@ def evaluate(model, vit_model, dataset, test_dataloader, criterion, experiment_d
 
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
                 # Transform predictions coordinates tensor into a dataframe
+                pred_coords = predictions_coordinates[0, :, :2].cpu().numpy()
+                pred_probs = predictions_classes[0, :, 1].cpu().numpy()
+                pred_coords_df = pd.DataFrame(pred_coords[pred_probs > 0.99], columns=['X', 'Y'])  # TODO: again dont make this a hard coded value
                 ground_truth_df = pd.DataFrame(targets[0]['boxes'][:, :2].cpu().numpy(), columns=['X', 'Y'])
-                pred_coords_df = pd.DataFrame(predictions_coordinates[0, :, :2].cpu().numpy(), columns=['X', 'Y'])
                 compare_predictions_with_ground_truth(
                     image_tensor=sub_micrographs[0].cpu(),
                     ground_truth=ground_truth_df,

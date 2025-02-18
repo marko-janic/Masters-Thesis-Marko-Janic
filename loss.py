@@ -1,3 +1,5 @@
+# File taken from cryotransformers mostly  # TODO: add proper description
+
 import torch
 import torch.nn.functional as F
 from torch import nn
