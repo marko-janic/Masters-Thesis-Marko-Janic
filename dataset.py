@@ -8,7 +8,8 @@ import torch
 from torch.utils.data import Dataset
 
 
-def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations, orientation="normal"):
+def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations,
+                                            orientation="normal"):
     """
     Given coordinates, this function determines the location of all relevant particles in the sub micrograph
 
@@ -48,7 +49,6 @@ def get_coordinates_in_sub_micrograph(coordinates_in_original_image, coordinate_
     Scales the coordinates from the original micrograph to the sub micrograph.
 
     :param coordinates_in_original_image: A tensor of coordinates in the original micrograph.
-    :param sub_micrograph_size: Size of the sub micrograph.
     :param coordinate_tl: The top left coordinate of the sub micrograph.
     :return: A tensor of coordinates in the sub micrograph.
     """
@@ -120,7 +120,7 @@ class ShrecDataset(Dataset):
         :param dataset_path: Path to dataset
         """
 
-        self.model_number = model_number
+        self.model_number = model_number  # TODO: needed later for noisy projection
         self.sub_micrograph_size = sub_micrograph_size
         self.micrograph_size = micrograph_size
         self.num_models = 10  # See shrec dataset
@@ -136,6 +136,7 @@ class ShrecDataset(Dataset):
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
                       permissive=True) as f:
             self.micrograph = torch.tensor(f.data.sum(axis=0))
+            self.micrograph /= self.micrograph.max()  # Normalize the data between 0 and 1
 
         self.sub_micrographs = create_sub_micrographs(self.micrograph, self.sub_micrograph_size, self.sampling_points)
 

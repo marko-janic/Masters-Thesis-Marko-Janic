@@ -50,7 +50,7 @@ def main():
     parser = argparse.ArgumentParser()
     # Program Arguments
     parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_18-02-2025_11-38-47",
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_18-02-2025_16-06-38",
                         help="Path to existing result folder to load model from.")
 
     # Experiment Results
@@ -205,7 +205,7 @@ def main():
 
                 running_loss += losses
 
-                epoch_bar.set_postfix(loss=running_loss / (epoch_bar.n + 1))  # Update the postfix with the running loss
+                epoch_bar.set_postfix(loss=losses)  # Update the postfix with the running loss
                 epoch_bar.update(1)  # Update the progress bar after each batch
             epoch_bar.close()
 
