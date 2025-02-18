@@ -6,6 +6,7 @@ documents/
 .obsidian
 media
 experiments/**/checkpoints/
+experiments/**/evaluation*/
 
 
 # Byte-compiled / optimized / DLL files
