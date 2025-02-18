@@ -8,8 +8,8 @@ import torch
 from torch.utils.data import Dataset
 
 
-def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations,
-                                            orientation="normal"):
+def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations, particle_width,
+                                            particle_height, orientation="normal"):
     """
     Given coordinates, this function determines the location of all relevant particles in the sub micrograph
 
@@ -17,19 +17,17 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
     sub micrograph. Index 0 is the x value and index 1 is the y value.
     :param sub_micrograph_size: Size of the sub micrographs, usually 224
     :param particle_locations: Pandas DataFrame containing all particle locations of the micrograph
+    :param particle_height: Height of particle in micrograph
+    :param particle_width: Width of particle in micrograph
     :param orientation: TODO
-    :return: Pandas DataFrame with columns ['X', 'Y', 'Z'] which corresponds to the particles present in the
-        sub micrograph determined by coordinate_tl
+    :return: Pandas DataFrame with columns ['X', 'Y', 'Z', 'particle_width', 'particle_height'] which corresponds to
+        the particles present in the sub micrograph determined by coordinate_tl
     """
     if orientation == "normal":
         x_min = coordinates_tl[0].item()
         x_max = x_min + sub_micrograph_size
         y_min = coordinates_tl[1].item()
         y_max = y_min + sub_micrograph_size
-        #print("x_min:", x_min)
-        #print("x_max:", x_max)
-        #print("y_min:", y_min)
-        #print("y_max:", y_max)
 
         selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
                                                 (particle_locations['X'] <= x_max) &
@@ -39,27 +37,15 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         selected_particles.loc[:, 'X'] = selected_particles['X'] - x_min
         selected_particles.loc[:, 'Y'] = selected_particles['Y'] - y_min
 
+        # Add particle width and height information
+        particle_widths = pd.Series([particle_width] * len(selected_particles))
+        particle_heights = pd.Series([particle_height] * len(selected_particles))
+        selected_particles = selected_particles.assign(particle_width=particle_widths)
+        selected_particles = selected_particles.assign(particle_height=particle_heights)
+
         return selected_particles
     else:
         raise Exception(f'The orientation {orientation} is not a valid orientation')
-
-
-def get_coordinates_in_sub_micrograph(coordinates_in_original_image, coordinate_tl):
-    """
-    Scales the coordinates from the original micrograph to the sub micrograph.
-
-    :param coordinates_in_original_image: A tensor of coordinates in the original micrograph.
-    :param coordinate_tl: The top left coordinate of the sub micrograph.
-    :return: A tensor of coordinates in the sub micrograph.
-    """
-    x_min = coordinate_tl[0].item()
-    y_min = coordinate_tl[1].item()
-
-    scaled_coordinates = coordinates_in_original_image.clone()
-    scaled_coordinates[:, 0] -= x_min
-    scaled_coordinates[:, 1] -= y_min
-
-    return scaled_coordinates
 
 
 def create_sub_micrographs(micrograph, crop_size, sampling_points):
@@ -108,24 +94,26 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
 class ShrecDataset(Dataset):
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
 
-    def __init__(self, sampling_points, micrograph_size=512, sub_micrograph_size=224, model_number=1,
-                 dataset_path='dataset/shrec21_full_dataset/'):
+    def __init__(self, sampling_points, micrograph_size=512, sub_micrograph_size=224,
+                 dataset_path='dataset/shrec21_full_dataset/', model_number=1, particle_width=16, particle_height=16):
         """
         Dataset Loader for Shrec21 Dataset.
 
         :param sampling_points: Determines number of sub_micrographs, sampling_points^2 = number of sub micrographs
-        :param micrograph_size: See shrec dataset
+        :param micrograph_size: See shrec dataset, grandmodel is 512 x 512
         :param sub_micrograph_size: The size we want our sub micrographs to be
-        :param model_number: Model to select for this iteration
         :param dataset_path: Path to dataset
+        :param particle_height: Height of particle in micrograph
+        :param particle_width: Width of particle in micrograph
         """
 
-        self.model_number = model_number  # TODO: needed later for noisy projection
         self.sub_micrograph_size = sub_micrograph_size
+        self.model_number = model_number
         self.micrograph_size = micrograph_size
-        self.num_models = 10  # See shrec dataset
         self.sampling_points = sampling_points
         self.dataset_path = dataset_path
+        self.particle_width = particle_width
+        self.particle_height = particle_height
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
