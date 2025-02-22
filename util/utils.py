@@ -26,7 +26,7 @@ def transform_coords_to_pixel_coords(image_width, image_height, coords):
     Args:
         image_width (int): The width of the image.
         image_height (int): The height of the image.
-        coords (torch.Tensor): A tensor of shape [1, Batch, x, y] with coordinates in the range [0, 1].
+        coords (torch.Tensor): A tensor of shape [x, y] with coordinates in the range [0, 1].
 
     Returns:
         torch.Tensor: A tensor of the same shape as coords with pixel coordinates.
