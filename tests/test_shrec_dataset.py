@@ -22,6 +22,10 @@ class ShrecDatasetTests(unittest.TestCase):
         self.assertEqual((coordinates[0], coordinates[1]), (0, 0))
         self.assertEqual(dataset_length, TEST_DATASET_SAMPLING_POINTS**2)
 
+    def test_micrographs_normalization(self):
+        self.assertEqual(self.dataset.micrograph.min(), 0)
+        self.assertEqual(self.dataset.micrograph.max(), 1)
+
 
 if __name__ == '__main__':
     unittest.main()
