@@ -5,7 +5,11 @@ import numpy as np
 import pandas as pd
 import torch
 
+import torchvision.transforms.functional as F
+
 from torch.utils.data import Dataset
+
+# Local imports
 
 
 def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations,
@@ -120,12 +124,12 @@ class ShrecDataset(Dataset):
         :param dataset_path: Path to dataset
         """
 
-        self.model_number = model_number  # TODO: needed later for noisy projection
-        self.sub_micrograph_size = sub_micrograph_size
-        self.micrograph_size = micrograph_size
-        self.num_models = 10  # See shrec dataset
-        self.sampling_points = sampling_points
         self.dataset_path = dataset_path
+        self.model_number = model_number  # TODO: needed later for noisy projection
+        self.micrograph_size = micrograph_size  # This is only needed for creating the sub micrographs
+
+        self.sub_micrograph_size = sub_micrograph_size
+        self.sampling_points = sampling_points
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
@@ -135,8 +139,9 @@ class ShrecDataset(Dataset):
 
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
                       permissive=True) as f:
-            self.micrograph = torch.tensor(f.data.sum(axis=0))
-            self.micrograph /= self.micrograph.max()  # Normalize the data between 0 and 1
+            self.micrograph = torch.tensor(f.data.sum(axis=0))  # We know 0 is correct from testing, 0 is top view
+            # We need to normalize our micrograph between 0 and 1 for the loss function and the ViT model
+            self.micrograph = self.micrograph/self.micrograph.max()
 
         self.sub_micrographs = create_sub_micrographs(self.micrograph, self.sub_micrograph_size, self.sampling_points)
 

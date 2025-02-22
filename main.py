@@ -49,7 +49,7 @@ def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Program Arguments
-    parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
+    parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="experiment_18-02-2025_16-06-38",
                         help="Path to existing result folder to load model from.")
 
@@ -123,15 +123,15 @@ def main():
     vit_model.forward = types.MethodType(get_latent_representation, vit_model)
 
     # Training =========================================================================================================
-    model = ParticlePicker(args.latent_dim, args.num_particles)
-    model.to(args.device)
-    criterion = build(args)
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
-
     dataset = ShrecDataset(args.sampling_points)
     train_size = int(args.train_eval_split * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+    model = ParticlePicker(args.latent_dim, args.num_particles, dataset.sub_micrograph_size, dataset.sub_micrograph_size)
+    model.to(args.device)
+    criterion = build(args)
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
 
     # Important to set drop_last=True otherwise certain bath_size + dataset combinations don't work since every
     # batch needs to be of size args.batch_size
@@ -154,8 +154,9 @@ def main():
                                                                                  dataset.particle_locations)
                     # We do this so that it fits into the loss function given by cryo transformer
                     boxes = torch.tensor(particle_locations[['X', 'Y']].values)
+                    boxes = boxes/dataset.sub_micrograph_size  # Only works if sub micrograph is square
                     # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
-                    zero_columns = torch.ones((boxes.shape[0], 2)) * 5
+                    zero_columns = torch.ones((boxes.shape[0], 2)) * 0.03
                     boxes = torch.cat((boxes, zero_columns), dim=1)
                     labels = torch.ones(boxes.shape[0])
                     orig_size = torch.tensor([dataset.sub_micrograph_size, dataset.sub_micrograph_size])
@@ -185,11 +186,8 @@ def main():
                 predictions = model(latent_sub_micrographs)
 
                 # Again we do it to fit the cryo transformer loss
-                predictions_classes = predictions[:, :, 2:4]
-                predictions_coordinates = predictions[:, :, :2]
-                # TODO: remove this 0.01, this is a hack because I cant have the box thing to be 0
-                box_sizes = torch.ones(args.batch_size, args.num_particles, 2) * 5
-                predictions_coordinates = torch.cat((predictions_coordinates, box_sizes), dim=2)
+                predictions_classes = predictions[:, :, 4:]
+                predictions_coordinates = predictions[:, :, :4]
                 outputs = {
                     "pred_logits": predictions_classes,
                     "pred_boxes": predictions_coordinates

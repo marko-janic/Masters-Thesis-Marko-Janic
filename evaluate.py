@@ -30,7 +30,7 @@ def evaluate(model, vit_model, dataset, test_dataloader, criterion, experiment_d
                                                                              dataset.sub_micrograph_size,
                                                                              dataset.particle_locations)
                 boxes = torch.tensor(particle_locations[['X', 'Y']].values)
-                zero_columns = torch.ones((boxes.shape[0], 2)) * 0.01
+                zero_columns = torch.ones((boxes.shape[0], 2)) * 0.03
                 boxes = torch.cat((boxes, zero_columns), dim=1)
                 labels = torch.ones(boxes.shape[0])
                 orig_size = torch.tensor([dataset.sub_micrograph_size, dataset.sub_micrograph_size])
