@@ -9,9 +9,11 @@ import torch
 import torchvision.transforms.functional as F
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import torchvision.transforms as transforms
 
 from torch.utils.data import Dataset
 from tqdm import tqdm
+from PIL import Image
 
 # Local imports
 
@@ -154,11 +156,36 @@ class DummyDataset(Dataset):
     def __init__(self, dataset_path='dataset/dummy_dataset/data'):
         self.dataset_path = dataset_path
 
+        micrograph_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.png')]
+        coordinates_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.txt')]
+        transform = transforms.ToTensor()
+
+        self.micrographs = []
+        self.coordinates = []
+        for micrograph_file, coordinates_file in zip(micrograph_files, coordinates_files):
+            micrograph_path = os.path.join(self.dataset_path, micrograph_file)
+            micrograph = transform(Image.open(micrograph_path))[:3, :, :]  # We are only interested in the rgb channels
+            self.micrographs.append(micrograph)
+
+            coordinates_path = os.path.join(self.dataset_path, coordinates_file)
+            coords = pd.read_csv(coordinates_path, sep=',', header=None, names=['X', 'Y'])
+            self.coordinates.append(coords)
+
+        self.micrographs = torch.stack(self.micrographs)
+        #print("Max value in image tensors:", self.micrographs.max().item())  # TODO: remove these two
+        #print("Min value in image tensors:", self.micrographs.min().item())
+
     def __len__(self):
-        pass
+        return len(self.micrographs)
 
     def __getitem__(self, idx):
-        pass
+        """
+        Returns a tuple corresponding to the index
+        :param idx: Indx of where to take from
+        :return: Tuple: (Micrograph tensor of size [3 x 224 x 224], Coordinates tensor of size [N x 4]), N corresponds
+        to how many particles there are in the image
+        """
+        return
 
 
 class ShrecDataset(Dataset):

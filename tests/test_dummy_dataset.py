@@ -8,7 +8,7 @@ TEST_DATASET_PATH = '../dataset/dummy_dataset/data'
 
 class ShrecDatasetTests(unittest.TestCase):
     def setUp(self):
-        self.dataset = DummyDataset()
+        self.dataset = DummyDataset(dataset_path=TEST_DATASET_PATH)
 
     def test_shapes(self):
         pass

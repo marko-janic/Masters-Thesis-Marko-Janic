@@ -51,7 +51,7 @@ def main():
     parser = argparse.ArgumentParser()
     # Program Arguments
     parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_22-02-2025_17-09-50",
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_23-02-2025_20-35-58",
                         help="Path to existing result folder to load model from.")
 
     # Experiment Results
@@ -61,8 +61,8 @@ def main():
 
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
-    parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
+    parser.add_argument("--learning_rate", type=int, default=0.01, help="Learning rate for training")
+    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
     parser.add_argument("--checkpoint_interval", type=int, default=1,
                         help="Save model checkpoint every checkpoint_interval epochs")
@@ -131,7 +131,7 @@ def main():
 
     model = ParticlePicker(args.latent_dim, args.num_particles, dataset.sub_micrograph_size, dataset.sub_micrograph_size)
     model.to(args.device)
-    criterion = build(args)
+    criterion, postprocessors = build(args)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
 
     # Important to set drop_last=True otherwise certain bath_size + dataset combinations don't work since every
@@ -148,7 +148,7 @@ def main():
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
             for sub_micrographs, coordinate_tl_list in train_dataloader:
-                targets = prepare_targets_for_loss(coordinate_tl_list, dataset, args.num_particles)
+                targets = prepare_targets_for_loss(args, coordinate_tl_list, dataset)
 
                 latent_sub_micrographs = vit_model(sub_micrographs)
                 predictions = model(latent_sub_micrographs)
@@ -163,15 +163,17 @@ def main():
                 losses.backward()
                 optimizer.step()
 
-                running_loss += losses
+                running_loss += losses.item()
 
-                epoch_bar.set_postfix(loss=losses)  # Update the postfix with the running loss
+                epoch_bar.set_postfix(loss=losses.item())  # Update the postfix with the running loss
                 epoch_bar.update(1)  # Update the progress bar after each batch
             epoch_bar.close()
 
+            avg_loss = running_loss / len(train_dataloader)
+
             # Save running loss to log file
             with open(loss_log_path, 'a') as f:
-                f.write(f"{epoch + 1},{running_loss.item()}\n")  # TODO: change this since the current value is weird
+                f.write(f"{epoch + 1},{avg_loss}\n")
 
             # Save checkpoint
             if (epoch + 1) % args.checkpoint_interval == 0:
@@ -189,7 +191,7 @@ def main():
             raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
 
         evaluate(args=args, criterion=criterion, vit_model=vit_model, model=model,
-                 dataset=dataset, test_dataloader=test_dataloader, example_predictions=4)
+                 dataset=dataset, test_dataloader=test_dataloader, example_predictions=4, postprocessors=postprocessors)
 
 
 if __name__ == "__main__":

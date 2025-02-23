@@ -14,7 +14,7 @@ from plotting import compare_predictions_with_ground_truth
 from train import prepare_targets_for_loss, prepare_outputs_for_loss
 
 
-def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, example_predictions):
+def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, example_predictions, postprocessors):
     result_dir = os.path.join(args.result_dir, f'evaluation_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}')
     create_folder_if_missing(result_dir)
 
@@ -25,7 +25,7 @@ def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, exampl
     example_counter = 0
     with torch.no_grad():
         for sub_micrographs, coordinate_tl_list in tqdm(test_dataloader, desc="Evaluating"):
-            targets = prepare_targets_for_loss(coordinate_tl_list, dataset, args.num_particles)
+            targets = prepare_targets_for_loss(args, coordinate_tl_list, dataset)
 
             latent_sub_micrographs = vit_model(sub_micrographs)
             predictions = model(latent_sub_micrographs)
@@ -39,16 +39,24 @@ def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, exampl
             running_loss += losses.item()
 
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
-                # Transform predictions coordinates tensor into a dataframe
-                pred_coords = outputs["pred_boxes"][0, :, :2].cpu().numpy()
-                pred_coords = transform_coords_to_pixel_coords(dataset.sub_micrograph_size, dataset.sub_micrograph_size,
-                                                               pred_coords)
-                pred_probs = outputs["pred_logits"][0, :, 1].cpu().numpy()
-                # TODO: again dont make this a hard coded value
-                pred_coords_df = pd.DataFrame(pred_coords[pred_probs > 0.5], columns=['X', 'Y'])
+                target_sizes = torch.tensor([(224, 224)] * 1)
+                results = postprocessors['bbox'](outputs, target_sizes)
+                # Extract coordinates from results and convert to DataFrame
+                pred_coords = results[0]['boxes'][:, :2].cpu().numpy()
+                pred_coords_df = pd.DataFrame(pred_coords, columns=['X', 'Y'])
+
+                ## Transform predictions coordinates tensor into a dataframe
+                #pred_coords = outputs["pred_boxes"][0, :, :2].cpu().numpy()
+                #pred_coords = transform_coords_to_pixel_coords(dataset.sub_micrograph_size, dataset.sub_micrograph_size,
+                #                                               pred_coords)
+                #pred_probs = outputs["pred_logits"][0, :, 0].cpu().numpy()
+                ## TODO: again dont make this a hard coded value
+                ##pred_coords_df = pd.DataFrame(pred_coords[pred_probs > 0.5], columns=['X', 'Y'])
+                #pred_coords_df = pd.DataFrame(pred_coords, columns=['X', 'Y'])
 
                 ground_truth = transform_coords_to_pixel_coords(dataset.sub_micrograph_size, dataset.sub_micrograph_size, targets[0]['boxes'][:, :2])
                 ground_truth_df = pd.DataFrame(ground_truth, columns=['X', 'Y'])
+
                 compare_predictions_with_ground_truth(
                     image_tensor=sub_micrographs[0].cpu(),
                     ground_truth=ground_truth_df,
