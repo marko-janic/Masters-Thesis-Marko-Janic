@@ -1,4 +1,5 @@
 import os
+import random
 
 import mrcfile as mrc
 import numpy as np
@@ -6,8 +7,11 @@ import pandas as pd
 import torch
 
 import torchvision.transforms.functional as F
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 # Local imports
 
@@ -109,6 +113,54 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
     return sub_micrographs
 
 
+def create_dummy_dataset(image_size, num_images, num_dots, output_dir):
+    """
+    Creates a dummy dataset and saves it.
+
+    :param image_size: Size of images that are created
+    :param num_images: Number of images to create
+    :param num_dots: Number of dots per image
+    :param output_dir:
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for i in tqdm(range(num_images), desc="Creating images"):
+        fig, ax = plt.subplots(figsize=(2.24, 2.24), dpi=100)
+        fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        ax.set_xlim(0, image_size)
+        ax.set_ylim(0, image_size)
+        ax.axis('off')
+
+        coordinates = []
+        for _ in range(num_dots):
+            x = np.random.randint(0, image_size)
+            y = np.random.randint(0, image_size)
+            coordinates.append((x, y))
+            circle = patches.Circle((x, y), radius=2, color='black')
+            ax.add_patch(circle)
+
+        image_path = os.path.join(output_dir, f'micrograph_{i}.png')
+        plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+
+        coordinates_path = os.path.join(output_dir, f'micrograph_{i}_coords.txt')
+        with open(coordinates_path, 'w') as f:
+            for coord in coordinates:
+                f.write(f'{coord[0]},{coord[1]}\n')
+
+
+class DummyDataset(Dataset):
+    def __init__(self, dataset_path='dataset/dummy_dataset/data'):
+        self.dataset_path = dataset_path
+
+    def __len__(self):
+        pass
+
+    def __getitem__(self, idx):
+        pass
+
+
 class ShrecDataset(Dataset):
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
 
@@ -157,3 +209,7 @@ class ShrecDataset(Dataset):
         # TODO: look at if we want to do the channels like this (just repetition)
         return (sub_micrograph_entry['sub_micrograph'].unsqueeze(0).repeat(3, 1, 1),
                 sub_micrograph_entry['top_left_coordinates'])
+
+
+if __name__ == "__main__":
+    create_dummy_dataset(224, 50, 50, "dataset/dummy_dataset/data")
