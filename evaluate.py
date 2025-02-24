@@ -11,7 +11,7 @@ from model import ParticlePicker
 from loss import SetCriterion, build
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import compare_predictions_with_ground_truth
-from train import prepare_targets_for_loss, prepare_outputs_for_loss
+from train import prepare_targets_for_loss, prepare_outputs_for_loss, compute_losses
 
 
 def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, example_predictions, postprocessors):
@@ -24,39 +24,23 @@ def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, exampl
 
     example_counter = 0
     with torch.no_grad():
-        for sub_micrographs, coordinate_tl_list in tqdm(test_dataloader, desc="Evaluating"):
-            targets = prepare_targets_for_loss(args, coordinate_tl_list, dataset)
-
-            latent_sub_micrographs = vit_model(sub_micrographs)
-            predictions = model(latent_sub_micrographs)
-
-            outputs = prepare_outputs_for_loss(predictions)
-
-            loss_dict = criterion(outputs, targets)
-            weight_dict = criterion.weight_dict
-            losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+        for micrographs, index in tqdm(test_dataloader, desc="Evaluating"):
+            losses, outputs, targets = compute_losses(args, index, dataset, model, vit_model, micrographs, criterion)
 
             running_loss += losses.item()
 
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
                 target_sizes = torch.tensor([(224, 224)] * 1)
                 results = postprocessors['bbox'](outputs, target_sizes)
-                
-                # Select only confident particles
+
                 confident_indices = results[0]['scores'] > 0.7
                 pred_coords = results[0]['boxes'][confident_indices, :2].cpu().numpy()
-                
-                # Extract coordinates from results and convert to DataFrame
-                #pred_coords = results[0]['boxes'][:, :2].cpu().numpy()
-                pred_coords_df = pd.DataFrame(pred_coords, columns=['X', 'Y'])
-
-                ground_truth = transform_coords_to_pixel_coords(dataset.sub_micrograph_size, dataset.sub_micrograph_size, targets[0]['boxes'][:, :2])
-                ground_truth_df = pd.DataFrame(ground_truth, columns=['X', 'Y'])
+                ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :2])
 
                 compare_predictions_with_ground_truth(
-                    image_tensor=sub_micrographs[0].cpu(),
-                    ground_truth=ground_truth_df,
-                    predictions=pred_coords_df,
+                    image_tensor=micrographs[0].cpu(),
+                    ground_truth=ground_truth,
+                    predictions=pred_coords,
                     circle_radius=5,
                     result_dir=result_dir,
                     file_name=f'example_{example_counter}.png'

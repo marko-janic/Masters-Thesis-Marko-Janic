@@ -4,9 +4,9 @@ import numpy as np
 
 
 class ParticlePicker(nn.Module):
-    def __init__(self, latent_dim, num_particles, original_image_width, original_image_height):
-        self.width = original_image_width
-        self.height = original_image_height
+    def __init__(self, latent_dim, num_particles, image_width, image_height):
+        self.width = image_width
+        self.height = image_height
         self.latent_dim = latent_dim
         self.num_particles = num_particles
 

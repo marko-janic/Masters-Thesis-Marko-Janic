@@ -19,7 +19,7 @@ def create_folder_if_missing(result_dir):
         os.makedirs(result_dir)
 
 
-def transform_coords_to_pixel_coords(image_width, image_height, coords):
+def transform_coords_to_pixel_coords(image_height, image_width, coords):
     """
     Transforms coordinates from the range [0, 1] to pixel coordinates.
 
@@ -36,7 +36,7 @@ def transform_coords_to_pixel_coords(image_width, image_height, coords):
     #     raise TypeError("coords must be a torch.Tensor")
 
     # Scale x coordinates by image width and y coordinates by image height
-    coords[:, 0] = coords[:, 0] * image_width
-    coords[:, 1] = coords[:, 1] * image_height
+    coords[:, 0] = coords[:, 0] * image_height
+    coords[:, 1] = coords[:, 1] * image_width
 
     return coords

@@ -153,33 +153,37 @@ def create_dummy_dataset(image_size, num_images, num_dots, output_dir):
 
 
 class DummyDataset(Dataset):
-    def __init__(self, particle_width=2, particle_height=2, image_width=224, image_height=224,
+    def __init__(self, dataset_size, particle_width=2, particle_height=2, image_width=224, image_height=224,
                  dataset_path='dataset/dummy_dataset/data'):
-
         self.dataset_path = dataset_path
         self.particle_width = particle_width
         self.particle_height = particle_height
         self.image_width = image_width
         self.image_height = image_height
 
-        micrograph_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.png')]
-        coordinates_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.txt')]
         transform = transforms.ToTensor()  # This rescales it to [0, 1]
 
         self.micrographs = []
         self.targets = []
-        for idx, (micrograph_file, coordinates_file) in enumerate(zip(micrograph_files, coordinates_files)):
+        for idx in range(dataset_size):
+
             # The image (micrograph)
-            micrograph_path = os.path.join(self.dataset_path, micrograph_file)
+            micrograph_path = os.path.join(self.dataset_path, f'micrograph_{idx}.png')
+            if not os.path.isfile(micrograph_path):
+                raise Exception(f"The file {micrograph_path} doesn't exist.")
             micrograph = transform(Image.open(micrograph_path))[:3, :, :]  # We are only interested in the rgb channels
             self.micrographs.append(micrograph)
 
             # The target (coordinates + classes)
-            coordinates_path = os.path.join(self.dataset_path, coordinates_file)
+            coordinates_path = os.path.join(self.dataset_path, f'micrograph_{idx}_coords.txt')
+            if not os.path.isfile(coordinates_path):
+                raise Exception(f"The file {coordinates_path} doesn't exist.")
             coordinates = pd.read_csv(coordinates_path, sep=',', header=None, names=['X', 'Y'])
             coordinates = torch.tensor(coordinates.values, dtype=torch.float32)
-            particle_sizes = torch.tensor([self.particle_width, self.particle_height], dtype=torch.float32).repeat(len(coordinates), 1)
-            bboxes = torch.cat((coordinates, particle_sizes), dim=1) / torch.Tensor([self.image_width, self.image_height, self.image_width, self.image_height])
+            particle_sizes = torch.tensor([self.particle_width, self.particle_height],
+                                          dtype=torch.float32).repeat(len(coordinates), 1)
+            bboxes = (torch.cat((coordinates, particle_sizes), dim=1) /
+                      torch.Tensor([self.image_width, self.image_height, self.image_width, self.image_height]))
             classes = torch.zeros(len(bboxes))  # Zeros since we have one class (particle)
 
             target = {
@@ -198,10 +202,11 @@ class DummyDataset(Dataset):
 
     def __getitem__(self, idx):
         """
-        Returns a tuple corresponding to the index
-        :param idx: Indx of where to take from
-        :return: Tuple: (Micrograph tensor of size [3 x 224 x 224], Coordinates tensor of size [N x 4]), N corresponds
-        to how many particles there are in the image
+        Returns a (micrograph, index) pair
+        :param idx: Index of where to take from
+        :return: Tuple: (Micrograph tensor of size [3 x 224 x 224], idx). You can use idx to get the targets. We do this
+        because the loss function expects a list of dicts and return the dict here will make one dict with batched
+        tensors inside, which is now what we want
         """
         return self.micrographs[idx], idx
 
@@ -225,7 +230,7 @@ class ShrecDataset(Dataset):
         self.model_number = model_number  # TODO: needed later for noisy projection
         self.micrograph_size = micrograph_size  # This is only needed for creating the sub micrographs
 
-        self.sub_micrograph_size = sub_micrograph_size
+        self.sub_micrograph_size = sub_micrograph_size  #TODO: RENAME THIS TO
         self.sampling_points = sampling_points
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']

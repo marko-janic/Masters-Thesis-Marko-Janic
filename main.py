@@ -22,7 +22,7 @@ from util.utils import create_folder_if_missing
 from dataset import ShrecDataset, DummyDataset, get_particle_locations_from_coordinates
 from loss import SetCriterion, build
 from evaluate import evaluate
-from train import prepare_targets_for_loss, prepare_outputs_for_loss
+from train import prepare_targets_for_loss, prepare_outputs_for_loss, compute_losses
 
 
 def get_latent_representation(self, x: torch.Tensor):
@@ -50,9 +50,10 @@ def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Program Arguments
-    parser.add_argument("--dataset", type=str, default="dummy_dataset", help="Which dataset to use for running the program: dummy, shrec")
+    parser.add_argument("--dataset", type=str, default="dummy",
+                        help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_24-02-2025_11-20-27",
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_24-02-2025_18-45-59",
                         help="Path to existing result folder to load model from.")
 
     # Experiment Results
@@ -113,6 +114,7 @@ def main():
                 f.write(f"{arg}: {getattr(args, arg)}\n")
 
     # Initialize loss log file =========================================================================================
+    loss_log_path = ""
     if args.mode != "eval":
         loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
         with open(loss_log_path, 'w') as f:
@@ -126,7 +128,7 @@ def main():
 
     # Training =========================================================================================================
     if args.dataset == "dummy":
-        dataset = DummyDataset()
+        dataset = DummyDataset(dataset_size=50)
     elif args.dataset == "shrec":
         dataset = ShrecDataset(args.sampling_points)
     else:
@@ -136,7 +138,16 @@ def main():
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    model = ParticlePicker(args.latent_dim, args.num_particles, dataset.sub_micrograph_size, dataset.sub_micrograph_size)
+    if args.dataset == "dummy":
+        model = ParticlePicker(args.latent_dim, args.num_particles, dataset.image_width,
+                               dataset.image_height)
+    elif args.dataset == "shrec":
+        model = ParticlePicker(args.latent_dim, args.num_particles, dataset.sub_micrograph_size,
+                               dataset.sub_micrograph_size)
+    else:
+        model = ParticlePicker(args.latent_dim, args.num_particles, dataset.sub_micrograph_size,
+                               dataset.sub_micrograph_size)
+
     model.to(args.device)
     criterion, postprocessors = build(args)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
@@ -150,25 +161,11 @@ def main():
         for epoch in range(args.epochs):
             model.train()
             criterion.train()
+
             running_loss = 0.0
-            # Loading bar for the outer loop (epochs)
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
-
             for micrographs, index in train_dataloader:
-                if args.dataset == "shrec":
-                    targets = prepare_targets_for_loss(args, index, dataset)
-                elif args.dataset == "dummy":
-                    targets = []
-                    for target_index in index:
-                        targets.append(dataset.targets[target_index])
-
-                latent_micrographs = vit_model(micrographs)
-                predictions = model(latent_micrographs)
-                outputs = prepare_outputs_for_loss(predictions)
-
-                loss_dict = criterion(outputs, targets)
-                weight_dict = criterion.weight_dict
-                losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+                losses, outputs, targets = compute_losses(args, index, dataset, model, vit_model, micrographs, criterion)
 
                 optimizer.zero_grad()
                 losses.backward()
@@ -176,8 +173,8 @@ def main():
 
                 running_loss += losses.item()
 
-                epoch_bar.set_postfix(loss=losses.item())  # Update the postfix with the running loss
-                epoch_bar.update(1)  # Update the progress bar after each batch
+                epoch_bar.set_postfix(loss=losses.item())
+                epoch_bar.update(1)
             epoch_bar.close()
 
             avg_loss = running_loss / len(train_dataloader)
