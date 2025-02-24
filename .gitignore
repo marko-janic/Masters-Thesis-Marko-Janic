@@ -8,6 +8,7 @@ media
 experiments/**/checkpoints/
 experiments/**/evaluation*/
 experiments/experiment*/
+tests/test_dummy_dataset/*
 !experiments/saved/
 
 # Byte-compiled / optimized / DLL files
