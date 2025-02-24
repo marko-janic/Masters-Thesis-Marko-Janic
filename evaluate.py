@@ -45,15 +45,6 @@ def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, exampl
                 pred_coords = results[0]['boxes'][:, :2].cpu().numpy()
                 pred_coords_df = pd.DataFrame(pred_coords, columns=['X', 'Y'])
 
-                ## Transform predictions coordinates tensor into a dataframe
-                #pred_coords = outputs["pred_boxes"][0, :, :2].cpu().numpy()
-                #pred_coords = transform_coords_to_pixel_coords(dataset.sub_micrograph_size, dataset.sub_micrograph_size,
-                #                                               pred_coords)
-                #pred_probs = outputs["pred_logits"][0, :, 0].cpu().numpy()
-                ## TODO: again dont make this a hard coded value
-                ##pred_coords_df = pd.DataFrame(pred_coords[pred_probs > 0.5], columns=['X', 'Y'])
-                #pred_coords_df = pd.DataFrame(pred_coords, columns=['X', 'Y'])
-
                 ground_truth = transform_coords_to_pixel_coords(dataset.sub_micrograph_size, dataset.sub_micrograph_size, targets[0]['boxes'][:, :2])
                 ground_truth_df = pd.DataFrame(ground_truth, columns=['X', 'Y'])
 

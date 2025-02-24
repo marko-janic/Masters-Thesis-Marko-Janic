@@ -51,7 +51,7 @@ def main():
     parser = argparse.ArgumentParser()
     # Program Arguments
     parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_23-02-2025_20-35-58",
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_24-02-2025_09-25-37",
                         help="Path to existing result folder to load model from.")
 
     # Experiment Results
