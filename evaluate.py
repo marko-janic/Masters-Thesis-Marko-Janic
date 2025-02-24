@@ -41,8 +41,13 @@ def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, exampl
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
                 target_sizes = torch.tensor([(224, 224)] * 1)
                 results = postprocessors['bbox'](outputs, target_sizes)
+                
+                # Select only confident particles
+                confident_indices = results[0]['scores'] > 0.7
+                pred_coords = results[0]['boxes'][confident_indices, :2].cpu().numpy()
+                
                 # Extract coordinates from results and convert to DataFrame
-                pred_coords = results[0]['boxes'][:, :2].cpu().numpy()
+                #pred_coords = results[0]['boxes'][:, :2].cpu().numpy()
                 pred_coords_df = pd.DataFrame(pred_coords, columns=['X', 'Y'])
 
                 ground_truth = transform_coords_to_pixel_coords(dataset.sub_micrograph_size, dataset.sub_micrograph_size, targets[0]['boxes'][:, :2])

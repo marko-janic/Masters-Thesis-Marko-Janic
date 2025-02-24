@@ -105,6 +105,7 @@ class SetCriterion(nn.Module):
         src_masks = outputs["pred_masks"]
         src_masks = src_masks[src_idx]
         masks = [t["masks"] for t in targets]
+        # TODO use valid to mask invalid areas due to padding in loss
         target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
         target_masks = target_masks.to(src_masks)
         target_masks = target_masks[tgt_idx]
@@ -185,7 +186,6 @@ class SetCriterion(nn.Module):
                     losses.update(l_dict)
 
         return losses
-
 
 class PostProcess(nn.Module):
     """ This module converts the model's output into the format expected by the coco api"""

@@ -19,7 +19,7 @@ def prepare_targets_for_loss(args, coordinate_tl_list, dataset):
                                                                      dataset.particle_locations)
         # We do this so that it fits into the loss function given by cryo transformer
         boxes = torch.tensor(particle_locations[['X', 'Y']].values) / dataset.sub_micrograph_size
-        width_height_columns = torch.ones((boxes.shape[0], 2)) * 0.03  # TODO: add this as an argument
+        width_height_columns = torch.ones((boxes.shape[0], 2)) * 0.001  # TODO: add this as an argument
 
         boxes = torch.cat((boxes, width_height_columns), dim=1)
         labels = torch.zeros(boxes.shape[0])

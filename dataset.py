@@ -185,7 +185,8 @@ class DummyDataset(Dataset):
         :return: Tuple: (Micrograph tensor of size [3 x 224 x 224], Coordinates tensor of size [N x 4]), N corresponds
         to how many particles there are in the image
         """
-        return
+
+        return self.micrographs[idx]
 
 
 class ShrecDataset(Dataset):
