@@ -1,4 +1,5 @@
 import unittest
+import ast
 
 from torch.utils.data import DataLoader, random_split
 
@@ -32,7 +33,10 @@ class DummyDatasetTests(unittest.TestCase):
         train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, drop_last=True)
         test_dataloader = DataLoader(test_dataset, batch_size=1)
 
-        for micrographs, targets in train_dataloader:
+        for micrographs, target_indexes in train_dataloader:
+            targets = []
+            for target_index in target_indexes:
+                targets.append(self.dataset.targets[target_index])
             pass
 
         for micrographs, targets in test_dataloader:

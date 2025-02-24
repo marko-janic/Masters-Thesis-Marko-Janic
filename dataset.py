@@ -164,7 +164,7 @@ class DummyDataset(Dataset):
 
         micrograph_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.png')]
         coordinates_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.txt')]
-        transform = transforms.ToTensor()
+        transform = transforms.ToTensor()  # This rescales it to [0, 1]
 
         self.micrographs = []
         self.targets = []
@@ -203,7 +203,7 @@ class DummyDataset(Dataset):
         :return: Tuple: (Micrograph tensor of size [3 x 224 x 224], Coordinates tensor of size [N x 4]), N corresponds
         to how many particles there are in the image
         """
-        return self.micrographs[idx], self.targets[idx]
+        return self.micrographs[idx], idx
 
 
 class ShrecDataset(Dataset):
