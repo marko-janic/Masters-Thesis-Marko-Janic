@@ -19,7 +19,7 @@ from tqdm import tqdm
 # Local imports
 from model import ParticlePicker
 from util.utils import create_folder_if_missing
-from dataset import ShrecDataset, get_particle_locations_from_coordinates
+from dataset import ShrecDataset, DummyDataset, get_particle_locations_from_coordinates
 from loss import SetCriterion, build
 from evaluate import evaluate
 from train import prepare_targets_for_loss, prepare_outputs_for_loss
@@ -50,6 +50,7 @@ def main():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Program Arguments
+    parser.add_argument("--dataset", type=str, default="dummy_dataset", help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="experiment_24-02-2025_11-20-27",
                         help="Path to existing result folder to load model from.")
@@ -78,7 +79,7 @@ def main():
     # Data
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
     # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
-    parser.add_argument("--num_particles", type=int, default=500,
+    parser.add_argument("--num_particles", type=int, default=50,
                         help="Number of particles that the model outputs as predictions")
 
     # Matcher
@@ -124,7 +125,13 @@ def main():
     vit_model.forward = types.MethodType(get_latent_representation, vit_model)
 
     # Training =========================================================================================================
-    dataset = ShrecDataset(args.sampling_points)
+    if args.dataset == "dummy":
+        dataset = DummyDataset()
+    elif args.dataset == "shrec":
+        dataset = ShrecDataset(args.sampling_points)
+    else:
+        dataset = ShrecDataset(args.sampling_points)
+
     train_size = int(args.train_eval_split * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
@@ -147,12 +154,16 @@ def main():
             # Loading bar for the outer loop (epochs)
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
-            for sub_micrographs, coordinate_tl_list in train_dataloader:
-                targets = prepare_targets_for_loss(args, coordinate_tl_list, dataset)
+            for micrographs, index in train_dataloader:
+                if args.dataset == "shrec":
+                    targets = prepare_targets_for_loss(args, index, dataset)
+                elif args.dataset == "dummy":
+                    targets = []
+                    for target_index in index:
+                        targets.append(dataset.targets[target_index])
 
-                latent_sub_micrographs = vit_model(sub_micrographs)
-                predictions = model(latent_sub_micrographs)
-
+                latent_micrographs = vit_model(micrographs)
+                predictions = model(latent_micrographs)
                 outputs = prepare_outputs_for_loss(predictions)
 
                 loss_dict = criterion(outputs, targets)
