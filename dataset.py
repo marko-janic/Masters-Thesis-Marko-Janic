@@ -153,27 +153,45 @@ def create_dummy_dataset(image_size, num_images, num_dots, output_dir):
 
 
 class DummyDataset(Dataset):
-    def __init__(self, dataset_path='dataset/dummy_dataset/data'):
+    def __init__(self, particle_width=2, particle_height=2, image_width=224, image_height=224,
+                 dataset_path='dataset/dummy_dataset/data'):
+
         self.dataset_path = dataset_path
+        self.particle_width = particle_width
+        self.particle_height = particle_height
+        self.image_width = image_width
+        self.image_height = image_height
 
         micrograph_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.png')]
         coordinates_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.txt')]
         transform = transforms.ToTensor()
 
         self.micrographs = []
-        self.coordinates = []
-        for micrograph_file, coordinates_file in zip(micrograph_files, coordinates_files):
+        self.targets = []
+        for idx, (micrograph_file, coordinates_file) in enumerate(zip(micrograph_files, coordinates_files)):
+            # The image (micrograph)
             micrograph_path = os.path.join(self.dataset_path, micrograph_file)
             micrograph = transform(Image.open(micrograph_path))[:3, :, :]  # We are only interested in the rgb channels
             self.micrographs.append(micrograph)
 
+            # The target (coordinates + classes)
             coordinates_path = os.path.join(self.dataset_path, coordinates_file)
-            coords = pd.read_csv(coordinates_path, sep=',', header=None, names=['X', 'Y'])
-            self.coordinates.append(coords)
+            coordinates = pd.read_csv(coordinates_path, sep=',', header=None, names=['X', 'Y'])
+            coordinates = torch.tensor(coordinates.values, dtype=torch.float32)
+            particle_sizes = torch.tensor([self.particle_width, self.particle_height], dtype=torch.float32).repeat(len(coordinates), 1)
+            bboxes = torch.cat((coordinates, particle_sizes), dim=1) / torch.Tensor([self.image_width, self.image_height, self.image_width, self.image_height])
+            classes = torch.zeros(len(bboxes))  # Zeros since we have one class (particle)
+
+            target = {
+                "boxes": bboxes,
+                "labels": classes,
+                "orig_size": torch.tensor([self.image_width, self.image_height]),
+                "image_id": idx
+            }
+
+            self.targets.append(target)
 
         self.micrographs = torch.stack(self.micrographs)
-        #print("Max value in image tensors:", self.micrographs.max().item())  # TODO: remove these two
-        #print("Min value in image tensors:", self.micrographs.min().item())
 
     def __len__(self):
         return len(self.micrographs)
@@ -185,8 +203,7 @@ class DummyDataset(Dataset):
         :return: Tuple: (Micrograph tensor of size [3 x 224 x 224], Coordinates tensor of size [N x 4]), N corresponds
         to how many particles there are in the image
         """
-
-        return self.micrographs[idx]
+        return self.micrographs[idx], self.targets[idx]
 
 
 class ShrecDataset(Dataset):
