@@ -1,18 +1,24 @@
 import unittest
-import ast
+import os
+
+import matplotlib.pyplot as plt
 
 from torch.utils.data import DataLoader, random_split
 
 # Local imports
 from dataset import DummyDataset
+from util.utils import create_folder_if_missing
 
 TEST_DATASET_PATH = '../dataset/dummy_dataset/data'
+TEST_RESULTS_FOLDER = 'test_dummy_dataset'
 TRAIN_EVAL_SPLIT = 0.9
 BATCH_SIZE = 8
+EXAMPLE_VISUALIZATIONS = 3
 
 
 class DummyDatasetTests(unittest.TestCase):
     def setUp(self):
+        create_folder_if_missing(TEST_RESULTS_FOLDER)
         self.dataset = DummyDataset(dataset_path=TEST_DATASET_PATH)
 
     def test_shapes(self):
@@ -41,6 +47,12 @@ class DummyDatasetTests(unittest.TestCase):
 
         for micrographs, targets in test_dataloader:
             pass
+
+    def test_dataset_images(self):
+        for i in range(EXAMPLE_VISUALIZATIONS):
+            micrograph, target = self.dataset.__getitem__(i)
+            plt.imshow(micrograph.permute(1, 2, 0))
+            plt.savefig(os.path.join(TEST_RESULTS_FOLDER, f'example_{i}.png'))
 
 
 if __name__ == '__main__':
