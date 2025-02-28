@@ -3,6 +3,11 @@ import torch.nn as nn
 import numpy as np
 
 
+def load_vit_model():
+    # TODO: actually use this
+    pass
+
+
 class ParticlePicker(nn.Module):
     def __init__(self, latent_dim, num_particles, image_width, image_height):
         self.width = image_width

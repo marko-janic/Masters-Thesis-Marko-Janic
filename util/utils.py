@@ -31,12 +31,13 @@ def transform_coords_to_pixel_coords(image_height, image_width, coords):
     Returns:
         torch.Tensor: A tensor of the same shape as coords with pixel coordinates.
     """
-    # Ensure coords is a tensor
-    # if not isinstance(coords, torch.Tensor):
-    #     raise TypeError("coords must be a torch.Tensor")
 
     # Scale x coordinates by image width and y coordinates by image height
-    coords[:, 0] = coords[:, 0] * image_height
-    coords[:, 1] = coords[:, 1] * image_width
+    coords[:, 0] *= image_height
+    coords[:, 1] *= image_width
+
+    if coords.shape[1] > 2:
+        coords[:, 2] *= image_width
+        coords[:, 3] *= image_height
 
     return coords
