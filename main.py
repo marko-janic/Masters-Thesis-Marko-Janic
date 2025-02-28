@@ -52,7 +52,7 @@ def main():
     # Program Arguments
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
-    parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
+    parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="experiment_24-02-2025_18-45-59",
                         help="Path to existing result folder to load model from.")
 
@@ -158,6 +158,9 @@ def main():
     test_dataloader = DataLoader(test_dataset, batch_size=1)
 
     if args.mode == "train":
+        # Save untrained checkpoint for debugging purposes
+        torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
+
         for epoch in range(args.epochs):
             model.train()
             criterion.train()

@@ -13,7 +13,7 @@ from PIL import Image
 # Local imports
 from dataset import DummyDataset
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
-from plotting import save_image_with_bounding_circles
+from plotting import save_image_with_bounding_object
 
 TEST_DATASET_PATH = '../dataset/dummy_dataset/data'
 TEST_RESULTS_FOLDER = 'test_dummy_dataset'
@@ -66,9 +66,13 @@ class DummyDatasetTests(unittest.TestCase):
             coordinates = self.dataset.targets[target_index]['boxes'][:, :2]
             coordinates = transform_coords_to_pixel_coords(image_width=self.dataset.image_width,
                                                            image_height=self.dataset.image_height, coords=coordinates)
-            save_image_with_bounding_circles(image_tensor=micrograph, particle_locations=coordinates,
-                                             circle_radius=4, result_dir=TEST_RESULTS_FOLDER,
-                                             file_name=f'example_{i}_circles.png')
+            save_image_with_bounding_object(image_tensor=micrograph, particle_locations=coordinates,
+                                            object_type="circle", object_parameters={"circle_radius": 4},
+                                            result_dir=TEST_RESULTS_FOLDER, file_name=f'example_{i}_circles.png')
+            if i < 1:
+                save_image_with_bounding_object(micrograph, coordinates, "box",
+                                                {"box_width": 10, "box_height": 10}, TEST_RESULTS_FOLDER,
+                                                f"example_{i}_boxes.png")
 
 
 def test_explicit_images():

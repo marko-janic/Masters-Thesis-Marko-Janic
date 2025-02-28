@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 # Local imports
 from dataset import create_sub_micrographs, get_particle_locations_from_coordinates, ShrecDataset
-from plotting import save_image_with_bounding_circles
+from plotting import save_image_with_bounding_object
 from util.utils import print_separator
 
 warnings.simplefilter('ignore')  # to mute some warnings produced when opening the tomos
@@ -53,16 +53,16 @@ def shrec_dataset_example(result_dir):
     selected_particles = get_particle_locations_from_coordinates(coordinates, dataset.sub_micrograph_size,
                                                                  dataset.particle_locations)
 
-    save_image_with_bounding_circles(dataset.micrograph, dataset.particle_locations, 4, result_dir,
+    save_image_with_bounding_object(dataset.micrograph, dataset.particle_locations, "circle", {"circle_radius": 2}, result_dir,
                                    "test_micrograph", z_threshold=250)
 
-    save_image_with_bounding_circles(sub_micrograph, selected_particles, 4, result_dir,
+    save_image_with_bounding_object(sub_micrograph, selected_particles, "circle", {"circle_radius": 2}, result_dir,
                                    "test_sub_micrograph_first")
 
     sub_micrograph, coordinates = dataset.__getitem__(3)
     selected_particles = get_particle_locations_from_coordinates(coordinates, dataset.sub_micrograph_size,
                                                                  dataset.particle_locations)
-    save_image_with_bounding_circles(sub_micrograph, selected_particles, 4, result_dir,
+    save_image_with_bounding_object(sub_micrograph, selected_particles, "circle", {"circle_radius": 2}, result_dir,
                                    "test_sub_micrograph_middle")
 
 
