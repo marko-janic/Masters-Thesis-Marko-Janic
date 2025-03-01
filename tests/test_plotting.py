@@ -34,6 +34,7 @@ DATASET_SIZE = 50
 LATENT_DIMENSION = 768
 NUM_PARTICLES = 50
 
+
 class PlottingTests(unittest.TestCase):
     def setUp(self):
         create_folder_if_missing(TEST_RESULTS_FOLDER)
@@ -81,11 +82,12 @@ class PlottingTests(unittest.TestCase):
             output_coordinates = transform_coords_to_pixel_coords(image_width=self.dataset.image_width,
                                                                   image_height=self.dataset.image_height,
                                                                   coords=outputs["pred_boxes"][0])
+            output_coordinates = output_coordinates.detach().numpy()
 
-            compare_predictions_with_ground_truth(micrograph, coordinates, output_coordinates, "box",
+            compare_predictions_with_ground_truth(micrograph, coordinates, output_coordinates, "circle",
                                                   {"box_width": self.dataset.particle_width,
-                                                   "box_height": self.dataset.particle_height}, TEST_RESULTS_FOLDER,
-                                                  f"comparison_{i}.png")
+                                                   "box_height": self.dataset.particle_height, "circle_radius": 4},
+                                                  TEST_RESULTS_FOLDER, f"comparison_{i}.png")
 
 
 if __name__ == '__main__':

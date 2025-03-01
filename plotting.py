@@ -39,7 +39,7 @@ def draw_bounding_circles(ax, particle_locations, image_height, image_width, cir
 
 
 def save_image_with_bounding_object(image_tensor, particle_locations, object_type, object_parameters, result_dir,
-                                     file_name, circle_color='r', z_threshold=9999):
+                                    file_name, circle_color='r'):
     """
     Show the image and draw bounding boxes around the given pixel coordinates.
 
@@ -51,7 +51,6 @@ def save_image_with_bounding_object(image_tensor, particle_locations, object_typ
     :param result_dir: Result directory to save images to
     :param file_name: File name of file that is saved
     :param circle_color: Border color of drawn circles
-    :param z_threshold: Threshold for z value to decide if a circle should be plotted
     """
     if not os.path.exists(result_dir):
         raise Exception("The folder you are trying to save to doesn't exist.")
@@ -64,9 +63,8 @@ def save_image_with_bounding_object(image_tensor, particle_locations, object_typ
     plt.close(fig)
 
 
-def draw_image_with_objects_on_ax(ax, image_tensor, particle_locations, object_type, object_parameters, circle_color):
+def draw_image_with_objects_on_ax(ax, image_tensor, particle_locations, object_type, object_parameters, edge_color):
     """
-    TODO: rename circle_color
     Draws specified objects (circles or boxes) on the given axis.
 
     :param ax: Matplotlib axis to draw on
@@ -75,7 +73,7 @@ def draw_image_with_objects_on_ax(ax, image_tensor, particle_locations, object_t
     :param object_type: String with type of object to draw, accepted: circle, box
     :param object_parameters: Dict with parameters for object_type, accepted: for circle: {circle_radius}, for box:
     {box_width, box_height}
-    :param circle_color: Border color of drawn circles
+    :param edge_color: Border color of drawn circles
     """
     # Validate object_parameters
     if object_type == "circle":
@@ -106,17 +104,17 @@ def draw_image_with_objects_on_ax(ax, image_tensor, particle_locations, object_t
     ax.imshow(image_tensor)
     if object_type == "circle":
         circle_radius = object_parameters["circle_radius"]
-        draw_bounding_circles(ax, particle_locations, image_height, image_width, circle_radius, circle_color)
+        draw_bounding_circles(ax, particle_locations, image_height, image_width, circle_radius, edge_color)
     elif object_type == "box":
         box_width = object_parameters["box_width"]
         box_height = object_parameters["box_height"]
-        draw_bounding_boxes(ax, particle_locations, image_height, image_width, box_width, box_height, circle_color)
+        draw_bounding_boxes(ax, particle_locations, image_height, image_width, box_width, box_height, edge_color)
     elif object_type == "output_box":
-        draw_output_boxes(ax, particle_locations, image_height, image_width, circle_color)
+        draw_output_boxes(ax, particle_locations, image_height, image_width, edge_color)
 
 
 def compare_predictions_with_ground_truth(image_tensor, ground_truth, predictions, object_type, object_parameters,
-                                          result_dir, file_name, gt_color='r', pred_color='r', z_threshold=9999):
+                                          result_dir, file_name, gt_color='r', pred_color='r'):
     """
     Visualize model predictions side by side with the ground truth.
 
@@ -130,7 +128,6 @@ def compare_predictions_with_ground_truth(image_tensor, ground_truth, prediction
     :param file_name: File name of file that is saved
     :param gt_color: Border color of ground truth circles
     :param pred_color: Border color of prediction circles
-    :param z_threshold: Threshold for z value to decide if a circle should be plotted
     """
 
     fig, (ax1, ax2) = plt.subplots(1, 2)

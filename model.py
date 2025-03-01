@@ -32,8 +32,6 @@ class ParticlePicker(nn.Module):
         is its class
         """
         out = self.fc(x).view(-1, self.num_particles, 6)  # Reshape to (batch_size, N, 6)
-        # Boxes normalized
-        #out[:, :, :4] = out[:, :, :4]/torch.tensor([self.width, self.height, self.width, self.height])
+
         out[:, :, :4] = torch.sigmoid(out[:, :, :4])  # Boxes coordinates
-        #out[:, :, 4:] = torch.sigmoid(out[:, :, 4:])  # Class probabilities
         return out
