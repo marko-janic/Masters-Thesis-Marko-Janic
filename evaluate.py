@@ -31,17 +31,16 @@ def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, exampl
 
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
                 target_sizes = torch.tensor([(224, 224)] * 1)
-                results = postprocessors['bbox'](outputs, target_sizes)
 
-                confident_indices = results[0]['scores'] > 0.7
-                pred_coords = results[0]['boxes'][confident_indices, :2].cpu().numpy()
+                pred_coords = transform_coords_to_pixel_coords(224, 224, outputs['boxes'][:4].cpu().numpy())
                 ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :2])
 
                 compare_predictions_with_ground_truth(
                     image_tensor=micrographs[0].cpu(),
                     ground_truth=ground_truth,
                     predictions=pred_coords,
-                    circle_radius=5,
+                    object_type="box",
+                    object_parameters={"box_width": 10, "box_height": 10},
                     result_dir=result_dir,
                     file_name=f'example_{example_counter}.png'
                 )

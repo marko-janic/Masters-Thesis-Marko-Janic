@@ -3,6 +3,11 @@ import torch.nn as nn
 import numpy as np
 
 
+def load_vit_model():
+    # TODO: actually use this
+    pass
+
+
 class ParticlePicker(nn.Module):
     def __init__(self, latent_dim, num_particles, image_width, image_height):
         self.width = image_width
@@ -27,8 +32,6 @@ class ParticlePicker(nn.Module):
         is its class
         """
         out = self.fc(x).view(-1, self.num_particles, 6)  # Reshape to (batch_size, N, 6)
-        # Boxes normalized
-        #out[:, :, :4] = out[:, :, :4]/torch.tensor([self.width, self.height, self.width, self.height])
+
         out[:, :, :4] = torch.sigmoid(out[:, :, :4])  # Boxes coordinates
-        #out[:, :, 4:] = torch.sigmoid(out[:, :, 4:])  # Class probabilities
         return out
