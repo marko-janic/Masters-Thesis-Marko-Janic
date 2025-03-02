@@ -10,6 +10,7 @@ experiments/**/evaluation*/
 experiments/experiment*/
 tests/test_dummy_dataset/*
 experiments/archive
+experiments/tmp
 !experiments/saved/
 
 # Byte-compiled / optimized / DLL files
