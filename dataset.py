@@ -16,6 +16,7 @@ from tqdm import tqdm
 from PIL import Image
 
 # Local imports
+from util.utils import create_folder_if_missing
 
 
 def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations,
@@ -115,17 +116,28 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
     return sub_micrographs
 
 
-def create_dummy_dataset(image_size, num_images, num_dots, output_dir):
+def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_size, output_dir):
     """
     Creates a dummy dataset and saves it.
 
     :param image_size: Size of images that are created
     :param num_images: Number of images to create
-    :param num_dots: Number of dots per image
-    :param output_dir:
+    :param min_particles: Minimum number of particles per image
+    :param max_particles: Maximum number of particles per image
+    :param particle_size: Size of particles that are drawn
+    :param output_dir: Directory to save the dataset
     """
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    create_folder_if_missing(output_dir)
+    create_folder_if_missing(os.path.join(output_dir, 'data'))
+
+    readme_path = os.path.join(output_dir, 'README.txt')
+    with open(readme_path, 'w') as f:
+        f.write(f"image_size: {image_size}\n")
+        f.write(f"num_images: {num_images}\n")
+        f.write(f"min_particles: {min_particles}\n")
+        f.write(f"max_particles: {max_particles}\n")
+        f.write(f"particle_size: {particle_size}\n")
+        f.write(f"output_dir: {output_dir}\n")
 
     for i in tqdm(range(num_images), desc="Creating images"):
         fig, ax = plt.subplots(figsize=(2.24, 2.24), dpi=100)
@@ -135,18 +147,19 @@ def create_dummy_dataset(image_size, num_images, num_dots, output_dir):
         ax.axis('off')
 
         coordinates = []
+        num_dots = random.randint(min_particles, max_particles)
         for _ in range(num_dots):
             x = np.random.randint(0, image_size)
             y = np.random.randint(0, image_size)
             coordinates.append((x, y))
-            circle = patches.Circle((x, y), radius=2, color='black')
+            circle = patches.Circle((x, y), radius=particle_size, color='black')
             ax.add_patch(circle)
 
-        image_path = os.path.join(output_dir, f'micrograph_{i}.png')
+        image_path = os.path.join(output_dir, f'data/micrograph_{i}.png')
         plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
         plt.close(fig)
 
-        coordinates_path = os.path.join(output_dir, f'micrograph_{i}_coords.txt')
+        coordinates_path = os.path.join(output_dir, f'data/micrograph_{i}_coords.txt')
         with open(coordinates_path, 'w') as f:
             for coord in coordinates:
                 f.write(f'{coord[0]},{coord[1]}\n')
@@ -262,4 +275,4 @@ class ShrecDataset(Dataset):
 
 
 if __name__ == "__main__":
-    create_dummy_dataset(224, 50, 50, "dataset/dummy_dataset/data")
+    create_dummy_dataset(224, 100, 0, 5, 40, "dataset/dummy_dataset_multiple_random_amounts_big_particles")
