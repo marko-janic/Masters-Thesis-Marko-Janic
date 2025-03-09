@@ -174,8 +174,6 @@ class DummyDataset(Dataset):
         self.image_width = image_width
         self.image_height = image_height
 
-        transform = transforms.ToTensor()  # This rescales it to [0, 1]
-
         self.micrographs = []
         self.targets = []
         for idx in range(dataset_size):
@@ -184,7 +182,13 @@ class DummyDataset(Dataset):
             micrograph_path = os.path.join(self.dataset_path, f'micrograph_{idx}.png')
             if not os.path.isfile(micrograph_path):
                 raise Exception(f"The file {micrograph_path} doesn't exist.")
-            micrograph = transform(Image.open(micrograph_path))[:3, :, :]  # We are only interested in the rgb channels
+            # This is according to what the model should get  TODO: check if this actually makes it better
+            preprocess = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
+            image = Image.open(micrograph_path).convert("RGB")
+            micrograph = preprocess(image)
             self.micrographs.append(micrograph)
 
             # The target (coordinates + classes)
@@ -192,6 +196,10 @@ class DummyDataset(Dataset):
             if not os.path.isfile(coordinates_path):
                 raise Exception(f"The file {coordinates_path} doesn't exist.")
             coordinates = pd.read_csv(coordinates_path, sep=',', header=None, names=['X', 'Y'])
+
+            if coordinates.empty:  # TODO: what do we do in this case?
+                raise Exception(f"The file {coordinates_path} is empty.")
+
             coordinates = torch.tensor(coordinates.values, dtype=torch.float32)
             particle_sizes = torch.tensor([self.particle_width, self.particle_height],
                                           dtype=torch.float32).repeat(len(coordinates), 1)
@@ -275,4 +283,4 @@ class ShrecDataset(Dataset):
 
 
 if __name__ == "__main__":
-    create_dummy_dataset(224, 100, 0, 5, 40, "dataset/dummy_dataset_multiple_random_amounts_big_particles")
+    create_dummy_dataset(224, 100, 1, 5, 40, "dataset/dummy_dataset")
