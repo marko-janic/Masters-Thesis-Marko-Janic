@@ -16,6 +16,7 @@ class ParticlePicker(nn.Module):
         self.num_particles = num_particles
 
         super(ParticlePicker, self).__init__()
+
         self.fc = nn.Sequential(
             nn.Linear(latent_dim, 512),
             nn.ReLU(),
@@ -31,7 +32,7 @@ class ParticlePicker(nn.Module):
         :return: A tensor of size batch_size x num_particles x 3 where the last column of a specific particle
         is its class
         """
-        out = self.fc(x).view(-1, self.num_particles, 6)  # Reshape to (batch_size, N, 6)
 
-        out[:, :, :4] = torch.sigmoid(out[:, :, :4])  # Boxes coordinates
+        out = self.fc(x).view(-1, self.num_particles, 6)
+        out[:, :, :4] = torch.sigmoid(out[:, :, :4])  # Box coordinates
         return out

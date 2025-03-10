@@ -1,6 +1,9 @@
 import os
 import torch
 import datetime
+import numpy as np
+import torch
+
 import pandas as pd
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -31,15 +34,24 @@ def evaluate(args, model, vit_model, dataset, test_dataloader, criterion, exampl
 
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
                 target_sizes = torch.tensor([(224, 224)] * 1)
+                results = postprocessors['bbox'](outputs, target_sizes)
 
-                pred_coords = transform_coords_to_pixel_coords(224, 224, outputs['boxes'][:4].cpu().numpy())
-                ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :2])
+                # This weird stuff is how cryotransformers does the predicting
+                probas2 = outputs['pred_logits'].sigmoid()
+                topk_values, topk_indexes = torch.topk(probas2.view(outputs["pred_logits"].shape[0], -1), args.num_particles, dim=1)  # extreme important mention num queries
+                scores = topk_values
+                keep = scores[0] > np.quantile(scores, args.quartile_threshold)
+                scores = scores[0, keep]
+
+                pred_coords = outputs['pred_boxes'][0, keep, :]
+                pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords.cpu().numpy())
+                ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :4])
 
                 compare_predictions_with_ground_truth(
                     image_tensor=micrographs[0].cpu(),
                     ground_truth=ground_truth,
                     predictions=pred_coords,
-                    object_type="box",
+                    object_type="output_box",
                     object_parameters={"box_width": 10, "box_height": 10},
                     result_dir=result_dir,
                     file_name=f'example_{example_counter}.png'

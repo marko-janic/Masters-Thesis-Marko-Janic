@@ -5,6 +5,9 @@ from dataset import get_particle_locations_from_coordinates
 
 
 def compute_losses(args, index, dataset, model, vit_model, micrographs, criterion):
+    model.train()
+    criterion.train()
+
     targets = None
     if args.dataset == "shrec":
         targets = prepare_targets_for_loss(args, index, dataset)
@@ -12,17 +15,22 @@ def compute_losses(args, index, dataset, model, vit_model, micrographs, criterio
         targets = []
         for target_index in index:
             targets.append(dataset.targets[target_index])
+    if targets is None:
+        raise Exception(f"Targets was not assigned. Either your args.dataset (which is {args.dataset}) is not set or "
+                        f"the dataset you set is wrong.")
 
     latent_micrographs = vit_model(micrographs)
     predictions = model(latent_micrographs)
     outputs = prepare_outputs_for_loss(predictions)
 
-    if targets is None:
-        raise Exception(f"Targets was not assigned. Either your args.dataset (which is {args.dataset}) is not set or "
-                        f"the dataset you set is wrong.")
     loss_dict = criterion(outputs, targets)
     weight_dict = criterion.weight_dict
     losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+
+    #optimizer.zero_grad()
+    #losses.backward()
+    #optimizer.step()
+
     return losses, outputs, targets
 
 
@@ -81,7 +89,3 @@ def prepare_outputs_for_loss(predictions):
     }
 
     return outputs
-
-
-def train_model():
-    pass
