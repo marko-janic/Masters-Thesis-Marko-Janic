@@ -12,6 +12,7 @@ tests/test_dummy_dataset/*
 experiments/archive
 experiments/tmp
 !experiments/saved/
+tests/mocks/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
