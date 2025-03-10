@@ -4,6 +4,7 @@ import torch
 import types
 import os
 import datetime
+import random
 
 import torch.nn as nn
 import torch.optim as optim
@@ -26,6 +27,12 @@ from train import prepare_targets_for_loss, prepare_outputs_for_loss, compute_lo
 from plotting import save_image_with_bounding_object
 
 
+# Set the seed for reproducibility
+seed = 42
+random.seed(seed)
+torch.manual_seed(seed)
+
+
 def get_latent_representation(self, x: torch.Tensor):
     """
     We use this model to override the normal implementation since we don't want the classification head:
@@ -42,9 +49,8 @@ def get_latent_representation(self, x: torch.Tensor):
     # Pass through encoder
     x = self.encoder(x)
 
-    latent_representation = x[:, 0]
-    return latent_representation
     # Return the class token representation
+    return x[:, 0]
 
 
 def main():
@@ -159,20 +165,36 @@ def main():
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
 
         for epoch in range(args.epochs):
-            model.train()
-            criterion.train()
-
             running_loss = 0.0
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
+
             for micrographs, index in train_dataloader:
-                losses, outputs, targets = compute_losses(args, index, dataset, model, vit_model, micrographs, criterion)
+                # TODO: add train_one_epoch function
+                model.train()
+                criterion.train()
+                #losses, outputs, targets = compute_losses(args, index, dataset, model, vit_model, micrographs, criterion, optimizer)
+
+                targets = []
+                for target_index in index:
+                    targets.append(dataset.targets[target_index])
+
+                if epoch < 1:
+                    save_image_with_bounding_object(micrographs[0], targets[0]['boxes']*224, "output_box",
+                                                    {}, args.result_dir, "train_test_example")
+
+                latent_micrographs = vit_model(micrographs)
+                predictions = model(latent_micrographs)
+                outputs = prepare_outputs_for_loss(predictions)
+
+                loss_dict = criterion(outputs, targets)
+                weight_dict = criterion.weight_dict
+                losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
                 optimizer.zero_grad()
                 losses.backward()
                 optimizer.step()
 
                 running_loss += losses.item()
-
                 epoch_bar.set_postfix(loss=losses.item())
                 epoch_bar.update(1)
             epoch_bar.close()
@@ -199,7 +221,7 @@ def main():
             raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
 
         evaluate(args=args, criterion=criterion, vit_model=vit_model, model=model,
-                 dataset=dataset, test_dataloader=test_dataloader, example_predictions=4, postprocessors=postprocessors)
+                 dataset=dataset, test_dataloader=test_dataloader, example_predictions=8, postprocessors=postprocessors)
 
 
 if __name__ == "__main__":
