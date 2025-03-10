@@ -23,6 +23,7 @@ from dataset import ShrecDataset, DummyDataset, get_particle_locations_from_coor
 from loss import SetCriterion, build
 from evaluate import evaluate
 from train import prepare_targets_for_loss, prepare_outputs_for_loss, compute_losses
+from plotting import save_image_with_bounding_object
 
 
 def get_latent_representation(self, x: torch.Tensor):
@@ -41,9 +42,9 @@ def get_latent_representation(self, x: torch.Tensor):
     # Pass through encoder
     x = self.encoder(x)
 
-    # Return the class token representation (latent)
     latent_representation = x[:, 0]
     return latent_representation
+    # Return the class token representation
 
 
 def main():
@@ -52,20 +53,27 @@ def main():
     # Program Arguments
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
-    parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_24-02-2025_18-45-59",
+    parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_10-03-2025_01-20-59_dummy_dataset_cat",
                         help="Path to existing result folder to load model from.")
+    parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset_cat/data")
+    parser.add_argument("--dataset_size", type=int, default=500)
+    # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
+    parser.add_argument("--num_particles", type=int, default=7,
+                        help="Number of particles that the model outputs as predictions")
+    parser.add_argument("--particle_width", type=int, default=80)
+    parser.add_argument("--particle_height", type=int, default=80)
+    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
+    parser.add_argument("--device", type=str, default="cpu", help="Device to use")
 
     # Experiment Results
     parser.add_argument("--result_dir", type=str,
-                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}',
+                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_dummy_dataset_cat',
                         help="Directory to save results to")
 
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
     parser.add_argument("--learning_rate", type=int, default=0.01, help="Learning rate for training")
-    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
-    parser.add_argument("--device", type=str, default="cpu", help="Device to use")
     parser.add_argument("--checkpoint_interval", type=int, default=1,
                         help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",
@@ -79,9 +87,6 @@ def main():
 
     # Data
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
-    # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
-    parser.add_argument("--num_particles", type=int, default=100,
-                        help="Number of particles that the model outputs as predictions")
 
     # Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -97,6 +102,9 @@ def main():
     parser.add_argument('--giou_loss_coef', default=2, type=float)
     parser.add_argument('--eos_coef', default=0.1, type=float,
                         help="Relative classification weight of the no-object class")
+
+    # Evaluation
+    parser.add_argument('--quartile_threshold', type=float, default=0.9, help='Quartile threshold')
 
     args = parser.parse_args()
 
@@ -127,26 +135,15 @@ def main():
     vit_model.forward = types.MethodType(get_latent_representation, vit_model)
 
     # Training =========================================================================================================
-    if args.dataset == "dummy":
-        dataset = DummyDataset(dataset_size=50)
-    elif args.dataset == "shrec":
-        dataset = ShrecDataset(args.sampling_points)
-    else:
-        dataset = ShrecDataset(args.sampling_points)
+    dataset = DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
+                           particle_width=args.particle_width, particle_height=args.particle_height)
 
     train_size = int(args.train_eval_split * len(dataset))
     test_size = len(dataset) - train_size
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 
-    if args.dataset == "dummy":
-        model = ParticlePicker(args.latent_dim, args.num_particles, dataset.image_width,
-                               dataset.image_height)
-    elif args.dataset == "shrec":
-        model = ParticlePicker(args.latent_dim, args.num_particles, dataset.sub_micrograph_size,
-                               dataset.sub_micrograph_size)
-    else:
-        model = ParticlePicker(args.latent_dim, args.num_particles, dataset.sub_micrograph_size,
-                               dataset.sub_micrograph_size)
+    model = ParticlePicker(latent_dim=args.latent_dim, num_particles=args.num_particles,
+                           image_width=dataset.image_width, image_height=dataset.image_height)
 
     model.to(args.device)
     criterion, postprocessors = build(args)

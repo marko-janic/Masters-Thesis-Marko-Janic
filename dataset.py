@@ -116,7 +116,7 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
     return sub_micrographs
 
 
-def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_size, output_dir):
+def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_size, output_dir, use_cat_image=False):
     """
     Creates a dummy dataset and saves it.
 
@@ -126,6 +126,7 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
     :param max_particles: Maximum number of particles per image
     :param particle_size: Size of particles that are drawn
     :param output_dir: Directory to save the dataset
+    :param use_cat_image: If True, use a cat image instead of drawing circles
     """
     create_folder_if_missing(output_dir)
     create_folder_if_missing(os.path.join(output_dir, 'data'))
@@ -138,6 +139,10 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
         f.write(f"max_particles: {max_particles}\n")
         f.write(f"particle_size: {particle_size}\n")
         f.write(f"output_dir: {output_dir}\n")
+        f.write(f"use_cat_image: {use_cat_image}\n")
+
+    if use_cat_image:
+        cat_image = Image.open('ethel.png').resize((particle_size * 2, particle_size * 2))
 
     for i in tqdm(range(num_images), desc="Creating images"):
         fig, ax = plt.subplots(figsize=(2.24, 2.24), dpi=100)
@@ -152,8 +157,11 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
             x = np.random.randint(0, image_size)
             y = np.random.randint(0, image_size)
             coordinates.append((x, y))
-            circle = patches.Circle((x, y), radius=particle_size, color='black')
-            ax.add_patch(circle)
+            if use_cat_image:
+                ax.imshow(cat_image, extent=(x - particle_size, x + particle_size, y - particle_size, y + particle_size))
+            else:
+                circle = patches.Circle((x, y), radius=particle_size, color='black')
+                ax.add_patch(circle)
 
         image_path = os.path.join(output_dir, f'data/micrograph_{i}.png')
         plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
@@ -283,4 +291,4 @@ class ShrecDataset(Dataset):
 
 
 if __name__ == "__main__":
-    create_dummy_dataset(224, 100, 1, 5, 40, "dataset/dummy_dataset")
+    create_dummy_dataset(224, 500, 1, 5, 40, "dataset/dummy_dataset", use_cat_image=False)
