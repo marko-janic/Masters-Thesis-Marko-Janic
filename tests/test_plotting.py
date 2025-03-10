@@ -20,7 +20,7 @@ from model import ParticlePicker
 from main import get_latent_representation
 from train import prepare_outputs_for_loss
 
-TEST_DATASET_PATH = '../dataset/dummy_dataset/data'
+TEST_DATASET_PATH = '../dataset/dummy_dataset_old/data'
 TEST_RESULTS_FOLDER = 'test_plotting'
 MOCKS_FOLDER = 'mocks'
 EXPERIMENT_FOLDER = os.path.join(MOCKS_FOLDER, "experiment_dummy_dataset")
