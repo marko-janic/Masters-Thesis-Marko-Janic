@@ -10,12 +10,12 @@ def load_vit_model():
 
 class ParticlePicker(nn.Module):
     def __init__(self, latent_dim, num_particles, image_width, image_height):
+        super(ParticlePicker, self).__init__()
+
         self.width = image_width
         self.height = image_height
         self.latent_dim = latent_dim
         self.num_particles = num_particles
-
-        super(ParticlePicker, self).__init__()
 
         self.fc = nn.Sequential(
             nn.Linear(latent_dim, 512),
@@ -29,8 +29,7 @@ class ParticlePicker(nn.Module):
     def forward(self, x):
         """
         :param x: Input
-        :return: A tensor of size batch_size x num_particles x 3 where the last column of a specific particle
-        is its class
+        :return:
         """
 
         out = self.fc(x).view(-1, self.num_particles, 6)
