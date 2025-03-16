@@ -179,6 +179,7 @@ def main():
         # Save untrained checkpoint for debugging purposes
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
 
+        plotted = False
         for epoch in range(args.epochs):
             running_loss = 0.0
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
@@ -195,7 +196,7 @@ def main():
                     target = {k: v.to(args.device) for k, v in target.items() if k != "image_id"}
                     targets.append(target)
 
-                if epoch < 1:
+                if epoch < 1 and not plotted:
                     save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",
                                                     {}, args.result_dir, "train_test_example")
 
