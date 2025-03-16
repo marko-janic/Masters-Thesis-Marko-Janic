@@ -7,6 +7,7 @@ import random
 import matplotlib.pyplot as plt
 
 import torch.optim as optim
+from scipy.optimize import linear_sum_assignment  # Add this import
 
 # Local imports
 from loss import build
@@ -15,11 +16,11 @@ from train import prepare_outputs_for_loss
 from util.utils import create_folder_if_missing
 
 TEST_RESULTS_FOLDER = 'test_loss'
-PARTICLE_WIDTH = 80
-PARTICLE_HEIGHT = 80
+PARTICLE_WIDTH = 10
+PARTICLE_HEIGHT = 10
 IMAGE_WIDTH = 224
 IMAGE_HEIGHT = 224
-EPOCHS = 500
+EPOCHS = 1000
 LEARNING_RATE = 0.1
 NUM_TARGETS = 3
 NUM_PREDICTIONS = 5
@@ -34,18 +35,19 @@ class LossTests(unittest.TestCase):
         coordinates = torch.Tensor([[random.randint(0, IMAGE_WIDTH), random.randint(0, IMAGE_HEIGHT)] for _ in range(NUM_TARGETS)])
         particle_sizes = torch.tensor([PARTICLE_WIDTH, PARTICLE_HEIGHT],
                                       dtype=torch.float32).repeat(len(coordinates), 1)
-        bboxes = (torch.cat((coordinates, particle_sizes), dim=1) /
+        bboxes = (torch.cat((coordinates, particle_sizes), dim=1) / 
                   torch.Tensor([IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT]))
         classes = torch.zeros(len(bboxes))  # Zeros since we have one class (particle)
         self.target = [{
-            "boxes": bboxes,
-            "labels": classes,
-            "orig_size": torch.tensor([IMAGE_WIDTH, IMAGE_HEIGHT]),
+            "boxes": bboxes.to(self.args.device),
+            "labels": classes.to(self.args.device),
+            "orig_size": torch.tensor([IMAGE_WIDTH, IMAGE_HEIGHT]).to(self.args.device),
             "image_id": 0
         }]
 
     def test_loss_gradient(self):
         model = torch.rand((1, NUM_PREDICTIONS, 6))
+        model[:, :, 2:4] = 0
         model.requires_grad_()
         optimizer = optim.Adam([model], lr=LEARNING_RATE)
 
@@ -54,6 +56,10 @@ class LossTests(unittest.TestCase):
 
         for i in range(EPOCHS):
             outputs = prepare_outputs_for_loss(model)
+
+            # Set negative width or height values to 0
+            clamped_boxes = torch.clamp(outputs['pred_boxes'][:, :, 2:4], min=0)
+            outputs['pred_boxes'] = torch.cat((outputs['pred_boxes'][:, :, :2], clamped_boxes, outputs['pred_boxes'][:, :, 4:]), dim=2)
 
             loss_dict = self.criterion(outputs, self.target)
             weight_dict = self.criterion.weight_dict
@@ -65,14 +71,21 @@ class LossTests(unittest.TestCase):
 
             losses_list.append(losses.item())
 
-            topk_indices = torch.topk(model[0, :, 4], NUM_TARGETS).indices
-            valid_predictions = model[:, topk_indices, :4]
+            # Calculate distances between target centers and predictions
+            target_centers = self.target[0]['boxes'][:, :2] * torch.tensor([IMAGE_WIDTH, IMAGE_HEIGHT])
+            prediction_centers = model[0, :, :2] * torch.tensor([IMAGE_WIDTH, IMAGE_HEIGHT])
+            distances = torch.cdist(target_centers.unsqueeze(0), prediction_centers.unsqueeze(0)).squeeze(0)
+            
+            # Use Hungarian algorithm for optimal matching
+            row_ind, col_ind = linear_sum_assignment(distances.cpu().detach().numpy())
+            valid_predictions = model[:, col_ind, :4]
             mse = torch.mean((self.target[0]['boxes'] - valid_predictions) ** 2).item()
             mse_list.append(mse)
 
             if i == EPOCHS - 1:
                 print(f"Epoch {i + 1}, Loss: {losses.item()}")
-                print(f"Targets: {self.target}")
+                print(f"Targets: \n{self.target[0]['boxes']}")
+                print(f"Matched Predictions: \n{valid_predictions}")
                 print(f"Model: {model}")
 
         plt.figure()
@@ -80,6 +93,7 @@ class LossTests(unittest.TestCase):
         plt.plot(losses_list)
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
+        plt.title(f'(Particle Size: {PARTICLE_WIDTH}x{PARTICLE_HEIGHT}) Final Loss: {losses_list[-1]:.4f}')
         plt.subplot(2, 1, 2)
         plt.plot(mse_list)
         plt.xlabel('Epochs')
