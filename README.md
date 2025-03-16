@@ -2,6 +2,8 @@
 This repository contains all code used for my Master's thesis.
 
 ## Development
+
+### Normal
 Create virtual environment:
 ```
 python -m venv venv
@@ -13,6 +15,12 @@ Activate virtual environment (Windows):
 Install requirements:
 ```
 pip install -r requirements.txt
+```
+
+### On SciCore
+Load python module:
+```
+module load Python/3.10.8-GCCcore-12.2.0
 ```
 
 ### Recommended Folder structure
