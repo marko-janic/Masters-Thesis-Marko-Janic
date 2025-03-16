@@ -2,6 +2,7 @@ import torch
 import unittest
 import os
 import argparse
+import random
 
 import matplotlib.pyplot as plt
 
@@ -20,6 +21,8 @@ IMAGE_WIDTH = 224
 IMAGE_HEIGHT = 224
 EPOCHS = 500
 LEARNING_RATE = 0.1
+NUM_TARGETS = 3
+NUM_PREDICTIONS = 5
 
 
 class LossTests(unittest.TestCase):
@@ -28,7 +31,7 @@ class LossTests(unittest.TestCase):
         self.args = get_args()
         self.criterion, self.postprocessors = build(self.args)
 
-        coordinates = torch.Tensor([[244, 100]])
+        coordinates = torch.Tensor([[random.randint(0, IMAGE_WIDTH), random.randint(0, IMAGE_HEIGHT)] for _ in range(NUM_TARGETS)])
         particle_sizes = torch.tensor([PARTICLE_WIDTH, PARTICLE_HEIGHT],
                                       dtype=torch.float32).repeat(len(coordinates), 1)
         bboxes = (torch.cat((coordinates, particle_sizes), dim=1) /
@@ -42,7 +45,7 @@ class LossTests(unittest.TestCase):
         }]
 
     def test_loss_gradient(self):
-        model = torch.Tensor([[[0, 0, 0, 0, 0, 0]]])
+        model = torch.rand((1, NUM_PREDICTIONS, 6))
         model.requires_grad_()
         optimizer = optim.Adam([model], lr=LEARNING_RATE)
 
@@ -61,7 +64,10 @@ class LossTests(unittest.TestCase):
             optimizer.step()
 
             losses_list.append(losses.item())
-            mse = torch.mean((self.target[0]['boxes'] - model[:, :, :4]) ** 2).item()
+
+            topk_indices = torch.topk(model[0, :, 4], NUM_TARGETS).indices
+            valid_predictions = model[:, topk_indices, :4]
+            mse = torch.mean((self.target[0]['boxes'] - valid_predictions) ** 2).item()
             mse_list.append(mse)
 
             if i == EPOCHS - 1:
