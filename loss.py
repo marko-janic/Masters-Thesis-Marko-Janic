@@ -248,7 +248,6 @@ def build(args):
                              eos_coef=args.eos_coef, losses=losses)
     criterion.to(device)
 
-    # TODO: check if we need this
     postprocessors = {'bbox': PostProcess()}
 
     return criterion, postprocessors

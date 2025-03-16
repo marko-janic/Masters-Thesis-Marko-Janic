@@ -33,33 +33,13 @@ random.seed(seed)
 torch.manual_seed(seed)
 
 
-def get_latent_representation(self, x: torch.Tensor):
-    """
-    We use this model to override the normal implementation since we don't want the classification head:
-    https://github.com/pytorch/vision/blob/main/torchvision/models/vision_transformer.py#L289
-    """
-    # Process input
-    x = self._process_input(x)
-    n = x.shape[0]
-
-    # Expand the class token
-    batch_class_token = self.class_token.expand(n, -1, -1)
-    x = torch.cat([batch_class_token, x], dim=1)
-
-    # Pass through encoder
-    x = self.encoder(x)
-
-    # Return the class token representation
-    return x[:, 0]
-
-
-def main():
+def get_args():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Program Arguments
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
-    parser.add_argument("--mode", type=str, default="eval", help="Mode to run the program in: train, eval")
+    parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="experiment_10-03-2025_01-20-59_dummy_dataset_cat",
                         help="Path to existing result folder to load model from.")
     parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset_cat/data")
@@ -113,6 +93,31 @@ def main():
     parser.add_argument('--quartile_threshold', type=float, default=0.9, help='Quartile threshold')
 
     args = parser.parse_args()
+    return args
+
+
+def get_latent_representation(self, x: torch.Tensor):
+    """
+    We use this model to override the normal implementation since we don't want the classification head:
+    https://github.com/pytorch/vision/blob/main/torchvision/models/vision_transformer.py#L289
+    """
+    # Process input
+    x = self._process_input(x)
+    n = x.shape[0]
+
+    # Expand the class token
+    batch_class_token = self.class_token.expand(n, -1, -1)
+    x = torch.cat([batch_class_token, x], dim=1)
+
+    # Pass through encoder
+    x = self.encoder(x)
+
+    # Return the class token representation
+    return x[:, 0]
+
+
+def main():
+    args = get_args()
 
     # Create necessary folders if not present ==========================================================================
     if args.existing_result_folder is not None and args.mode == "eval":
