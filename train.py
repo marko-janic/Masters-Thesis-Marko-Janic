@@ -5,6 +5,7 @@ from dataset import get_particle_locations_from_coordinates
 
 
 def compute_losses(args, index, dataset, model, vit_model, micrographs, criterion):
+    # TODO: I need to remove this or refactor this somehow
     model.train()
     criterion.train()
 

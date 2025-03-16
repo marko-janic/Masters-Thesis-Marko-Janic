@@ -5,6 +5,7 @@ import types
 import os
 import datetime
 import random
+import json
 
 import torch.nn as nn
 import torch.optim as optim
@@ -23,26 +24,27 @@ from util.utils import create_folder_if_missing
 from dataset import ShrecDataset, DummyDataset, get_particle_locations_from_coordinates
 from loss import SetCriterion, build
 from evaluate import evaluate
-from train import prepare_targets_for_loss, prepare_outputs_for_loss, compute_losses
+from train import prepare_targets_for_loss, prepare_outputs_for_loss
 from plotting import save_image_with_bounding_object
 
 
 # Set the seed for reproducibility
-seed = 42
-random.seed(seed)
-torch.manual_seed(seed)
+# seed = 42
+# random.seed(seed)
+# torch.manual_seed(seed)
 
 
 def get_args():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Program Arguments
+    parser.add_argument("--config", type=str, help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_10-03-2025_01-20-59_dummy_dataset_cat",
+    parser.add_argument("--existing_result_folder", type=str, default="",
                         help="Path to existing result folder to load model from.")
-    parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset_cat/data")
+    parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset/data")
     parser.add_argument("--dataset_size", type=int, default=500)
     # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
     parser.add_argument("--num_particles", type=int, default=7,
@@ -54,7 +56,7 @@ def get_args():
 
     # Experiment Results
     parser.add_argument("--result_dir", type=str,
-                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_dummy_dataset_cat',
+                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_dummy_dataset',
                         help="Directory to save results to")
 
     # Training
@@ -93,6 +95,14 @@ def get_args():
     parser.add_argument('--quartile_threshold', type=float, default=0.9, help='Quartile threshold')
 
     args = parser.parse_args()
+
+    # Load arguments from configuration file if provided
+    if args.config:
+        with open(args.config, 'r') as f:
+            config_args = json.load(f)
+            for key, value in config_args.items():
+                setattr(args, key, value)
+
     return args
 
 
@@ -137,7 +147,7 @@ def main():
     if args.mode != "eval":
         loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
         with open(loss_log_path, 'w') as f:
-            f.write("epoch,running_loss\n")
+            f.write("epoch,average_loss\n")
 
     # ==================================================================================================================
     vit_model = vit_b_16(weights="IMAGENET1K_V1", progress=True)
@@ -177,17 +187,19 @@ def main():
                 # TODO: add train_one_epoch function
                 model.train()
                 criterion.train()
-                #losses, outputs, targets = compute_losses(args, index, dataset, model, vit_model, micrographs, criterion, optimizer)
 
                 targets = []
                 for target_index in index:
-                    targets.append(dataset.targets[target_index])
+                    target = dataset.targets[target_index]
+                    # Move target to the same device as the model
+                    target = {k: v.to(args.device) for k, v in target.items() if k != "image_id"}
+                    targets.append(target)
 
                 if epoch < 1:
-                    save_image_with_bounding_object(micrographs[0], targets[0]['boxes']*224, "output_box",
+                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",
                                                     {}, args.result_dir, "train_test_example")
 
-                latent_micrographs = vit_model(micrographs)
+                latent_micrographs = vit_model(micrographs).to(args.device)
                 predictions = model(latent_micrographs)
                 outputs = prepare_outputs_for_loss(predictions)
 
