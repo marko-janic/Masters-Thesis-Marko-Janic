@@ -15,15 +15,22 @@ from main import get_args
 from train import prepare_outputs_for_loss
 from util.utils import create_folder_if_missing
 
-TEST_RESULTS_FOLDER = 'test_loss'
-PARTICLE_WIDTH = 10
-PARTICLE_HEIGHT = 10
 IMAGE_WIDTH = 224
 IMAGE_HEIGHT = 224
 EPOCHS = 1000
 LEARNING_RATE = 0.1
 NUM_TARGETS = 3
 NUM_PREDICTIONS = 5
+TEST_RESULTS_FOLDER = 'test_loss'
+
+MIN_X_TARGET = 60
+MIN_Y_TARGET = 60
+PARTICLE_WIDTH = 10
+PARTICLE_HEIGHT = 10
+X_INIT = 0
+Y_INIT = 0
+PARTICLE_WIDTH_INIT = 10
+PARTICLE_HEIGHT_INIT = 10
 
 
 class LossTests(unittest.TestCase):
@@ -32,7 +39,7 @@ class LossTests(unittest.TestCase):
         self.args = get_args()
         self.criterion, self.postprocessors = build(self.args)
 
-        coordinates = torch.Tensor([[random.randint(0, IMAGE_WIDTH), random.randint(0, IMAGE_HEIGHT)] for _ in range(NUM_TARGETS)])
+        coordinates = torch.Tensor([[random.randint(60, IMAGE_WIDTH), random.randint(60, IMAGE_HEIGHT)] for _ in range(NUM_TARGETS)])
         particle_sizes = torch.tensor([PARTICLE_WIDTH, PARTICLE_HEIGHT],
                                       dtype=torch.float32).repeat(len(coordinates), 1)
         bboxes = (torch.cat((coordinates, particle_sizes), dim=1) / 
@@ -47,7 +54,10 @@ class LossTests(unittest.TestCase):
 
     def test_loss_gradient(self):
         model = torch.rand((1, NUM_PREDICTIONS, 6))
-        model[:, :, 2:4] = 0
+        model[:, :, 0] = X_INIT
+        model[:, :, 1] = Y_INIT
+        model[:, :, 2] = PARTICLE_WIDTH_INIT / IMAGE_WIDTH
+        model[:, :, 3] = PARTICLE_HEIGHT_INIT / IMAGE_HEIGHT
         model.requires_grad_()
         optimizer = optim.Adam([model], lr=LEARNING_RATE)
 
@@ -88,16 +98,35 @@ class LossTests(unittest.TestCase):
                 print(f"Matched Predictions: \n{valid_predictions}")
                 print(f"Model: {model}")
 
-        plt.figure()
-        plt.subplot(2, 1, 1)
-        plt.plot(losses_list)
+        plt.figure(figsize=(7, 10))  # Adjust the figure size
+        plt.subplot(3, 1, 1)
+        plt.semilogy(losses_list)
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         plt.title(f'(Particle Size: {PARTICLE_WIDTH}x{PARTICLE_HEIGHT}) Final Loss: {losses_list[-1]:.4f}')
-        plt.subplot(2, 1, 2)
-        plt.plot(mse_list)
+        plt.subplot(3, 1, 2)
+        plt.semilogy(mse_list)
         plt.xlabel('Epochs')
         plt.ylabel('MSE predictions vs target coords')
+
+        # Add a table with the parameters
+        plt.subplot(3, 1, 3)
+        plt.axis('off')
+        table_data = [
+            ["MIN_X_TARGET", MIN_X_TARGET],
+            ["MIN_Y_TARGET", MIN_Y_TARGET],
+            ["PARTICLE_WIDTH", PARTICLE_WIDTH],
+            ["PARTICLE_HEIGHT", PARTICLE_HEIGHT],
+            ["X_INIT", X_INIT],
+            ["Y_INIT", Y_INIT],
+            ["PARTICLE_WIDTH_INIT", PARTICLE_WIDTH_INIT],
+            ["PARTICLE_HEIGHT_INIT", PARTICLE_HEIGHT_INIT]
+        ]
+        table = plt.table(cellText=table_data, colLabels=["Parameter", "Value"], cellLoc='center', loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1.2, 1.2)
+
         plt.savefig(os.path.join(TEST_RESULTS_FOLDER, 'loss_plot.png'))
 
 
