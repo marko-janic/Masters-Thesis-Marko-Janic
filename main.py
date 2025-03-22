@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PIL import Image
-from torchvision.models import vit_b_16, VisionTransformer
+from torchvision.models import vit_b_16, vit_l_16, ViT_B_16_Weights
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
@@ -24,7 +24,7 @@ from util.utils import create_folder_if_missing
 from dataset import ShrecDataset, DummyDataset, get_particle_locations_from_coordinates
 from loss import SetCriterion, build
 from evaluate import evaluate
-from train import prepare_targets_for_loss, prepare_outputs_for_loss
+from train import prepare_targets_for_loss, prepare_outputs_for_loss, prepare_dataloaders
 from plotting import save_image_with_bounding_object
 
 
@@ -38,11 +38,12 @@ def get_args():
     # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
     # Program Arguments
-    parser.add_argument("--config", type=str, help="Path to the configuration file")
+    parser.add_argument("--config", type=str, default="run_configs/default_dummy_dataset_training.json",
+                        help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="",
+    parser.add_argument("--existing_result_folder", type=str, default="experiment_16-03-2025_16-20-35_dummy_dataset",
                         help="Path to existing result folder to load model from.")
     parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset/data")
     parser.add_argument("--dataset_size", type=int, default=500)
@@ -56,12 +57,12 @@ def get_args():
 
     # Experiment Results
     parser.add_argument("--result_dir", type=str,
-                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_dummy_dataset',
+                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_TESTING',
                         help="Directory to save results to")
 
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
-    parser.add_argument("--learning_rate", type=int, default=0.01, help="Learning rate for training")
+    parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
     parser.add_argument("--checkpoint_interval", type=int, default=1,
                         help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",
@@ -92,12 +93,13 @@ def get_args():
                         help="Relative classification weight of the no-object class")
 
     # Evaluation
-    parser.add_argument('--quartile_threshold', type=float, default=0.9, help='Quartile threshold')
+    parser.add_argument('--quartile_threshold', type=float, default=0.0, help='Quartile threshold')
 
     args = parser.parse_args()
 
     # Load arguments from configuration file if provided
     if args.config:
+        print(f"Recognized configuration file: {args.config}")
         with open(args.config, 'r') as f:
             config_args = json.load(f)
             for key, value in config_args.items():
@@ -159,9 +161,7 @@ def main():
     dataset = DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
                            particle_width=args.particle_width, particle_height=args.particle_height)
 
-    train_size = int(args.train_eval_split * len(dataset))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    train_dataloader, test_dataloader = prepare_dataloaders(dataset, args.train_eval_split, args.batch_size)
 
     model = ParticlePicker(latent_dim=args.latent_dim, num_particles=args.num_particles,
                            image_width=dataset.image_width, image_height=dataset.image_height)
@@ -169,11 +169,6 @@ def main():
     model.to(args.device)
     criterion, postprocessors = build(args)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
-
-    # Important to set drop_last=True otherwise certain bath_size + dataset combinations don't work since every
-    # batch needs to be of size args.batch_size
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=1)
 
     if args.mode == "train":
         # Save untrained checkpoint for debugging purposes
