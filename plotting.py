@@ -5,7 +5,41 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
+# Local imports
+
+from util.utils import create_folder_if_missing
+
 matplotlib.use('Agg')  # To avoid error: _tkinter.TclError: no display name and no $DISPLAY environment variable
+
+
+def compare_images(image1, image2, file_name, output_location, title1, title2):
+    """
+    Plot two images side by side for comparison and save to file.
+
+    :param image1: First image as a torch tensor with shape C, H, W
+    :param image2: Second image as a torch tensor with shape C, H, W
+    :param file_name: Name of the file to save the plot
+    :param output_location: Directory to save the plot
+    :param title1
+    :param title2
+    """
+    image1 = image1.permute(1, 2, 0).cpu().numpy()
+    image2 = image2.permute(1, 2, 0).cpu().numpy()
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+
+    ax1.imshow(image1)
+    ax1.set_title(title1)
+    ax1.axis('off')
+
+    ax2.imshow(image2)
+    ax2.set_title(title2)
+    ax2.axis('off')
+
+    create_folder_if_missing(output_location)
+
+    plt.savefig(os.path.join(output_location, file_name))
+    plt.close(fig)
 
 
 def draw_output_boxes(ax, particle_locations, image_height, image_width, box_color):

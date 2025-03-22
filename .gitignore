@@ -13,6 +13,7 @@ experiments/archive
 experiments/tmp
 !experiments/saved/
 tests/mocks/*
+tests/test_vit_model/experiments
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
