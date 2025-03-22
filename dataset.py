@@ -14,6 +14,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from tqdm import tqdm
 from PIL import Image
+from torchvision.models import ViT_B_16_Weights
 
 # Local imports
 from util.utils import create_folder_if_missing
@@ -184,20 +185,21 @@ class DummyDataset(Dataset):
 
         self.micrographs = []
         self.targets = []
+
+        preprocess = transforms.Compose([
+            transforms.ToTensor(),
+            #ViT_B_16_Weights.IMAGENET1K_V1.transforms()
+        ])
+
         for idx in range(dataset_size):
 
             # The image (micrograph)
             micrograph_path = os.path.join(self.dataset_path, f'micrograph_{idx}.png')
             if not os.path.isfile(micrograph_path):
                 raise Exception(f"The file {micrograph_path} doesn't exist.")
-            # This is according to what the model should get  TODO: check if this actually makes it better
-            preprocess = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ])
+
             image = Image.open(micrograph_path).convert("RGB")
-            micrograph = preprocess(image)
-            self.micrographs.append(micrograph)
+            self.micrographs.append(preprocess(image))
 
             # The target (coordinates + classes)
             coordinates_path = os.path.join(self.dataset_path, f'micrograph_{idx}_coords.txt')
