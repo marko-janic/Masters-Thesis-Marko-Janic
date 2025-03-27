@@ -17,7 +17,7 @@ from dataset import DummyDataset
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import save_image_with_bounding_object, compare_predictions_with_ground_truth
 from model import ParticlePicker
-from main import get_latent_representation
+from vit_model import get_latent_representation
 from train import prepare_outputs_for_loss
 
 TEST_DATASET_PATH = '../dataset/dummy_dataset_old/data'

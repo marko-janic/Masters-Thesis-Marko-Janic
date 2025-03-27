@@ -17,7 +17,7 @@ from tqdm import tqdm
 from dataset import DummyDataset
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import compare_images
-from main import get_latent_representation
+from vit_model import get_latent_representation
 from train import prepare_dataloaders
 
 TEST_DATASET_PATH = '../dataset/dummy_dataset/data'

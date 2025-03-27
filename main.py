@@ -26,6 +26,7 @@ from loss import SetCriterion, build
 from evaluate import evaluate
 from train import prepare_targets_for_loss, prepare_outputs_for_loss, prepare_dataloaders
 from plotting import save_image_with_bounding_object
+from vit_model import get_latent_representation
 
 
 # Set the seed for reproducibility
@@ -106,26 +107,6 @@ def get_args():
                 setattr(args, key, value)
 
     return args
-
-
-def get_latent_representation(self, x: torch.Tensor):
-    """
-    We use this model to override the normal implementation since we don't want the classification head:
-    https://github.com/pytorch/vision/blob/main/torchvision/models/vision_transformer.py#L289
-    """
-    # Process input
-    x = self._process_input(x)
-    n = x.shape[0]
-
-    # Expand the class token
-    batch_class_token = self.class_token.expand(n, -1, -1)
-    x = torch.cat([batch_class_token, x], dim=1)
-
-    # Pass through encoder
-    x = self.encoder(x)
-
-    # Return the class token representation
-    return x[:, 0]
 
 
 def main():
