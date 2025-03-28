@@ -24,6 +24,7 @@ ssh -Y <username>@login12.scicore.unibas.ch
 ```
 Load python module:
 ```
+module purge
 module load Python/3.10.8-GCCcore-12.2.0
 ```
 
