@@ -14,6 +14,7 @@ experiments/tmp
 !experiments/saved/
 tests/mocks/*
 tests/test_vit_model/experiments
+tests/test_vit_model_huggingface/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
