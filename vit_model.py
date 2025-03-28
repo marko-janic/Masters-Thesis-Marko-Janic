@@ -2,18 +2,20 @@
 ViT models and stuff: https://huggingface.co/docs/transformers/en/model_doc/vit
 """
 import torch
+import types
 
 from transformers import ViTModel, ViTImageProcessor
+from torchvision.models import vit_b_16, vit_l_16, ViT_B_16_Weights
 
 
-def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_feature_extractor: ViTImageProcessor):
+def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_image_processor: ViTImageProcessor):
     """
     :param image: torch tensor of shape batch x channels x height x width
     :param vit_model:
-    :param vit_feature_extractor:
+    :param vit_image_processor:
     :return:
     """
-    inputs = vit_feature_extractor(images=image, return_tensors='pt', do_rescale=False)
+    inputs = vit_image_processor(images=image, return_tensors='pt', do_rescale=False)
     outputs = vit_model(pixel_values=inputs['pixel_values'], output_hidden_states=True)
 
     return outputs
@@ -29,6 +31,15 @@ def get_vit_model():
     vit_model = ViTModel.from_pretrained('google/vit-base-patch16-224-in21k')
 
     return vit_model, vit_image_processor
+
+
+def get_vit_model_old():
+    vit_model = vit_b_16(weights="IMAGENET1K_V1", progress=True)
+    vit_model.eval()
+    # Here we replace the method of the class to use our own one that doesn't use the classification head.
+    vit_model.forward = types.MethodType(get_latent_representation, vit_model)
+
+    return vit_model
 
 
 def get_latent_representation(self, x: torch.Tensor):

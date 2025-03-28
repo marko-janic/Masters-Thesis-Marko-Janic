@@ -1,5 +1,8 @@
 import unittest
 import argparse
+import os
+
+import matplotlib.pyplot as plt
 
 # Local imports
 from dataset import DummyDataset
@@ -37,6 +40,15 @@ class VitModelHuggingFaceTests(unittest.TestCase):
         print(f"Output pooler_output shape: {outputs['pooler_output'].shape}")
         print(f"Output hidden_states shape: tuple of size {len(outputs['hidden_states'])}, each of shape "
               f"{outputs['hidden_states'][0].shape} ")
+
+    def test_vit_image_processor(self):
+        micrograph, _ = self.dataset.__getitem__(0)
+        micrograph = micrograph.unsqueeze(0)  # get it to batch x channel x h x w
+        processed_micrograph = self.vit_image_processor(images=micrograph, return_tensors='pt', do_rescale=False)
+        print(f"Processed_micrograph shape: {processed_micrograph['pixel_values'].shape}")
+
+        plt.imshow(processed_micrograph['pixel_values'][0].permute(1, 2, 0).cpu().numpy())
+        plt.savefig(os.path.join(self.args.result_dir, "processed_micrograph"))
 
 
 if __name__ == '__main__':

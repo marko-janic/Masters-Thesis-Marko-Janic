@@ -1,21 +1,27 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "existing_result_folder": "",
+    "result_dir_appended_name": "normal_training",
+
     "dataset_path": "dataset/dummy_dataset/data",
     "dataset_size": 500,
     "num_particles": 7,
     "particle_width": 80,
     "particle_height": 80,
-    "epochs": 10,
+
     "device": "cuda",
+    "epochs": 200,
     "batch_size": 8,
     "learning_rate": 0.001,
     "checkpoint_interval": 1,
     "loss_log_file": "loss_log.txt",
-    "sampling_points": 16,
+
     "train_eval_split": 0.9,
     "latent_dim": 768,
+    "num_patch_embeddings": 196,
+    "include_class_token": true,
+    "only_use_class_token": true,
+
     "set_cost_class": 1,
     "set_cost_bbox": 5,
     "set_cost_giou": 2,
@@ -23,6 +29,5 @@
     "dice_loss_coef": 1,
     "bbox_loss_coef": 5,
     "giou_loss_coef": 2,
-    "eos_coef": 0.1,
-    "quartile_threshold": 0.8
+    "eos_coef": 0.1
 }

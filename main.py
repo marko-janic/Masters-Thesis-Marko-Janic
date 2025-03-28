@@ -26,7 +26,7 @@ from loss import SetCriterion, build
 from evaluate import evaluate
 from train import prepare_targets_for_loss, prepare_outputs_for_loss, prepare_dataloaders
 from plotting import save_image_with_bounding_object
-from vit_model import get_latent_representation
+from vit_model import get_vit_model, get_encoded_image
 
 
 # Set the seed for reproducibility
@@ -36,15 +36,15 @@ from vit_model import get_latent_representation
 
 
 def get_args():
-    # Arguments ========================================================================================================
     parser = argparse.ArgumentParser()
+
     # Program Arguments
     parser.add_argument("--config", type=str, default="run_configs/default_dummy_dataset_training.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
-    parser.add_argument("--existing_result_folder", type=str, default="experiment_16-03-2025_16-20-35_dummy_dataset",
+    parser.add_argument("--existing_result_folder", type=str, default="",
                         help="Path to existing result folder to load model from.")
     parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset/data")
     parser.add_argument("--dataset_size", type=int, default=500)
@@ -58,8 +58,10 @@ def get_args():
 
     # Experiment Results
     parser.add_argument("--result_dir", type=str,
-                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_TESTING',
+                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_',
                         help="Directory to save results to")
+    parser.add_argument("--result_dir_appended_name", type=str, default="BASEDTEST",
+                        help="Extra string to append to the end of the result directory")
 
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
@@ -75,8 +77,17 @@ def get_args():
                         help="Ratio of training to evaluation split. 0.9 means that 90% of the data is used for "
                              "training and 10% for evaluation")
 
-    # Data
+    # Data and Model
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
+    parser.add_argument("--num_patch_embeddings", type=int, default=196, help="Number of patch"
+                                                                              "embeddings that the vit model generates,"
+                                                                              "this is based on the patch size of the"
+                                                                              "vit model")
+    parser.add_argument("--include_class_token", type=bool, default=True, help="Whether or not to include"
+                                                                               "the class token of the transformer"
+                                                                               "in the model")
+    parser.add_argument("--only_use_class_token", type=bool, default=False, help="Only use class token for "
+                                                                                 "model")
 
     # Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -111,6 +122,7 @@ def get_args():
 
 def main():
     args = get_args()
+    args.result_dir = args.result_dir + args.result_dir_appended_name
 
     # Create necessary folders if not present ==========================================================================
     if args.existing_result_folder is not None and args.mode == "eval":
@@ -132,11 +144,8 @@ def main():
         with open(loss_log_path, 'w') as f:
             f.write("epoch,average_loss\n")
 
-    # ==================================================================================================================
-    vit_model = vit_b_16(weights="IMAGENET1K_V1", progress=True)
-    vit_model.eval()
-    # Here we replace the method of the class to use our own one that doesn't use the classification head.
-    vit_model.forward = types.MethodType(get_latent_representation, vit_model)
+    # ViT model
+    vit_model, vit_image_processor = get_vit_model()
 
     # Training =========================================================================================================
     dataset = DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
@@ -145,7 +154,9 @@ def main():
     train_dataloader, test_dataloader = prepare_dataloaders(dataset, args.train_eval_split, args.batch_size)
 
     model = ParticlePicker(latent_dim=args.latent_dim, num_particles=args.num_particles,
-                           image_width=dataset.image_width, image_height=dataset.image_height)
+                           image_width=dataset.image_width, image_height=dataset.image_height,
+                           num_patch_embeddings=args.num_patch_embeddings, include_class_token=args.include_class_token,
+                           only_use_class_token=args.only_use_class_token)
 
     model.to(args.device)
     criterion, postprocessors = build(args)
@@ -176,7 +187,12 @@ def main():
                     save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",
                                                     {}, args.result_dir, "train_test_example")
 
-                latent_micrographs = vit_model(micrographs).to(args.device)
+                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
+                if args.only_use_class_token:
+                    latent_micrographs = encoded_image['pooler_output'].to(args.device)
+                else:
+                    latent_micrographs = encoded_image['last_hidden_state'].to(args.device)
+
                 predictions = model(latent_micrographs)
                 outputs = prepare_outputs_for_loss(predictions)
 
