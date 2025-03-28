@@ -1,9 +1,4 @@
 import unittest
-import os
-import torch
-import types
-import datetime
-import json
 import argparse
 
 # Local imports
@@ -40,7 +35,8 @@ class VitModelHuggingFaceTests(unittest.TestCase):
         outputs = get_encoded_image(micrograph, self.vit_model, self.vit_image_processor)
         print(f"Output last hidden state shape: {outputs['last_hidden_state'].shape}")
         print(f"Output pooler_output shape: {outputs['pooler_output'].shape}")
-        print(f"Output hidden_states shape: {type(outputs['hidden_states'])}")
+        print(f"Output hidden_states shape: tuple of size {len(outputs['hidden_states'])}, each of shape "
+              f"{outputs['hidden_states'][0].shape} ")
 
 
 if __name__ == '__main__':
