@@ -18,6 +18,10 @@ pip install -r requirements.txt
 ```
 
 ### On SciCore
+Login to SciCore:
+```
+ssh -Y <username>@login12.scicore.unibas.ch
+```
 Load python module:
 ```
 module load Python/3.10.8-GCCcore-12.2.0
