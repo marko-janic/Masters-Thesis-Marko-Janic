@@ -40,7 +40,6 @@ def plot_loss_log(loss_log_path, result_dir):
         print(f"Loss log file not found at {loss_log_path}")
 
 
-
 def compare_images(image1, image2, file_name, output_location, title1, title2):
     """
     Plot two images side by side for comparison and save to file.

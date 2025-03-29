@@ -50,11 +50,13 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
                 # This weird stuff is how cryotransformers does the predicting
                 probas2 = outputs['pred_logits'].sigmoid()
-                topk_values, topk_indexes = torch.topk(probas2.view(outputs["pred_logits"].shape[0], -1), args.num_particles, dim=1)  # extreme important mention num queries
-                scores = topk_values
-                keep = scores[0] > np.quantile(scores, args.quartile_threshold)
-                scores = scores[0, keep]
 
+                # topk_values, topk_indexes = torch.topk(probas2.view(outputs["pred_logits"].shape[0], -1), args.num_particles, dim=1)  # extreme important mention num queries
+                # scores = topk_values
+                # keep = scores[0] < np.quantile(scores, args.quartile_threshold)
+                # scores = scores[0, keep]
+
+                keep = probas2[0, :, 0] > probas2[0, :, 1]
                 pred_coords = outputs['pred_boxes'][0, keep, :]
                 pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords.cpu().numpy())
                 ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :4])
