@@ -188,7 +188,6 @@ class DummyDataset(Dataset):
 
         preprocess = transforms.Compose([
             transforms.ToTensor(),  # Automatically rescales between 0 and 1
-            #ViT_B_16_Weights.IMAGENET1K_V1.transforms()  # TODO: test if this is necessary
         ])
 
         for idx in range(dataset_size):

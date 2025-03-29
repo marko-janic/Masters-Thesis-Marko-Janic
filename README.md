@@ -37,4 +37,4 @@ TODO: Add script for creating folder structure, describe folder structure
     - Colab Notebook: https://colab.research.google.com/github/google-research/vision_transformer/blob/main/vit_jax_augreg.ipynb
 - Pytorch implementation of ViTs:
   - Implementation: https://pytorch.org/vision/main/models/vision_transformer.html
-  - Fine tuning it?: https://github.com/jeonsworld/ViT-pytorch
+  - Fine-tuning it?: https://github.com/jeonsworld/ViT-pytorch
