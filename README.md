@@ -27,6 +27,14 @@ Load python module:
 module purge
 module load Python/3.10.8-GCCcore-12.2.0
 ```
+Activate environment:
+```
+source venv/bin/activate
+```
+Run script:
+```
+python main.py --config run_configs/default_dummy_dataset_training.json
+```
 
 ### Recommended Folder structure
 TODO: Add script for creating folder structure, describe folder structure
