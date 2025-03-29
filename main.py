@@ -65,7 +65,7 @@ def get_args():
 
     # Training
     parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
-    parser.add_argument("--learning_rate", type=int, default=0.001, help="Learning rate for training")
+    parser.add_argument("--learning_rate", type=float, default=0.001, help="Learning rate for training")
     parser.add_argument("--checkpoint_interval", type=int, default=1,
                         help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",
@@ -117,37 +117,57 @@ def get_args():
             for key, value in config_args.items():
                 setattr(args, key, value)
 
+    args.result_dir = args.result_dir + args.result_dir_appended_name
+    args.loss_log_path = ""
+    if args.mode != "eval":
+        args.loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
+
+    if args.mode == "eval":
+        print("Running in evaluation mode")
+    elif args.mode == "train":
+        print("Running in training mode")
+
     return args
 
 
-def main():
-    args = get_args()
-    args.result_dir = args.result_dir + args.result_dir_appended_name
+def create_folders_and_initiate_files(args):
+    """
+    Creates necessary folders and initializes files for logging.
 
-    # Create necessary folders if not present ==========================================================================
+    :param args: Requires the following arguments in args:
+        - result_dir: Directory to save results.
+        - existing_result_folder: Path to an existing result folder (used in evaluation mode).
+        - mode: Mode of operation
+        - loss_log_path: Path to the loss log file.
+    :return: None
+    """
+    # Create necessary folders if not present
     if args.existing_result_folder is not None and args.mode == "eval":
         args.result_dir = os.path.join('experiments', args.existing_result_folder)
 
     create_folder_if_missing(args.result_dir)
     create_folder_if_missing(os.path.join(args.result_dir, 'checkpoints'))
 
-    # Save Training information into file ==============================================================================
+    # Save Training information into file
     if args.mode != "eval":
         with open(os.path.join(args.result_dir, 'arguments.txt'), 'w') as f:
             for arg in vars(args):
                 f.write(f"{arg}: {getattr(args, arg)}\n")
 
-    # Initialize loss log file =========================================================================================
-    loss_log_path = ""
+    # Initialize loss log file
     if args.mode != "eval":
-        loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
-        with open(loss_log_path, 'w') as f:
+        with open(args.loss_log_path, 'w') as f:
             f.write("epoch,average_loss\n")
+
+
+def main():
+    args = get_args()
+    create_folders_and_initiate_files(args)
 
     # ViT model
     vit_model, vit_image_processor = get_vit_model()
 
-    # Training =========================================================================================================
+    # Training
     dataset = DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
                            particle_width=args.particle_width, particle_height=args.particle_height)
 
@@ -160,7 +180,7 @@ def main():
 
     model.to(args.device)
     criterion, postprocessors = build(args)
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)  # TODO: add weight decay
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     if args.mode == "train":
         # Save untrained checkpoint for debugging purposes
@@ -212,7 +232,7 @@ def main():
             avg_loss = running_loss / len(train_dataloader)
 
             # Save running loss to log file
-            with open(loss_log_path, 'a') as f:
+            with open(args.loss_log_path, 'a') as f:
                 f.write(f"{epoch + 1},{avg_loss}\n")
 
             # Save checkpoint
