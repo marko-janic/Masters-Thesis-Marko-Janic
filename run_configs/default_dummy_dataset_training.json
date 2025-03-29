@@ -10,7 +10,7 @@
     "particle_height": 80,
 
     "device": "cuda",
-    "epochs": 200,
+    "epochs": 500,
     "batch_size": 8,
     "learning_rate": 0.001,
     "checkpoint_interval": 1,

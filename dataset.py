@@ -227,6 +227,16 @@ class DummyDataset(Dataset):
 
         self.micrographs = torch.stack(self.micrographs)
 
+    def get_targets_from_target_indexes(self, indexes, device):
+        targets = []
+        for target_index in indexes:
+            target = self.targets[target_index]
+            # Move target to the same device as the model, take everything except image_id
+            target = {k: v.to(device) for k, v in target.items() if k != "image_id"}
+            targets.append(target)
+
+        return targets
+
     def __len__(self):
         return len(self.micrographs)
 

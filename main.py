@@ -29,7 +29,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/default_dummy_dataset_training.json",
+    parser.add_argument("--config", type=str, default="run_configs/default_dummy_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
@@ -112,6 +112,9 @@ def get_args():
     if args.mode != "eval":
         args.loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
 
+    if args.existing_result_folder is not None and args.mode == "eval":
+        args.result_dir = os.path.join('experiments', args.existing_result_folder)
+
     if args.mode == "eval":
         print("Running in evaluation mode")
     elif args.mode == "train":
@@ -131,10 +134,6 @@ def create_folders_and_initiate_files(args):
         - loss_log_path: Path to the loss log file.
     :return: None
     """
-    # Create necessary folders if not present
-    if args.existing_result_folder is not None and args.mode == "eval":
-        args.result_dir = os.path.join('experiments', args.existing_result_folder)
-
     create_folder_if_missing(args.result_dir)
     create_folder_if_missing(os.path.join(args.result_dir, 'checkpoints'))
 
@@ -186,23 +185,18 @@ def main():
                 model.train()
                 criterion.train()
 
-                targets = []
-                for target_index in index:
-                    target = dataset.targets[target_index]
-                    # Move target to the same device as the model
-                    target = {k: v.to(args.device) for k, v in target.items() if k != "image_id"}
-                    targets.append(target)
+                targets = dataset.get_targets_from_target_indexes(index, args.device)
 
-                if epoch < 1 and not plotted:
-                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",
+                if not plotted:
+                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
                                                     {}, args.result_dir, "train_test_example")
+                    plotted = True
 
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
                 if args.only_use_class_token:
                     latent_micrographs = encoded_image['pooler_output'].to(args.device)
                 else:
                     latent_micrographs = encoded_image['last_hidden_state'].to(args.device)
-
                 predictions = model(latent_micrographs)
                 outputs = prepare_outputs_for_loss(predictions)
 
@@ -232,7 +226,6 @@ def main():
 
         # Save final checkpoint
         torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
-
         # Plot the loss log after training
         plot_loss_log(args.loss_log_path, args.result_dir)
 
@@ -243,8 +236,9 @@ def main():
         else:
             raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
 
-        evaluate(args=args, criterion=criterion, vit_model=vit_model, model=model,
-                 dataset=dataset, test_dataloader=test_dataloader, example_predictions=8, postprocessors=postprocessors)
+        evaluate(args=args, criterion=criterion, vit_model=vit_model, vit_image_processor=vit_image_processor,
+                 model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8,
+                 postprocessors=postprocessors)
 
 
 if __name__ == "__main__":
