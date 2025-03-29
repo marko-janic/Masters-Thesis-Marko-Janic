@@ -1,0 +1,28 @@
+{
+    "dataset": "dummy",
+    "mode": "eval",
+    "existing_results_folder": "experiment_28-03-2025_16-38-16_normal_training_200epochs_goodtraining",
+
+    "dataset_path": "dataset/dummy_dataset/data",
+    "dataset_size": 500,
+    "num_particles": 7,
+    "particle_width": 80,
+    "particle_height": 80,
+
+    "device": "cuda",
+
+    "train_eval_split": 0.9,
+    "latent_dim": 768,
+    "num_patch_embeddings": 196,
+    "include_class_token": true,
+    "only_use_class_token": true,
+
+    "set_cost_class": 1,
+    "set_cost_bbox": 5,
+    "set_cost_giou": 2,
+    "mask_loss_coef": 1,
+    "dice_loss_coef": 1,
+    "bbox_loss_coef": 5,
+    "giou_loss_coef": 2,
+    "eos_coef": 0.1
+}

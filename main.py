@@ -1,31 +1,21 @@
 import argparse
-import mrcfile
 import torch
-import types
 import os
 import datetime
-import random
 import json
 
-import torch.nn as nn
 import torch.optim as optim
-import numpy as np
-import matplotlib.pyplot as plt
 
-from PIL import Image
-from torchvision.models import vit_b_16, vit_l_16, ViT_B_16_Weights
-from torchvision import transforms
-from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
 # Local imports
 from model import ParticlePicker
 from util.utils import create_folder_if_missing
-from dataset import ShrecDataset, DummyDataset, get_particle_locations_from_coordinates
-from loss import SetCriterion, build
+from dataset import DummyDataset
+from loss import build
 from evaluate import evaluate
-from train import prepare_targets_for_loss, prepare_outputs_for_loss, prepare_dataloaders
-from plotting import save_image_with_bounding_object
+from train import prepare_outputs_for_loss, prepare_dataloaders
+from plotting import save_image_with_bounding_object, plot_loss_log
 from vit_model import get_vit_model, get_encoded_image
 
 
@@ -242,6 +232,9 @@ def main():
 
         # Save final checkpoint
         torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
+
+        # Plot the loss log after training
+        plot_loss_log(args.loss_log_path, args.result_dir)
 
     if args.mode == "eval":
         checkpoint_path = os.path.join(args.result_dir, 'checkpoint_final.pth')

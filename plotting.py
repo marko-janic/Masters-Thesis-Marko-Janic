@@ -1,6 +1,7 @@
 import matplotlib
 import os
 
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -10,6 +11,34 @@ import numpy as np
 from util.utils import create_folder_if_missing
 
 matplotlib.use('Agg')  # To avoid error: _tkinter.TclError: no display name and no $DISPLAY environment variable
+
+
+def plot_loss_log(loss_log_path, result_dir):
+    """
+    Reads the loss log file and plots the losses as a semilogy plot.
+
+    :param loss_log_path: Path to the loss log file. It needs to have a column "epoch" and a column "average_loss"
+    :param result_dir: Directory to save the plot.
+    """
+    if os.path.exists(loss_log_path):
+        # Read the loss log file
+        loss_data = pd.read_csv(loss_log_path)
+        epochs = loss_data['epoch']
+        losses = loss_data['average_loss']
+
+        # Plot the losses
+        plt.figure()
+        plt.semilogy(epochs, losses, label='Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss (log scale)')
+        plt.title('Training Loss')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(os.path.join(result_dir, 'losses_plot.png'))
+        plt.close()
+    else:
+        print(f"Loss log file not found at {loss_log_path}")
+
 
 
 def compare_images(image1, image2, file_name, output_location, title1, title2):
