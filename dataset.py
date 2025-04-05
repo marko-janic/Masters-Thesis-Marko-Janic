@@ -20,104 +20,7 @@ from torchvision.models import ViT_B_16_Weights
 from util.utils import create_folder_if_missing
 
 
-def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations,
-                                            orientation="normal"):
-    """
-    Given coordinates, this function determines the location of all relevant particles in the sub micrograph
-
-    :param coordinates_tl: A tensor with coordinates of original micrograph of the top left most point in the
-    sub micrograph. Index 0 is the x value and index 1 is the y value.
-    :param sub_micrograph_size: Size of the sub micrographs, usually 224
-    :param particle_locations: Pandas DataFrame containing all particle locations of the micrograph
-    :param orientation: TODO
-    :return: Pandas DataFrame with columns ['X', 'Y', 'Z'] which corresponds to the particles present in the
-        sub micrograph determined by coordinate_tl
-    """
-    if orientation == "normal":
-        x_min = coordinates_tl[0].item()
-        x_max = x_min + sub_micrograph_size
-        y_min = coordinates_tl[1].item()
-        y_max = y_min + sub_micrograph_size
-        #print("x_min:", x_min)
-        #print("x_max:", x_max)
-        #print("y_min:", y_min)
-        #print("y_max:", y_max)
-
-        selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
-                                                (particle_locations['X'] <= x_max) &
-                                                (particle_locations['Y'] >= y_min) &
-                                                (particle_locations['Y'] <= y_max)]
-        # We subtract the minimum coordinates since we want the locations in the sub_micrograph so to speak
-        selected_particles.loc[:, 'X'] = selected_particles['X'] - x_min
-        selected_particles.loc[:, 'Y'] = selected_particles['Y'] - y_min
-
-        return selected_particles
-    else:
-        raise Exception(f'The orientation {orientation} is not a valid orientation')
-
-
-def get_coordinates_in_sub_micrograph(coordinates_in_original_image, coordinate_tl):
-    """
-    Scales the coordinates from the original micrograph to the sub micrograph.
-
-    :param coordinates_in_original_image: A tensor of coordinates in the original micrograph.
-    :param coordinate_tl: The top left coordinate of the sub micrograph.
-    :return: A tensor of coordinates in the sub micrograph.
-    """
-    x_min = coordinate_tl[0].item()
-    y_min = coordinate_tl[1].item()
-
-    scaled_coordinates = coordinates_in_original_image.clone()
-    scaled_coordinates[:, 0] -= x_min
-    scaled_coordinates[:, 1] -= y_min
-
-    return scaled_coordinates
-
-
-def create_sub_micrographs(micrograph, crop_size, sampling_points):
-    """
-    Creates sub micrographs of the given micrograph by sliding a window of size crop_size x crop_size across the image
-    from the top left to the bottom right. The total number of sub micrographs will be samping_points * sampling_points
-
-    :param micrograph: A tensor of the micrograph to take sub micrographs from.
-    :param crop_size: size of the sliding window
-    :param sampling_points: The amount of stops the sliding window takes on one side of the micrograph.
-    :return: A dataframe where the first column is a tensor of sub micrograph and the second a tensor with
-    the coordinates of the top left most point of that sub micrograph in the original picture.
-    """
-    height, width = micrograph.shape
-    #print(f"Height: {height}")
-    #print(f"Width: {width}")
-
-    assert sampling_points <= (width - crop_size), "Number of sampling points can't be larger than width - crop_size"
-
-    step_size_x = (width - crop_size) // (sampling_points - 1)
-    step_size_y = (height - crop_size) // (sampling_points - 1)
-
-    #print(f"step_size_x: {step_size_x}")
-    #print(f"step_size_y: {step_size_y}")
-
-    sub_micrographs_list = []
-    for i in range(sampling_points):  # horizontal steps
-        for j in range(sampling_points):  # vertical steps
-            start_x = i * step_size_x
-            start_y = j * step_size_y
-            end_y = start_y + crop_size
-            end_x = start_x + crop_size
-
-            # Ensure we don't go out of bounds
-            if end_x <= width and end_y <= height:
-                sub_micrographs_list.append((micrograph[start_y:end_y, start_x:end_x],
-                                             torch.tensor([start_x, start_y])))
-
-    # The reason we did a list first is because of this:
-    # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
-    sub_micrographs = pd.DataFrame(sub_micrographs_list, columns=["sub_micrograph", "top_left_coordinates"])
-
-    return sub_micrographs
-
-
-def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_size, output_dir, use_cat_image=False):
+def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_size, output_dir):
     """
     Creates a dummy dataset and saves it.
 
@@ -127,7 +30,6 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
     :param max_particles: Maximum number of particles per image
     :param particle_size: Size of particles that are drawn
     :param output_dir: Directory to save the dataset
-    :param use_cat_image: If True, use a cat image instead of drawing circles
     """
     create_folder_if_missing(output_dir)
     create_folder_if_missing(os.path.join(output_dir, 'data'))
@@ -140,10 +42,6 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
         f.write(f"max_particles: {max_particles}\n")
         f.write(f"particle_size: {particle_size}\n")
         f.write(f"output_dir: {output_dir}\n")
-        f.write(f"use_cat_image: {use_cat_image}\n")
-
-    if use_cat_image:
-        cat_image = Image.open('ethel.png').resize((particle_size * 2, particle_size * 2))
 
     for i in tqdm(range(num_images), desc="Creating images"):
         fig, ax = plt.subplots(figsize=(2.24, 2.24), dpi=100)
@@ -158,11 +56,8 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
             x = np.random.randint(0, image_size)
             y = np.random.randint(0, image_size)
             coordinates.append((x, y))
-            if use_cat_image:
-                ax.imshow(cat_image, extent=(x - particle_size, x + particle_size, y - particle_size, y + particle_size))
-            else:
-                circle = patches.Circle((x, y), radius=particle_size, color='black')
-                ax.add_patch(circle)
+            circle = patches.Circle((x, y), radius=particle_size, color='black')
+            ax.add_patch(circle)
 
         image_path = os.path.join(output_dir, f'data/micrograph_{i}.png')
         plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
@@ -251,6 +146,107 @@ class DummyDataset(Dataset):
         return self.micrographs[idx], idx
 
 
+# TODO: this is super outdated and needs to be reworked
+def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations,
+                                            orientation="normal"):
+    """
+    Given coordinates, this function determines the location of all relevant particles in the sub micrograph
+
+    :param coordinates_tl: A tensor with coordinates of original micrograph of the top left most point in the
+    sub micrograph. Index 0 is the x value and index 1 is the y value.
+    :param sub_micrograph_size: Size of the sub micrographs, usually 224
+    :param particle_locations: Pandas DataFrame containing all particle locations of the micrograph
+    :param orientation: TODO
+    :return: Pandas DataFrame with columns ['X', 'Y', 'Z'] which corresponds to the particles present in the
+        sub micrograph determined by coordinate_tl
+    """
+    if orientation == "normal":
+        x_min = coordinates_tl[0].item()
+        x_max = x_min + sub_micrograph_size
+        y_min = coordinates_tl[1].item()
+        y_max = y_min + sub_micrograph_size
+        #print("x_min:", x_min)
+        #print("x_max:", x_max)
+        #print("y_min:", y_min)
+        #print("y_max:", y_max)
+
+        selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
+                                                (particle_locations['X'] <= x_max) &
+                                                (particle_locations['Y'] >= y_min) &
+                                                (particle_locations['Y'] <= y_max)]
+        # We subtract the minimum coordinates since we want the locations in the sub_micrograph so to speak
+        selected_particles.loc[:, 'X'] = selected_particles['X'] - x_min
+        selected_particles.loc[:, 'Y'] = selected_particles['Y'] - y_min
+
+        return selected_particles
+    else:
+        raise Exception(f'The orientation {orientation} is not a valid orientation')
+
+
+# TODO: this is super outdated and needs to be reworked
+def get_coordinates_in_sub_micrograph(coordinates_in_original_image, coordinate_tl):
+    """
+    Scales the coordinates from the original micrograph to the sub micrograph.
+
+    :param coordinates_in_original_image: A tensor of coordinates in the original micrograph.
+    :param coordinate_tl: The top left coordinate of the sub micrograph.
+    :return: A tensor of coordinates in the sub micrograph.
+    """
+    x_min = coordinate_tl[0].item()
+    y_min = coordinate_tl[1].item()
+
+    scaled_coordinates = coordinates_in_original_image.clone()
+    scaled_coordinates[:, 0] -= x_min
+    scaled_coordinates[:, 1] -= y_min
+
+    return scaled_coordinates
+
+
+# TODO: this is super outdated and needs to be reworked
+def create_sub_micrographs(micrograph, crop_size, sampling_points):
+    """
+    Creates sub micrographs of the given micrograph by sliding a window of size crop_size x crop_size across the image
+    from the top left to the bottom right. The total number of sub micrographs will be samping_points * sampling_points
+
+    :param micrograph: A tensor of the micrograph to take sub micrographs from.
+    :param crop_size: size of the sliding window
+    :param sampling_points: The amount of stops the sliding window takes on one side of the micrograph.
+    :return: A dataframe where the first column is a tensor of sub micrograph and the second a tensor with
+    the coordinates of the top left most point of that sub micrograph in the original picture.
+    """
+    height, width = micrograph.shape
+    #print(f"Height: {height}")
+    #print(f"Width: {width}")
+
+    assert sampling_points <= (width - crop_size), "Number of sampling points can't be larger than width - crop_size"
+
+    step_size_x = (width - crop_size) // (sampling_points - 1)
+    step_size_y = (height - crop_size) // (sampling_points - 1)
+
+    #print(f"step_size_x: {step_size_x}")
+    #print(f"step_size_y: {step_size_y}")
+
+    sub_micrographs_list = []
+    for i in range(sampling_points):  # horizontal steps
+        for j in range(sampling_points):  # vertical steps
+            start_x = i * step_size_x
+            start_y = j * step_size_y
+            end_y = start_y + crop_size
+            end_x = start_x + crop_size
+
+            # Ensure we don't go out of bounds
+            if end_x <= width and end_y <= height:
+                sub_micrographs_list.append((micrograph[start_y:end_y, start_x:end_x],
+                                             torch.tensor([start_x, start_y])))
+
+    # The reason we did a list first is because of this:
+    # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
+    sub_micrographs = pd.DataFrame(sub_micrographs_list, columns=["sub_micrograph", "top_left_coordinates"])
+
+    return sub_micrographs
+
+
+# TODO: this is super outdated and needs to be reworked
 class ShrecDataset(Dataset):
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
 
@@ -302,4 +298,4 @@ class ShrecDataset(Dataset):
 
 
 if __name__ == "__main__":
-    create_dummy_dataset(224, 500, 1, 5, 40, "dataset/dummy_dataset_overlapping", use_cat_image=False)
+    create_dummy_dataset(224, 500, 1, 5, 40, "dataset/dummy_dataset_non_overlapping")
