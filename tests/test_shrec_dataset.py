@@ -2,7 +2,6 @@ import unittest
 
 # Local imports
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
-from train import prepare_targets_for_loss
 
 
 TEST_DATASET_SAMPLING_POINTS = 16
