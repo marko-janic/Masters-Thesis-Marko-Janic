@@ -20,7 +20,7 @@ from plotting import compare_images
 from vit_model import get_latent_representation
 from train import prepare_dataloaders
 
-TEST_DATASET_PATH = '../dataset/dummy_dataset/data'
+TEST_DATASET_PATH = '../dataset/dummy_dataset_overlapping/data'
 TEST_RESULTS_FOLDER = 'test_vit_model'
 MODEL_RESULTS_FOLDER = os.path.join(TEST_RESULTS_FOLDER, f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}')
 TRAIN_EVAL_SPLIT = 0.9

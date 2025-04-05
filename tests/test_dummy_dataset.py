@@ -15,7 +15,7 @@ from dataset import DummyDataset
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import save_image_with_bounding_object
 
-TEST_DATASET_PATH = '../dataset/dummy_dataset/data'
+TEST_DATASET_PATH = '../dataset/dummy_dataset_overlapping/data'
 TEST_RESULTS_FOLDER = 'test_dummy_dataset'
 TRAIN_EVAL_SPLIT = 0.9
 BATCH_SIZE = 8
