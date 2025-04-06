@@ -3,7 +3,6 @@ import torch
 from torch.utils.data import DataLoader, random_split
 
 # Local imports
-from dataset import get_particle_locations_from_coordinates
 
 
 def prepare_dataloaders(dataset, train_eval_split, batch_size):

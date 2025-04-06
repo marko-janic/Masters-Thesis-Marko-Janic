@@ -1,12 +1,10 @@
 import os
 import random
+import torch
 
 import mrcfile as mrc
 import numpy as np
 import pandas as pd
-import torch
-
-import torchvision.transforms.functional as F
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import torchvision.transforms as transforms
@@ -14,13 +12,13 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from tqdm import tqdm
 from PIL import Image
-from torchvision.models import ViT_B_16_Weights
 
 # Local imports
 from util.utils import create_folder_if_missing
 
 
-def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_size, output_dir):
+def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_radius, output_dir,
+                         max_overlap=0.0):
     """
     Creates a dummy dataset and saves it.
 
@@ -28,8 +26,9 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
     :param num_images: Number of images to create
     :param min_particles: Minimum number of particles per image
     :param max_particles: Maximum number of particles per image
-    :param particle_size: Size of particles that are drawn
+    :param particle_radius: Size of particles that are drawn
     :param output_dir: Directory to save the dataset
+    :param max_overlap: Maximum allowed percentage overlap between particles (0.0 to 1.0)
     """
     create_folder_if_missing(output_dir)
     create_folder_if_missing(os.path.join(output_dir, 'data'))
@@ -40,7 +39,7 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
         f.write(f"num_images: {num_images}\n")
         f.write(f"min_particles: {min_particles}\n")
         f.write(f"max_particles: {max_particles}\n")
-        f.write(f"particle_size: {particle_size}\n")
+        f.write(f"particle_radius: {particle_radius}\n")
         f.write(f"output_dir: {output_dir}\n")
 
     for i in tqdm(range(num_images), desc="Creating images"):
@@ -53,11 +52,29 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
         coordinates = []
         num_dots = random.randint(min_particles, max_particles)
         for _ in range(num_dots):
-            x = np.random.randint(0, image_size)
-            y = np.random.randint(0, image_size)
-            coordinates.append((x, y))
-            circle = patches.Circle((x, y), radius=particle_size, color='black')
-            ax.add_patch(circle)
+            counter = 0
+            # Check 
+            while True:
+                x = np.random.randint(0, image_size)
+                y = np.random.randint(0, image_size)
+                new_circle = patches.Circle((x, y), radius=particle_radius, color='black')
+
+                # Check overlap with existing particles
+                overlap = False
+                for coord in coordinates:
+                    dist = np.sqrt((x - coord[0])**2 + (y - coord[1])**2)
+                    if dist < 2 * particle_radius * (1 - max_overlap):
+                        overlap = True
+                        break
+
+                if not overlap:
+                    coordinates.append((x, y))
+                    ax.add_patch(new_circle)
+                    break
+
+                if counter > 100:
+                    print(f"Too many attempts to place a particle without overlap. Skipping one patch at image {i}")
+                    break
 
         image_path = os.path.join(output_dir, f'data/micrograph_{i}.png')
         plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
@@ -298,4 +315,5 @@ class ShrecDataset(Dataset):
 
 
 if __name__ == "__main__":
-    create_dummy_dataset(224, 500, 1, 5, 40, "dataset/dummy_dataset_non_overlapping")
+    create_dummy_dataset(224, 100000, 1, 5, 40,
+                         "dataset/dummy_dataset_no_overlap", max_overlap=0.0)
