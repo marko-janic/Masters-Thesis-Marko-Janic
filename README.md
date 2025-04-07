@@ -14,18 +14,24 @@ reconstructing a single averaged particles from the estimation of the previous m
 ### Recommended Folder structure
 TODO
 
-### Windows
+### General
 Create virtual environment:
 ```
 python -m venv venv
 ```
-Activate virtual environment (Windows):
-```
-.\venv\Scripts\activate
-```
 Install requirements from requirements file:
 ```
 pip install -r requirements.txt
+```
+Write new requirements to requirements file:
+```
+pip freeze > requirements.txt
+```
+
+### Windows
+Activate virtual environment (Windows):
+```
+.\venv\Scripts\activate
 ```
 
 ### sciCORE (Linux)
@@ -45,6 +51,10 @@ source venv/bin/activate
 Run script (example):
 ```
 python main.py --config run_configs/default_dummy_dataset_training.json
+```
+Run bash script in SLURM (example):
+```
+sbatch slurm_scripts/create_dummy_dataset.sh
 ```
 
 ### Linting
