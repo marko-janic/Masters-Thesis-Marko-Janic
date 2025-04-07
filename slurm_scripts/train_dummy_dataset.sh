@@ -15,4 +15,4 @@ module purge
 module load Python/3.10.8-GCCcore-12.2.0
 source venv/bin/activate
 
-python main.py --config run_configs/default_dummy_dataset_training.json
+python main.py --config run_configs/dummy_dataset_training.json 
