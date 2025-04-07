@@ -10,8 +10,8 @@
     "particle_height": 80,
 
     "device": "cuda",
-    "epochs": 500,
-    "batch_size": 16,
+    "epochs": 50,
+    "batch_size": 64,
     "learning_rate": 0.001,
     "checkpoint_interval": 1,
     "loss_log_file": "loss_log.txt",
