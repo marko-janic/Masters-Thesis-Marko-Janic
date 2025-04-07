@@ -11,7 +11,7 @@
 
     "device": "cuda",
     "epochs": 50,
-    "batch_size": 64,
+    "batch_size": 32,
     "learning_rate": 0.001,
     "checkpoint_interval": 1,
     "loss_log_file": "loss_log.txt",
