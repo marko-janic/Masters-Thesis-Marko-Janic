@@ -1,17 +1,17 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "result_dir_appended_name": "normal_training",
+    "result_dir_appended_name": "no_overlap_big_dummy",
 
-    "dataset_path": "dataset/dummy_dataset/data",
-    "dataset_size": 500,
+    "dataset_path": "dataset/dummy_dataset_no_overlap/data",
+    "dataset_size": 20000,
     "num_particles": 7,
     "particle_width": 80,
     "particle_height": 80,
 
     "device": "cuda",
     "epochs": 500,
-    "batch_size": 8,
+    "batch_size": 16,
     "learning_rate": 0.001,
     "checkpoint_interval": 1,
     "loss_log_file": "loss_log.txt",

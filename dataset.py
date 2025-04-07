@@ -315,5 +315,5 @@ class ShrecDataset(Dataset):
 
 
 if __name__ == "__main__":
-    create_dummy_dataset(224, 100000, 1, 5, 40,
+    create_dummy_dataset(224, 20000, 1, 5, 40,
                          "dataset/dummy_dataset_no_overlap", max_overlap=0.0)
