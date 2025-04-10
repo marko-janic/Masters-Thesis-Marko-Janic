@@ -50,12 +50,12 @@ def get_args():
     parser.add_argument("--result_dir", type=str,
                         default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_',
                         help="Directory to save results to")
-    parser.add_argument("--result_dir_appended_name", type=str, default="BASEDTEST",
+    parser.add_argument("--result_dir_appended_name", type=str,
                         help="Extra string to append to the end of the result directory")
 
     # Training
-    parser.add_argument("--batch_size", type=int, help="Size of each training batch")
-    parser.add_argument("--learning_rate", type=float, help="Learning rate for training")
+    parser.add_argument("--batch_size", type=int, default=16, help="Size of each training batch")
+    parser.add_argument("--learning_rate", type=float, default=0.001, help="Learning rate for training")
     parser.add_argument("--checkpoint_interval", type=int, default=1,
                         help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",

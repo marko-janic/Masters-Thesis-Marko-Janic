@@ -33,15 +33,6 @@ def get_vit_model():
     return vit_model, vit_image_processor
 
 
-def get_vit_model_old():
-    vit_model = vit_b_16(weights="IMAGENET1K_V1", progress=True)
-    vit_model.eval()
-    # Here we replace the method of the class to use our own one that doesn't use the classification head.
-    vit_model.forward = types.MethodType(get_latent_representation, vit_model)
-
-    return vit_model
-
-
 def get_latent_representation(self, x: torch.Tensor):
     """
     We use this model to override the normal implementation since we don't want the classification head:

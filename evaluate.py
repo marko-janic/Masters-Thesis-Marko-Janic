@@ -56,7 +56,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 # keep = scores[0] < np.quantile(scores, args.quartile_threshold)
                 # scores = scores[0, keep]
 
-                keep = probas2[0, :, 0] > probas2[0, :, 1]
+                keep = probas2[0, :, 0] > 0.7
                 pred_coords = outputs['pred_boxes'][0, keep, :]
                 pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords.cpu().numpy())
                 ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :4])

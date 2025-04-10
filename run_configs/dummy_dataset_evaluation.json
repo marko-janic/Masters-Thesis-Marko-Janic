@@ -2,6 +2,7 @@
     "dataset": "dummy",
     "mode": "eval",
     "existing_result_folder": "experiment_07-04-2025_22-00-36_no_overlap_big_dummy",
+    "result_dir_appended_name": "",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
     "dataset_size": 500,
