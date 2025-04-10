@@ -29,18 +29,16 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
                         help="Path to the configuration file")
-    parser.add_argument("--dataset", type=str, default="dummy",
-                        help="Which dataset to use for running the program: dummy, shrec")
-    parser.add_argument("--mode", type=str, default="train", help="Mode to run the program in: train, eval")
+    parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy")
+    parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
                         help="Path to existing result folder to load model from.")
-    parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset/data")
-    parser.add_argument("--dataset_size", default=500)
+    parser.add_argument("--dataset_path", type=str)
+    parser.add_argument("--dataset_size", type=int)
     # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
-    parser.add_argument("--num_particles", type=int, default=7,
-                        help="Number of particles that the model outputs as predictions")
+    parser.add_argument("--num_particles", type=int, help="Number of particles that the model outputs as predictions")
     parser.add_argument("--particle_width", type=int, default=80)
     parser.add_argument("--particle_height", type=int, default=80)
     parser.add_argument("--epochs", type=int, help="Number of training epochs")
@@ -55,17 +53,18 @@ def get_args():
 
     # Training
     parser.add_argument("--batch_size", type=int, default=16, help="Size of each training batch")
-    parser.add_argument("--learning_rate", type=float, default=0.001, help="Learning rate for training")
+    parser.add_argument("--learning_rate", type=float, help="Learning rate for training")
     parser.add_argument("--checkpoint_interval", type=int, default=1,
                         help="Save model checkpoint every checkpoint_interval epochs")
+
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",
                         help="File to save running loss for each epoch")
-    parser.add_argument("--sampling_points", type=int, default=16,
-                        help="Number of sampling points when creating sub micrographs: sampling_points*sampling_points "
-                             "equals total number of sub micrographs")
     parser.add_argument("--train_eval_split", type=float, default=0.9,
                         help="Ratio of training to evaluation split. 0.9 means that 90% of the data is used for "
                              "training and 10% for evaluation")
+    parser.add_argument("--split_file_name", type=str, default="dataset_split_indices.json",
+                        help="File with dataset split indices. Used to get the same train test split after program has"
+                             "already been run")
 
     # Data and Model
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
@@ -73,11 +72,9 @@ def get_args():
                                                                               "embeddings that the vit model generates,"
                                                                               "this is based on the patch size of the"
                                                                               "vit model")
-    parser.add_argument("--include_class_token", type=bool, default=True, help="Whether or not to include"
-                                                                               "the class token of the transformer"
-                                                                               "in the model")
-    parser.add_argument("--only_use_class_token", type=bool, default=False, help="Only use class token for "
-                                                                                 "model")
+    parser.add_argument("--include_class_token", type=bool, help="Whether or not to include "
+                                                                 "the class token of the transformer in the model")
+    parser.add_argument("--only_use_class_token", type=bool, help="Only use class token for model")
 
     # Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -160,7 +157,12 @@ def main():
     dataset = DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
                            particle_width=args.particle_width, particle_height=args.particle_height)
 
-    train_dataloader, test_dataloader = prepare_dataloaders(dataset, args.train_eval_split, args.batch_size)
+    # We only need to create the split file if were training, otherwise we read from it
+    train_dataloader, test_dataloader = prepare_dataloaders(dataset=dataset, train_eval_split=args.train_eval_split,
+                                                            batch_size=args.batch_size,
+                                                            result_dir=args.result_dir,
+                                                            split_file_name=args.split_file_name,
+                                                            create_split_file=args.mode == "train")
 
     model = ParticlePicker(latent_dim=args.latent_dim, num_particles=args.num_particles,
                            image_width=dataset.image_width, image_height=dataset.image_height,
@@ -169,9 +171,10 @@ def main():
 
     model.to(args.device)
     criterion, postprocessors = build(args)
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     if args.mode == "train":
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+
         # Save untrained checkpoint for debugging purposes
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
 
