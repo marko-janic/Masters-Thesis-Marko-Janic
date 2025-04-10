@@ -29,7 +29,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
@@ -48,7 +48,7 @@ def get_args():
 
     # Experiment Results
     parser.add_argument("--result_dir", type=str,
-                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}_',
+                        default=f'experiments/experiment_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_',
                         help="Directory to save results to")
     parser.add_argument("--result_dir_appended_name", type=str,
                         help="Extra string to append to the end of the result directory")
