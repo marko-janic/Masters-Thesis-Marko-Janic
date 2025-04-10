@@ -1,26 +1,26 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "result_dir_appended_name": "no_overlap_big_dummy_smaller_epochs",
+    "result_dir_appended_name": "no_overlap_full_embeddings_in_model",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
-    "dataset_size": 500,
+    "dataset_size": 20000,
     "num_particles": 7,
     "particle_width": 80,
     "particle_height": 80,
 
     "device": "cuda",
-    "epochs": 5000,
+    "epochs": 1000,
     "batch_size": 16,
     "learning_rate": 0.001,
-    "checkpoint_interval": 1,
+    "checkpoint_interval": 10800,
     "loss_log_file": "loss_log.txt",
 
     "train_eval_split": 0.9,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
     "include_class_token": true,
-    "only_use_class_token": true,
+    "only_use_class_token": false,
 
     "set_cost_class": 1,
     "set_cost_bbox": 5,

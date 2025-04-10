@@ -1,7 +1,7 @@
 {
     "dataset": "dummy",
     "mode": "eval",
-    "existing_result_folder": "experiment_07-04-2025_22-00-36_no_overlap_big_dummy",
+    "existing_result_folder": "experiment_2025-04-10_16-50-52_no_overlap_full_embeddings",
     "result_dir_appended_name": "",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
@@ -12,11 +12,10 @@
 
     "device": "cpu",
 
-    "train_eval_split": 0.9,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
     "include_class_token": true,
-    "only_use_class_token": true,
+    "only_use_class_token": false,
 
     "quartile_threshold": 0.5,
 
