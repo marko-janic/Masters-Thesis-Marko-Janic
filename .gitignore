@@ -11,6 +11,7 @@ experiments/experiment*/
 tests/test_dummy_dataset/*
 experiments/archive
 experiments/tmp
+experiments/saved/**
 !experiments/saved/
 tests/mocks/*
 tests/test_vit_model/experiments
