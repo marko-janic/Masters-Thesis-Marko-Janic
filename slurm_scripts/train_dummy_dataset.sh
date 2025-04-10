@@ -8,8 +8,8 @@
 #SBATCH --gres=gpu:1          #--gres=gpu:2 for two GPU, etc
 #SBATCH --output=job_results/train_dummy_dataset_full_embeddings.o%j   #Path and name to the file for the STDOUT
 #SBATCH --error=job_results/train_dummy_dataset_full_embeddings.e%j    #Path and name to the file for the STDERR
-#SBATCH --cpus-per-task=1     #Number of cores to reserve
-#SBATCH --mem-per-cpu=32G     #Amount of RAM/core to reserve
+#SBATCH --cpus-per-task=8     #Number of cores to reserve
+#SBATCH --mem-per-cpu=16G     #Amount of RAM/core to reserve
 
 module purge
 module load Python/3.10.8-GCCcore-12.2.0
