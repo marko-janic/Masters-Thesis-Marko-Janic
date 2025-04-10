@@ -1,7 +1,7 @@
 #!/bin/bash
 #The previous line is mandatory
 
-#SBATCH --job-name=train_dummy_dataset     #Name of your job
+#SBATCH --job-name=train_dummy_dataset_smaller_epochs     #Name of your job
 #SBATCH --time=7-00:00:00    #Maximum allocated time
 #SBATCH --qos=gpu1week       #Selected queue to allocate your job (the gpu before 6hours is important, see comment: https://wiki.biozentrum.unibas.ch/display/scicore/9.+Requesting+GPUs)
 #SBATCH --partition=a100-80g
