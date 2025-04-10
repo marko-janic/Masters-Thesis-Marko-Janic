@@ -1,16 +1,16 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "result_dir_appended_name": "no_overlap_big_dummy",
+    "result_dir_appended_name": "no_overlap_big_dummy_smaller_epochs",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
-    "dataset_size": 10000,
+    "dataset_size": 500,
     "num_particles": 7,
     "particle_width": 80,
     "particle_height": 80,
 
     "device": "cuda",
-    "epochs": 50,
+    "epochs": 5000,
     "batch_size": 16,
     "learning_rate": 0.001,
     "checkpoint_interval": 1,

@@ -29,7 +29,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/default_dummy_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, default="dummy",
                         help="Which dataset to use for running the program: dummy, shrec")
@@ -37,13 +37,13 @@ def get_args():
     parser.add_argument("--existing_result_folder", type=str, default="",
                         help="Path to existing result folder to load model from.")
     parser.add_argument("--dataset_path", type=str, default="dataset/dummy_dataset/data")
-    parser.add_argument("--dataset_size", type=int, default=500)
+    parser.add_argument("--dataset_size", default=500)
     # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
     parser.add_argument("--num_particles", type=int, default=7,
                         help="Number of particles that the model outputs as predictions")
     parser.add_argument("--particle_width", type=int, default=80)
     parser.add_argument("--particle_height", type=int, default=80)
-    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, help="Number of training epochs")
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
 
     # Experiment Results
@@ -54,8 +54,8 @@ def get_args():
                         help="Extra string to append to the end of the result directory")
 
     # Training
-    parser.add_argument("--batch_size", type=int, default=8, help="Size of each training batch")
-    parser.add_argument("--learning_rate", type=float, default=0.001, help="Learning rate for training")
+    parser.add_argument("--batch_size", type=int, help="Size of each training batch")
+    parser.add_argument("--learning_rate", type=float, help="Learning rate for training")
     parser.add_argument("--checkpoint_interval", type=int, default=1,
                         help="Save model checkpoint every checkpoint_interval epochs")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",

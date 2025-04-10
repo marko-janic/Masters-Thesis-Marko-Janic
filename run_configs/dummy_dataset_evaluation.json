@@ -1,9 +1,9 @@
 {
     "dataset": "dummy",
     "mode": "eval",
-    "existing_result_folder": "experiment_28-03-2025_16-38-16_normal_training_200epochs_goodtraining",
+    "existing_result_folder": "experiment_07-04-2025_22-00-36_no_overlap_big_dummy",
 
-    "dataset_path": "dataset/dummy_dataset/data",
+    "dataset_path": "dataset/dummy_dataset_no_overlap/data",
     "dataset_size": 500,
     "num_particles": 7,
     "particle_width": 80,
