@@ -2,6 +2,7 @@ import argparse
 import torch
 import os
 import datetime
+import time
 import json
 
 import torch.optim as optim
@@ -29,7 +30,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
@@ -54,8 +55,8 @@ def get_args():
     # Training
     parser.add_argument("--batch_size", type=int, default=16, help="Size of each training batch")
     parser.add_argument("--learning_rate", type=float, help="Learning rate for training")
-    parser.add_argument("--checkpoint_interval", type=int, default=1,
-                        help="Save model checkpoint every checkpoint_interval epochs")
+    parser.add_argument("--checkpoint_interval", type=int,
+                        help="Save model checkpoint every checkpoint_interval seconds")
 
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",
                         help="File to save running loss for each epoch")
@@ -92,7 +93,7 @@ def get_args():
                         help="Relative classification weight of the no-object class")
 
     # Evaluation
-    parser.add_argument('--quartile_threshold', type=float, default=0.0, help='Quartile threshold')
+    parser.add_argument('--quartile_threshold', type=float, default=0.0, help='Quartile threshold')  # TODO: Needs refactoring
 
     args = parser.parse_args()
 
@@ -143,7 +144,7 @@ def create_folders_and_initiate_files(args):
     # Initialize loss log file
     if args.mode != "eval":
         with open(args.loss_log_path, 'w') as f:
-            f.write("epoch,average_loss\n")
+            f.write("epoch,batch,average_loss\n")
 
 
 def main():
@@ -174,19 +175,24 @@ def main():
 
     if args.mode == "train":
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        model.train()
+        criterion.train()
+
+        last_checkpoint_time = time.time()
+        # This is different from batch_index as this only counts how many batches have been done since the last avg_loss
+        # calculation
+        batch_counter = 0
+        running_loss = 0.0
 
         # Save untrained checkpoint for debugging purposes
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
 
         plotted = False
         for epoch in range(args.epochs):
-            running_loss = 0.0
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
-            for micrographs, index in train_dataloader:
-                # TODO: add train_one_epoch function
-                model.train()
-                criterion.train()
+            for batch_index, (micrographs, index) in enumerate(train_dataloader):
+                batch_counter += 1
 
                 targets = dataset.get_targets_from_target_indexes(index, args.device)
 
@@ -214,18 +220,24 @@ def main():
                 running_loss += losses.item()
                 epoch_bar.set_postfix(loss=losses.item())
                 epoch_bar.update(1)
+
+                if time.time() - last_checkpoint_time > args.checkpoint_interval:
+                    avg_loss = running_loss / batch_counter
+
+                    # Save running loss to log file
+                    with open(args.loss_log_path, 'a') as f:
+                        f.write(f"{epoch},{batch_index},{avg_loss}\n")
+
+                    # Save checkpoint
+                    if epoch % args.checkpoint_interval == 0:
+                        torch.save(model.state_dict(), os.path.join(args.result_dir,
+                                                                    f'checkpoints/checkpoint_epoch_{epoch}_{batch_index}.pth'))
+
+                    last_checkpoint_time = time.time()
+                    batch_counter = 0
+                    running_loss = 0.0
+
             epoch_bar.close()
-
-            avg_loss = running_loss / len(train_dataloader)
-
-            # Save running loss to log file
-            with open(args.loss_log_path, 'a') as f:
-                f.write(f"{epoch + 1},{avg_loss}\n")
-
-            # Save checkpoint
-            if (epoch + 1) % args.checkpoint_interval == 0:
-                torch.save(model.state_dict(), os.path.join(args.result_dir,
-                                                            f'checkpoints/checkpoint_epoch_{epoch + 1}.pth'))
 
         # Save final checkpoint
         torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
