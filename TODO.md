@@ -1,4 +1,0 @@
-- For plotting z axis visaulization, do like a sliding scale type thing
-- Make post about conversion from single dimension to multi dimension being broken (see visualization plotting thing)
-- Maybe look into adjusting the vit model architeture itself but this is complicated?
-- Move arguments into function
