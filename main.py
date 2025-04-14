@@ -229,9 +229,8 @@ def main():
                         f.write(f"{epoch},{batch_index},{avg_loss}\n")
 
                     # Save checkpoint
-                    if epoch % args.checkpoint_interval == 0:
-                        torch.save(model.state_dict(), os.path.join(args.result_dir,
-                                                                    f'checkpoints/checkpoint_epoch_{epoch}_{batch_index}.pth'))
+                    torch.save(model.state_dict(), os.path.join(args.result_dir,
+                                                                f'checkpoints/checkpoint_epoch_{epoch}_{batch_index}.pth'))
 
                     last_checkpoint_time = time.time()
                     batch_counter = 0
