@@ -10,12 +10,12 @@ import torch.optim as optim
 from tqdm import tqdm
 
 # Local imports
-from model import ParticlePicker
+from model import TopdownHeatmapSimpleHead
 from util.utils import create_folder_if_missing
 from dataset import DummyDataset
 from loss import build
 from evaluate import evaluate
-from train import prepare_outputs_for_loss, prepare_dataloaders
+from train import prepare_dataloaders
 from plotting import save_image_with_bounding_object, plot_loss_log
 from vit_model import get_vit_model, get_encoded_image
 
@@ -73,9 +73,6 @@ def get_args():
                                                                               "embeddings that the vit model generates,"
                                                                               "this is based on the patch size of the"
                                                                               "vit model")
-    parser.add_argument("--include_class_token", type=bool, help="Whether or not to include "
-                                                                 "the class token of the transformer in the model")
-    parser.add_argument("--only_use_class_token", type=bool, help="Only use class token for model")
 
     # Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -165,10 +162,8 @@ def main():
                                                             split_file_name=args.split_file_name,
                                                             create_split_file=args.mode == "train")
 
-    model = ParticlePicker(latent_dim=args.latent_dim, num_particles=args.num_particles,
-                           image_width=dataset.image_width, image_height=dataset.image_height,
-                           num_patch_embeddings=args.num_patch_embeddings, include_class_token=args.include_class_token,
-                           only_use_class_token=args.only_use_class_token)
+    model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
+                                     out_channels=args.num_particles)
 
     model.to(args.device)
     criterion, postprocessors = build(args)
@@ -202,12 +197,12 @@ def main():
                     plotted = True
 
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
-                if args.only_use_class_token:
-                    latent_micrographs = encoded_image['pooler_output'].to(args.device)
-                else:
-                    latent_micrographs = encoded_image['last_hidden_state'].to(args.device)
-                predictions = model(latent_micrographs)
-                outputs = prepare_outputs_for_loss(predictions)
+
+                latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
+                outputs = model(latent_micrographs.reshape((args.batch_size, args.latent_dim, 14, 14)))  # TODO: don't hardcode this
+                box_width_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_width/dataset.image_width)  # TODO refactor this once we know it works
+                box_height_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_height/dataset.image_height)
+                outputs["pred_boxes"] = torch.cat((outputs["pred_boxes"], box_width_tensor, box_height_tensor), dim=-1).to(args.device)
 
                 loss_dict = criterion(outputs, targets)
                 weight_dict = criterion.weight_dict
@@ -230,7 +225,7 @@ def main():
 
                     # Save checkpoint
                     torch.save(model.state_dict(), os.path.join(args.result_dir,
-                                                                f'checkpoints/checkpoint_epoch_{epoch}_{batch_index}.pth'))
+                                                                f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
 
                     last_checkpoint_time = time.time()
                     batch_counter = 0

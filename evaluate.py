@@ -10,7 +10,6 @@ from tqdm import tqdm
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import compare_predictions_with_ground_truth
 from vit_model import get_encoded_image
-from train import prepare_outputs_for_loss
 
 
 def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataloader, criterion, example_predictions,
@@ -31,12 +30,12 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             targets = dataset.get_targets_from_target_indexes(index, args.device)
 
             encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
-            if args.only_use_class_token:
-                latent_micrographs = encoded_image['pooler_output'].to(args.device)
-            else:
-                latent_micrographs = encoded_image['last_hidden_state'].to(args.device)
-            predictions = model(latent_micrographs)
-            outputs = prepare_outputs_for_loss(predictions)
+
+            latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
+            outputs = model(latent_micrographs.reshape((args.batch_size, args.latent_dim, 14, 14)))  # TODO: don't hardcode this
+            box_width_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_width / dataset.image_width)  # TODO refactor this once we know it works
+            box_height_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_height / dataset.image_height)
+            outputs["pred_boxes"] = torch.cat((outputs["pred_boxes"], box_width_tensor, box_height_tensor), dim=-1).to(args.device)
 
             loss_dict = criterion(outputs, targets)
             weight_dict = criterion.weight_dict

@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from postprocess import keypoints_from_heatmaps, pose_pck_accuracy, resize
+from postprocess import keypoints_from_heatmaps, pose_pck_accuracy, resize, _get_max_preds
 
 
 def constant_init(module: nn.Module, val: float, bias: float = 0) -> None:
@@ -143,6 +143,8 @@ class TopdownHeatmapSimpleHead(nn.Module):
             else:
                 self.final_layer = layers[0]
 
+        self.classification_head = nn.Linear(112 * 112, 2)  # TODO: Don't hardcode this 112
+
     def get_loss(self, output, target, target_weight):
         """Calculate top-down keypoint loss.
         Note:
@@ -194,20 +196,15 @@ class TopdownHeatmapSimpleHead(nn.Module):
         """Forward function."""
         x = self._transform_inputs(x)
         x = self.deconv_layers(x)
-        x = self.final_layer(x)
-        return x
+        heatmaps = self.final_layer(x)
 
-    def inference_model(self, x, flip_pairs=None):
-        """Inference function.
-        Returns:
-            output_heatmap (np.ndarray): Output heatmaps.
-        Args:
-            x (torch.Tensor[N,K,H,W]): Input features.
-            flip_pairs (None | list[tuple]):
-                Pairs of keypoints which are mirrored.
-        """
-        output = self.forward(x)
-        return output.detach().cpu().numpy()
+        batch_size, num_predictions, height, width = heatmaps.shape
+        flattened_heatmaps = heatmaps.view(batch_size, num_predictions, -1)  # Flatten spatial dimensions
+        logits = self.classification_head(flattened_heatmaps)  # Output shape: (batch_size, 17, 2)
+
+        boxes = _get_max_preds(heatmaps)[0]
+
+        return {"heatmaps": heatmaps, "pred_logits": logits, "pred_boxes": boxes}
 
     def _init_inputs(self, in_channels, in_index, input_transform):
         """Check and initialize input transforms.

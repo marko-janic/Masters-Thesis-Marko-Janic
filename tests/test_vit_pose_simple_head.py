@@ -9,6 +9,11 @@ from postprocess import _get_max_preds
 from plotting import save_image
 
 
+# Set the seed for reproducibility
+seed = 42
+torch.manual_seed(seed)
+
+
 def get_args():
     parser = argparse.ArgumentParser()
 
@@ -37,23 +42,25 @@ class TemplateTests(unittest.TestCase):
         image = torch.rand((1, 196, 768)).reshape((1, 768, 14, 14))
 
         output = self.model.forward(image)
+        heatmaps = output["heatmaps"]
+        logits = output["pred_logits"]
+        keypoints = output["pred_boxes"]
 
-        print(output.shape)
-        print(torch.min(output))
-        print(torch.max(output))
-
-        keypoints = _get_max_preds(output.detach().cpu().numpy())
+        print(heatmaps.shape)
+        print(torch.min(heatmaps))
+        print(torch.max(heatmaps))
+        print(logits)
         print(keypoints)
-        print(keypoints[0].shape)  # center coordinates
-        print(keypoints[1].shape)  # confidence scores
 
     def test_heatmap_plotting(self):
         image = torch.rand((1, 196, 768)).reshape((1, 768, 14, 14))
 
         output = self.model.forward(image)
+        heatmaps = output["heatmaps"]
+        logits = output["pred_logits"]
 
         for i in range(self.args.num_heatmap_examples):
-            save_image(output[0, i:i+1], f"heatmap_example_{i}.png", self.args.result_dir)
+            save_image(heatmaps[0, i:i+1], f"heatmap_example_{i}.png", self.args.result_dir)
 
 
 if __name__ == '__main__':

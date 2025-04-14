@@ -43,16 +43,3 @@ def prepare_dataloaders(dataset, train_eval_split, batch_size, result_dir, split
     test_dataloader = DataLoader(test_dataset, batch_size=1)
 
     return train_dataloader, test_dataloader
-
-
-# TODO move to corresponding dataset class
-def prepare_outputs_for_loss(predictions):
-    # Again we do it to fit the cryo transformer loss
-    predictions_classes = predictions[:, :, 4:]
-    predictions_coordinates = predictions[:, :, :4]
-    outputs = {
-        "pred_logits": predictions_classes,
-        "pred_boxes": predictions_coordinates
-    }
-
-    return outputs
