@@ -13,6 +13,30 @@ from util.utils import create_folder_if_missing
 matplotlib.use('Agg')  # To avoid error: _tkinter.TclError: no display name and no $DISPLAY environment variable
 
 
+def save_image(image, plot_title, output_dir):
+    """
+    Save an image with a title to the specified output directory.
+
+    :param image: Image as a torch tensor of size channels x height x width
+    :param plot_title: Title of the plot
+    :param output_dir: Directory to save the image
+    """
+    # Ensure the output directory exists
+    create_folder_if_missing(output_dir)
+
+    # Convert PyTorch tensor to numpy array if necessary
+    if hasattr(image, 'cpu') and hasattr(image, 'numpy'):
+        image = image.permute(1, 2, 0).cpu().detach().numpy()
+
+    # Plot and save the image
+    plt.figure()
+    plt.imshow(image)
+    plt.title(plot_title)
+    plt.axis('off')
+    plt.savefig(os.path.join(output_dir, f"{plot_title.replace(' ', '_')}.png"))
+    plt.close()
+
+
 def plot_loss_log(loss_log_path, result_dir):
     """
     Reads the loss log file and plots the losses as a semilogy plot.
@@ -201,3 +225,4 @@ def compare_predictions_with_ground_truth(image_tensor, ground_truth, prediction
     ax2.set_title('Predictions')
 
     plt.savefig(os.path.join(result_dir, file_name))
+    

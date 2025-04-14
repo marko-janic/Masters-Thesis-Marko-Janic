@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument("--result_dir", type=str, default="test_vit_model_huggingface",
                         help="Result dir for files created by this test")
     parser.add_argument("--dataset_size", type=int, default=500)
-    parser.add_argument("--dataset_path", type=str, default='../dataset/dummy_dataset/data')
+    parser.add_argument("--dataset_path", type=str, default='../dataset/dummy_dataset_no_overlap/data')
 
     args = parser.parse_args()
 
