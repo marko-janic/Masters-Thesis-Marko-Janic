@@ -50,33 +50,31 @@ def transform_preds(coords, center, scale, output_size, use_udp=False):
 
 
 def _get_max_preds(heatmaps):
-    """Get keypoint predictions from score maps.
+    """Get keypoint predictions from score maps using tensors.
     Note:
         batch_size: N
         num_keypoints: K
         heatmap height: H
         heatmap width: W
     Args:
-        heatmaps (np.ndarray[N, K, H, W]): model predicted heatmaps.
+        heatmaps (torch.Tensor[N, K, H, W]): model predicted heatmaps.
     Returns:
         tuple: A tuple containing aggregated results.
-        - preds (np.ndarray[N, K, 2]): Predicted keypoint location.
-        - maxvals (np.ndarray[N, K, 1]): Scores (confidence) of the keypoints.
+        - preds (torch.Tensor[N, K, 2]): Predicted keypoint location.
+        - maxvals (torch.Tensor[N, K, 1]): Scores (confidence) of the keypoints.
     """
-    assert isinstance(heatmaps,
-                      np.ndarray), ('heatmaps should be numpy.ndarray')
-    assert heatmaps.ndim == 4, 'batch_images should be 4-ndim'
+    assert isinstance(heatmaps, torch.Tensor), 'heatmaps should be torch.Tensor'
+    assert heatmaps.ndim == 4, 'heatmaps should be 4-dimensional'
 
-    N, K, _, W = heatmaps.shape
-    heatmaps_reshaped = heatmaps.reshape((N, K, -1))
-    idx = np.argmax(heatmaps_reshaped, 2).reshape((N, K, 1))
-    maxvals = np.amax(heatmaps_reshaped, 2).reshape((N, K, 1))
+    N, K, H, W = heatmaps.shape
+    heatmaps_reshaped = heatmaps.view(N, K, -1)
+    maxvals, idx = torch.max(heatmaps_reshaped, dim=2, keepdim=True)
 
-    preds = np.tile(idx, (1, 1, 2)).astype(np.float32)
-    preds[:, :, 0] = preds[:, :, 0] % W
-    preds[:, :, 1] = preds[:, :, 1] // W
+    preds = idx.repeat(1, 1, 2).float()
+    preds[:, :, 0] = (preds[:, :, 0] % W).float() / H  # Normalize it here between 0 and 1
+    preds[:, :, 1] = (preds[:, :, 1] // W).float() / W  # Normalize it between 0 and 1
 
-    preds = np.where(np.tile(maxvals, (1, 1, 2)) > 0.0, preds, -1)
+    preds = torch.where(maxvals > 0.0, preds, torch.tensor(-1.0, device=heatmaps.device))
     return preds, maxvals
 
 
