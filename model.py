@@ -143,8 +143,6 @@ class TopdownHeatmapSimpleHead(nn.Module):
             else:
                 self.final_layer = layers[0]
 
-        self.classification_head = nn.Linear(112 * 112, 2)  # TODO: Don't hardcode this 112
-
     def get_loss(self, output, target, target_weight):
         """Calculate top-down keypoint loss.
         Note:
@@ -198,13 +196,8 @@ class TopdownHeatmapSimpleHead(nn.Module):
         x = self.deconv_layers(x)
         heatmaps = self.final_layer(x)
 
-        batch_size, num_predictions, height, width = heatmaps.shape
-        flattened_heatmaps = heatmaps.view(batch_size, num_predictions, -1)  # Flatten spatial dimensions
-        logits = self.classification_head(flattened_heatmaps)  # Output shape: (batch_size, 17, 2)
+        boxes, scores = _get_max_preds(heatmaps)
 
-        boxes = _get_max_preds(heatmaps)[0]
-
-        return {"heatmaps": heatmaps, "pred_logits": logits, "pred_boxes": boxes}
         return {"heatmaps": heatmaps, "pred_boxes": boxes}
 
     def _init_inputs(self, in_channels, in_index, input_transform):
