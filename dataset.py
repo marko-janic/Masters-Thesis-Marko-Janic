@@ -87,8 +87,7 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
 
 
 class DummyDataset(Dataset):
-    def __init__(self, dataset_size, particle_width=10, particle_height=10, image_width=224, image_height=224,
-                 dataset_path='dataset/dummy_dataset/data'):
+    def __init__(self, dataset_size, particle_width, particle_height, dataset_path, image_width=224, image_height=224):
         self.dataset_path = dataset_path
         self.particle_width = particle_width
         self.particle_height = particle_height

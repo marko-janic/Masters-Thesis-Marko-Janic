@@ -225,4 +225,22 @@ def compare_predictions_with_ground_truth(image_tensor, ground_truth, prediction
     ax2.set_title('Predictions')
 
     plt.savefig(os.path.join(result_dir, file_name))
-    
+
+
+def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps, heatmaps_title, result_folder_name,
+                                       result_dir):
+    create_folder_if_missing(os.path.join(result_dir, result_folder_name))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.set_title('Ground Truth')
+    ax2.set_title(heatmaps_title)
+
+    draw_image_with_objects_on_ax(ax1, micrograph, particle_locations, "output_box", {},
+                                  "r")
+
+    for i in range(len(heatmaps)):
+        ax2.imshow(heatmaps[i].T, origin="lower")
+
+        plt.savefig(os.path.join(result_dir, result_folder_name, f"heatmap_{i}_compared_to_ground_truth.png"))
+
+        ax2.cla()  # Clear before doing the next comparison

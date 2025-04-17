@@ -15,7 +15,7 @@ from util.utils import create_folder_if_missing
 from dataset import DummyDataset
 from loss import build
 from evaluate import evaluate
-from train import prepare_dataloaders
+from train import prepare_dataloaders, create_heatmaps_from_targets
 from plotting import save_image_with_bounding_object, plot_loss_log
 from vit_model import get_vit_model, get_encoded_image
 
@@ -164,9 +164,11 @@ def main():
 
     model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
                                      out_channels=args.num_particles)
-
+    model.init_weights()
     model.to(args.device)
+
     criterion, postprocessors = build(args)
+    mse_loss = torch.nn.MSELoss()
 
     if args.mode == "train":
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
@@ -190,6 +192,8 @@ def main():
                 batch_counter += 1
 
                 targets = dataset.get_targets_from_target_indexes(index, args.device)
+                target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
+                                                               device=args.device)
 
                 if not plotted:
                     save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
@@ -199,14 +203,9 @@ def main():
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
 
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-                outputs = model(latent_micrographs.reshape((args.batch_size, args.latent_dim, 14, 14)))  # TODO: don't hardcode this
-                box_width_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_width/dataset.image_width)  # TODO refactor this once we know it works
-                box_height_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_height/dataset.image_height)
-                outputs["pred_boxes"] = torch.cat((outputs["pred_boxes"], box_width_tensor, box_height_tensor), dim=-1).to(args.device)
+                outputs = model(latent_micrographs.reshape((args.batch_size, args.latent_dim, 14, 14)))  # TODO: don't hardcode this 14
 
-                loss_dict = criterion(outputs, targets)
-                weight_dict = criterion.weight_dict
-                losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+                losses = mse_loss(outputs["heatmaps"], target_heatmaps)
 
                 optimizer.zero_grad()
                 losses.backward()

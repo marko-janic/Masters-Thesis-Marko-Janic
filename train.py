@@ -43,3 +43,47 @@ def prepare_dataloaders(dataset, train_eval_split, batch_size, result_dir, split
     test_dataloader = DataLoader(test_dataset, batch_size=1)
 
     return train_dataloader, test_dataloader
+
+
+def create_heatmaps_from_targets(data_list, num_predictions, device):
+    """
+    Create heatmaps for particles in a batch of images using PyTorch's MultivariateNormal.
+
+    Args:
+        data_list (list of dict): A list of dictionaries, each containing a key "boxes" with a torch tensor of size (num_particles x 4).
+        num_predictions (int): Number of predictions (heatmaps) to generate for each image.
+
+    Returns:
+        torch.Tensor: A tensor of size (batch_size x num_predictions x 112 x 112).
+    """
+    batch_size = len(data_list)
+    heatmap_size = 112  # TOOD: don't hardcode this
+    output = torch.full((batch_size, num_predictions, heatmap_size, heatmap_size), -1.0)
+
+    for batch_idx, data in enumerate(data_list):
+        boxes = data["boxes"]  # Tensor of size (num_particles x 4)
+        num_particles = boxes.size(0)
+
+        for particle_idx in range(min(num_particles, num_predictions)):
+            center_x, center_y, particle_width, particle_height = boxes[particle_idx]
+            center_x = center_x.item() * heatmap_size
+            center_y = center_y.item() * heatmap_size
+            sigma_x = (particle_width.item() * heatmap_size) / 6  # Approximation for Gaussian spread
+            sigma_y = (particle_height.item() * heatmap_size) / 6
+
+            # Define the Gaussian distribution
+            mean = torch.tensor([center_x, center_y])
+            covariance_matrix = torch.tensor([[sigma_x**2, 0], [0, sigma_y**2]])
+            gaussian = torch.distributions.multivariate_normal.MultivariateNormal(mean, covariance_matrix)
+
+            # Create a grid of coordinates
+            x, y = torch.meshgrid(torch.arange(heatmap_size), torch.arange(heatmap_size), indexing="ij")
+            grid = torch.stack([x.flatten(), y.flatten()], dim=-1)
+
+            # Evaluate the Gaussian on the grid
+            heatmap = gaussian.log_prob(grid).exp().reshape(heatmap_size, heatmap_size)
+
+            # Add the Gaussian to the heatmap
+            output[batch_idx, particle_idx] = heatmap
+
+    return output.to(device)

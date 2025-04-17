@@ -1,7 +1,7 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "result_dir_appended_name": "new_vit_pose_simple_model_no_overlap_in_data",
+    "result_dir_appended_name": "vit_pose_simple_model_heatmap_loss_no_overlap_in_data",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
     "dataset_size": 20000,

@@ -205,6 +205,7 @@ class TopdownHeatmapSimpleHead(nn.Module):
         boxes = _get_max_preds(heatmaps)[0]
 
         return {"heatmaps": heatmaps, "pred_logits": logits, "pred_boxes": boxes}
+        return {"heatmaps": heatmaps, "pred_boxes": boxes}
 
     def _init_inputs(self, in_channels, in_index, input_transform):
         """Check and initialize input transforms.
