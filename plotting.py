@@ -11,6 +11,7 @@ import numpy as np
 from util.utils import create_folder_if_missing
 
 matplotlib.use('Agg')  # To avoid error: _tkinter.TclError: no display name and no $DISPLAY environment variable
+plt.rcParams['figure.dpi'] = 300
 
 
 def save_image(image, plot_title, output_dir):
@@ -239,8 +240,43 @@ def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps,
                                   "r")
 
     for i in range(len(heatmaps)):
-        ax2.imshow(heatmaps[i].T, origin="lower")
+        im2 = ax2.imshow(heatmaps[i].T, origin="lower")
+
+        cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
 
         plt.savefig(os.path.join(result_dir, result_folder_name, f"heatmap_{i}_compared_to_ground_truth.png"))
 
+        cbar2.remove()
         ax2.cla()  # Clear before doing the next comparison
+
+    plt.close(fig)
+
+
+def compare_heatmaps(heatmaps_gt, heatmaps_pred, result_folder_name, result_dir):
+    """
+
+    :param heatmaps_gt: torch tensor of size num_predictions x H x W
+    :param heatmaps_pred: torch tensor of size num_predictions x H x W
+    :param result_folder_name:
+    :param result_dir:
+    :return:
+    """
+    create_folder_if_missing(os.path.join(result_dir, result_folder_name))
+
+    assert len(heatmaps_gt) == len(heatmaps_pred), "Heatmaps don't have the same length"
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+
+    ax1.set_title('Ground Truth')
+    ax2.set_title('Predictions')
+
+    for i in range(len(heatmaps_gt)):
+        ax1.imshow(heatmaps_gt[i])
+        ax2.imshow(heatmaps_pred[i])
+
+        plt.savefig(os.path.join(result_dir, result_folder_name, f"heatmap_compared_to_ground_truth_heatmap_{i}.png"))
+
+        ax1.cla()
+        ax2.cla()
+
+    plt.close(fig)

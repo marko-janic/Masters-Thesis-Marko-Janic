@@ -6,14 +6,15 @@ import numpy as np
 
 from tqdm import tqdm
 
+from postprocess import _get_max_preds
+from train import create_heatmaps_from_targets
 # Local imports
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
-from plotting import compare_predictions_with_ground_truth
+from plotting import compare_predictions_with_ground_truth, compare_heatmaps_with_ground_truth, compare_heatmaps
 from vit_model import get_encoded_image
 
 
-def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataloader, criterion, example_predictions,
-             postprocessors):
+def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataloader, criterion, example_predictions):
     result_dir = os.path.join(args.result_dir, f'evaluation_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}')
     create_folder_if_missing(result_dir)
 
@@ -28,42 +29,44 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             criterion.eval()
 
             targets = dataset.get_targets_from_target_indexes(index, args.device)
+            target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
+                                                           device=args.device)
 
             encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
 
             latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-            outputs = model(latent_micrographs.reshape((args.batch_size, args.latent_dim, 14, 14)))  # TODO: don't hardcode this
-            box_width_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_width / dataset.image_width)  # TODO refactor this once we know it works
-            box_height_tensor = torch.full_like(outputs["pred_boxes"][:, :, :1], args.particle_height / dataset.image_height)
-            outputs["pred_boxes"] = torch.cat((outputs["pred_boxes"], box_width_tensor, box_height_tensor), dim=-1).to(args.device)
+            outputs = model(latent_micrographs.reshape((1, args.latent_dim, 14, 14)))  # TODO: don't hardcode this 14
 
-            loss_dict = criterion(outputs, targets)
-            weight_dict = criterion.weight_dict
-            losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+            losses = criterion(outputs["heatmaps"], target_heatmaps)
 
             running_loss += losses.item()
 
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
-                target_sizes = torch.tensor([(224, 224)] * 1)
-                results = postprocessors['bbox'](outputs, target_sizes)
+                pred_coords, scores = _get_max_preds(outputs["heatmaps"])
+                particle_width_height_columns = torch.full((pred_coords.shape[0], pred_coords.shape[1], 2), 80/224,
+                                                           device=pred_coords.device)
+                pred_coords = torch.cat([pred_coords, particle_width_height_columns], dim=2)
 
-                # This weird stuff is how cryotransformers does the predicting
-                probas2 = outputs['pred_logits'].sigmoid()
-
-                # topk_values, topk_indexes = torch.topk(probas2.view(outputs["pred_logits"].shape[0], -1), args.num_particles, dim=1)  # extreme important mention num queries
-                # scores = topk_values
-                # keep = scores[0] < np.quantile(scores, args.quartile_threshold)
-                # scores = scores[0, keep]
-
-                keep = probas2[0, :, 0] > 0.7
-                pred_coords = outputs['pred_boxes'][0, keep, :]
                 pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords.cpu().numpy())
                 ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :4])
+
+                compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
+                                                   particle_locations=ground_truth,
+                                                   heatmaps=outputs["heatmaps"][0],
+                                                   heatmaps_title="Model output",
+                                                   result_folder_name=f"model_to_ground_truth_heatmaps_comparison_"
+                                                                      f"{example_counter}",
+                                                   result_dir=result_dir)
+
+                compare_heatmaps(heatmaps_gt=target_heatmaps[0],
+                                 heatmaps_pred=outputs["heatmaps"][0],
+                                 result_folder_name=f"model_heatmaps_vs_target_heatmaps_{example_counter}",
+                                 result_dir=result_dir)
 
                 compare_predictions_with_ground_truth(
                     image_tensor=micrographs[0].cpu(),
                     ground_truth=ground_truth,
-                    predictions=pred_coords,
+                    predictions=pred_coords[0],
                     object_type="output_box",
                     object_parameters={"box_width": 10, "box_height": 10},
                     result_dir=result_dir,

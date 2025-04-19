@@ -15,7 +15,7 @@ from util.utils import create_folder_if_missing
 from dataset import DummyDataset
 from loss import build
 from evaluate import evaluate
-from train import prepare_dataloaders, create_heatmaps_from_targets
+from train import prepare_dataloaders, create_heatmaps_from_targets, find_optimal_assignment_heatmaps
 from plotting import save_image_with_bounding_object, plot_loss_log
 from vit_model import get_vit_model, get_encoded_image
 
@@ -49,8 +49,9 @@ def get_args():
     parser.add_argument("--result_dir", type=str,
                         default=f'experiments/experiment_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_',
                         help="Directory to save results to")
-    parser.add_argument("--result_dir_appended_name", type=str,
+    parser.add_argument("--result_dir_appended_name", type=str, default="",
                         help="Extra string to append to the end of the result directory")
+    parser.add_argument("--use_train_dataset_for_evaluation", type=bool, default=False)
 
     # Training
     parser.add_argument("--batch_size", type=int, default=16, help="Size of each training batch")
@@ -160,7 +161,9 @@ def main():
                                                             batch_size=args.batch_size,
                                                             result_dir=args.result_dir,
                                                             split_file_name=args.split_file_name,
-                                                            create_split_file=args.mode == "train")
+                                                            create_split_file=args.mode == "train",
+                                                            use_train_dataset_for_evaluation=
+                                                            args.use_train_dataset_for_evaluation)
 
     model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
                                      out_channels=args.num_particles)
@@ -205,7 +208,13 @@ def main():
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
                 outputs = model(latent_micrographs.reshape((args.batch_size, args.latent_dim, 14, 14)))  # TODO: don't hardcode this 14
 
-                losses = mse_loss(outputs["heatmaps"], target_heatmaps)
+                assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, mse_loss)
+
+                reordered_target_heatmaps = torch.zeros_like(target_heatmaps)
+                for batch_idx, (row_ind, col_ind) in enumerate(assignments):
+                    reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]
+
+                losses = mse_loss(outputs["heatmaps"], reordered_target_heatmaps)
 
                 optimizer.zero_grad()
                 losses.backward()
@@ -244,9 +253,8 @@ def main():
         else:
             raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
 
-        evaluate(args=args, criterion=criterion, vit_model=vit_model, vit_image_processor=vit_image_processor,
-                 model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8,
-                 postprocessors=postprocessors)
+        evaluate(args=args, criterion=mse_loss, vit_model=vit_model, vit_image_processor=vit_image_processor,
+                 model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8)
 
 
 if __name__ == "__main__":
