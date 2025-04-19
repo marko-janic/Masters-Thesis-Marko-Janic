@@ -97,10 +97,6 @@ class DummyDataset(Dataset):
         self.micrographs = []
         self.targets = []
 
-        preprocess = transforms.Compose([
-            transforms.ToTensor(),  # Automatically rescales between 0 and 1
-        ])
-
         for idx in range(dataset_size):
 
             # The image (micrograph)
@@ -109,7 +105,10 @@ class DummyDataset(Dataset):
                 raise Exception(f"The file {micrograph_path} doesn't exist.")
 
             image = Image.open(micrograph_path).convert("RGB")
-            self.micrographs.append(preprocess(image))
+            transform = transforms.ToTensor()
+            image_tensor = transform(image) * 255
+
+            self.micrographs.append(image_tensor)
 
             # The target (coordinates + classes)
             coordinates_path = os.path.join(self.dataset_path, f'micrograph_{idx}_coords.txt')

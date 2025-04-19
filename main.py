@@ -199,7 +199,7 @@ def main():
                                                                device=args.device)
 
                 if not plotted:
-                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
+                    save_image_with_bounding_object(micrographs[0].cpu()/255, targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
                                                     {}, args.result_dir, "train_test_example")
                     plotted = True
 

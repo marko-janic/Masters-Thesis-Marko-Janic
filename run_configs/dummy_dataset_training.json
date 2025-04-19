@@ -1,7 +1,7 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "result_dir_appended_name": "vit_pose_simple_model_heatmap_loss_no_overlap_in_data",
+    "result_dir_appended_name": "vit_pose_head_loss_with_hungarian_matching",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
     "dataset_size": 20000,
@@ -10,7 +10,7 @@
     "particle_height": 80,
 
     "device": "cuda",
-    "epochs": 1000,
+    "epochs": 100,
     "batch_size": 16,
     "learning_rate": 0.001,
     "checkpoint_interval": 1800,
