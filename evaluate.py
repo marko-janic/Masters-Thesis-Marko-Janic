@@ -50,7 +50,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords.cpu().numpy())
                 ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :4])
 
-                compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
+                compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu()/255,
                                                    particle_locations=ground_truth,
                                                    heatmaps=outputs["heatmaps"][0],
                                                    heatmaps_title="Model output",
@@ -64,7 +64,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                  result_dir=result_dir)
 
                 compare_predictions_with_ground_truth(
-                    image_tensor=micrographs[0].cpu(),
+                    image_tensor=micrographs[0].cpu()/255,
                     ground_truth=ground_truth,
                     predictions=pred_coords[0],
                     object_type="output_box",

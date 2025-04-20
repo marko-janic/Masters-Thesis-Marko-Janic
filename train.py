@@ -89,6 +89,10 @@ def create_heatmaps_from_targets(data_list, num_predictions, device):
             # Evaluate the Gaussian on the grid
             heatmap = gaussian.log_prob(grid).exp().reshape(heatmap_size, heatmap_size)
 
+            # Normalize the heatmap so the value at the mean is exactly 1
+            peak_value = 1 / (2 * torch.pi * sigma_x * sigma_y)
+            heatmap /= peak_value
+
             # Add the Gaussian to the heatmap
             output[batch_idx, particle_idx] = heatmap
 
