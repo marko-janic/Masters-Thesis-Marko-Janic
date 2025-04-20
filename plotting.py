@@ -240,7 +240,7 @@ def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps,
                                   "r")
 
     for i in range(len(heatmaps)):
-        im2 = ax2.imshow(heatmaps[i].T, origin="lower")
+        im2 = ax2.imshow(heatmaps[i].T, origin="lower") # , vmin=0, vmax=1
 
         cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
 
@@ -271,11 +271,16 @@ def compare_heatmaps(heatmaps_gt, heatmaps_pred, result_folder_name, result_dir)
     ax2.set_title('Predictions')
 
     for i in range(len(heatmaps_gt)):
-        ax1.imshow(heatmaps_gt[i])
-        ax2.imshow(heatmaps_pred[i])
+        im1 = ax1.imshow(heatmaps_gt[i])
+        im2 = ax2.imshow(heatmaps_pred[i])
+
+        cbar1 = fig.colorbar(im1, ax=ax1, orientation='vertical', shrink=0.5)
+        cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
 
         plt.savefig(os.path.join(result_dir, result_folder_name, f"heatmap_compared_to_ground_truth_heatmap_{i}.png"))
 
+        cbar1.remove()
+        cbar2.remove()
         ax1.cla()
         ax2.cla()
 
