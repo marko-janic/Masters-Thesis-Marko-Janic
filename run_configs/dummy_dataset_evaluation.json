@@ -1,7 +1,7 @@
 {
     "dataset": "dummy",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-04-21_01-42-33_vitpose_vit_output_correctly_reshaped",
+    "existing_result_folder": "experiment_2025-04-21_02-41-54_THIS_ONE_WORKS_vitpose_target_heatmaps_fixed_bigger_target_heatmaps",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
     "dataset_size": 500,

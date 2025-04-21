@@ -30,7 +30,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
@@ -218,7 +218,6 @@ def main():
                 outputs = model(latent_micrographs)
 
                 assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, mse_loss)
-
                 reordered_target_heatmaps = torch.zeros_like(target_heatmaps)
                 for batch_idx, (row_ind, col_ind) in enumerate(assignments):
                     reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]

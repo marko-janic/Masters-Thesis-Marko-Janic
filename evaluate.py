@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 from postprocess import _get_max_preds
-from train import create_heatmaps_from_targets
+from train import create_heatmaps_from_targets, find_optimal_assignment_heatmaps
 # Local imports
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import compare_predictions_with_ground_truth, compare_heatmaps_with_ground_truth, compare_heatmaps
@@ -28,16 +28,23 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             model.eval()
             criterion.eval()
 
+            # TODO: MOVE THIS TO A FUNCTION ============================================================================
             targets = dataset.get_targets_from_target_indexes(index, args.device)
             target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
                                                            device=args.device)
-
             encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
-
             latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
             latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(1, args.latent_dim, 14, 14)
+            # TODO: MOVE THIS TO A FUNCTION ============================================================================
 
-            outputs = model(latent_micrographs)  # TODO: don't hardcode this 14
+            outputs = model(latent_micrographs)
+
+            # TODO: MOVE THIS TO A FUNCTION ============================================================================
+            assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, criterion)
+            reordered_target_heatmaps = torch.zeros_like(target_heatmaps)
+            for batch_idx, (row_ind, col_ind) in enumerate(assignments):
+                reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]
+            # TODO: MOVE THIS TO A FUNCTION ============================================================================
 
             losses = criterion(outputs["heatmaps"], target_heatmaps)
 
@@ -60,7 +67,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                                                       f"{example_counter}",
                                                    result_dir=result_dir)
 
-                compare_heatmaps(heatmaps_gt=target_heatmaps[0],
+                compare_heatmaps(heatmaps_gt=reordered_target_heatmaps[0],
                                  heatmaps_pred=outputs["heatmaps"][0],
                                  result_folder_name=f"model_heatmaps_vs_target_heatmaps_{example_counter}",
                                  result_dir=result_dir)

@@ -267,10 +267,10 @@ def compare_heatmaps(heatmaps_gt, heatmaps_pred, result_folder_name, result_dir)
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
 
-    ax1.set_title('Ground Truth')
-    ax2.set_title('Predictions')
-
     for i in range(len(heatmaps_gt)):
+        ax1.set_title('Ground Truth')
+        ax2.set_title('Predictions')
+
         im1 = ax1.imshow(heatmaps_gt[i])
         im2 = ax2.imshow(heatmaps_pred[i])
 
