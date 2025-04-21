@@ -104,12 +104,11 @@ def get_args():
                 setattr(args, key, value)
 
     args.result_dir = args.result_dir + args.result_dir_appended_name
-    args.loss_log_path = ""
-    if args.mode != "eval":
-        args.loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
 
     if args.existing_result_folder is not None and args.mode == "eval":
         args.result_dir = os.path.join('experiments', args.existing_result_folder)
+
+    args.loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
 
     if args.mode == "eval":
         print("Running in evaluation mode")
@@ -255,6 +254,9 @@ def main():
         plot_loss_log(args.loss_log_path, args.result_dir)
 
     if args.mode == "eval":
+        if not os.path.exists(os.path.join(args.result_dir, "losses_plot.png")):
+            plot_loss_log(args.loss_log_path, args.result_dir)
+
         checkpoint_path = os.path.join(args.result_dir, 'checkpoint_final.pth')
         if os.path.exists(checkpoint_path):
             model.load_state_dict(torch.load(checkpoint_path, map_location=args.device))

@@ -42,19 +42,20 @@ def plot_loss_log(loss_log_path, result_dir):
     """
     Reads the loss log file and plots the losses as a semilogy plot.
 
-    :param loss_log_path: Path to the loss log file. It needs to have a column "epoch" and a column "average_loss"
+    :param loss_log_path: Path to the loss log file. It needs to have columns "epoch", "batch", and "average_loss".
     :param result_dir: Directory to save the plot.
     """
     if os.path.exists(loss_log_path):
         # Read the loss log file
         loss_data = pd.read_csv(loss_log_path)
         epochs = loss_data['epoch']
+        batches = loss_data['batch']
         losses = loss_data['average_loss']
 
         # Plot the losses
         plt.figure()
-        plt.semilogy(epochs, losses, label='Loss')
-        plt.xlabel('Epoch')
+        plt.semilogy(epochs + batches / batches.max(), losses, label='Loss')  # Combine epoch and batch for x-axis
+        plt.xlabel('Epoch + Batch (normalized)')
         plt.ylabel('Loss (log scale)')
         plt.title('Training Loss')
         plt.legend()
