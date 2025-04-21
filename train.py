@@ -83,7 +83,10 @@ def create_heatmaps_from_targets(data_list, num_predictions, device):
             gaussian = torch.distributions.multivariate_normal.MultivariateNormal(mean, covariance_matrix)
 
             # Create a grid of coordinates
-            x, y = torch.meshgrid(torch.arange(heatmap_size), torch.arange(heatmap_size), indexing="ij")
+            y, x = torch.meshgrid(torch.arange(heatmap_size), torch.arange(heatmap_size), indexing="ij")
+            # Invert the y-axis to match the image coordinate system
+            y = heatmap_size - 1 - y
+
             grid = torch.stack([x.flatten(), y.flatten()], dim=-1)
 
             # Evaluate the Gaussian on the grid

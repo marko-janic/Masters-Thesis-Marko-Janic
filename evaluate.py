@@ -35,7 +35,9 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
 
             latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-            outputs = model(latent_micrographs.reshape((1, args.latent_dim, 14, 14)))  # TODO: don't hardcode this 14
+            latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(1, args.latent_dim, 14, 14)
+
+            outputs = model(latent_micrographs)  # TODO: don't hardcode this 14
 
             losses = criterion(outputs["heatmaps"], target_heatmaps)
 

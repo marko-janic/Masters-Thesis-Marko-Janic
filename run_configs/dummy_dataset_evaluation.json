@@ -1,7 +1,7 @@
 {
     "dataset": "dummy",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-04-20_01-37-22_vit_pose_head_loss_with_hungarian_matching",
+    "existing_result_folder": "experiment_2025-04-21_01-42-33_vitpose_vit_output_correctly_reshaped",
 
     "dataset_path": "dataset/dummy_dataset_no_overlap/data",
     "dataset_size": 500,

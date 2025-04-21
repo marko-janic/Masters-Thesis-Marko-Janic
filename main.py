@@ -16,7 +16,7 @@ from dataset import DummyDataset
 from loss import build
 from evaluate import evaluate
 from train import prepare_dataloaders, create_heatmaps_from_targets, find_optimal_assignment_heatmaps
-from plotting import save_image_with_bounding_object, plot_loss_log
+from plotting import save_image_with_bounding_object, plot_loss_log, compare_heatmaps_with_ground_truth
 from vit_model import get_vit_model, get_encoded_image
 
 
@@ -30,7 +30,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
@@ -187,7 +187,7 @@ def main():
         # Save untrained checkpoint for debugging purposes
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
 
-        plotted = False
+        plotted = 0
         for epoch in range(args.epochs):
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
@@ -198,15 +198,24 @@ def main():
                 target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
                                                                device=args.device)
 
-                if not plotted:
+                if plotted < 5:
                     save_image_with_bounding_object(micrographs[0].cpu()/255, targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
-                                                    {}, args.result_dir, "train_test_example")
-                    plotted = True
+                                                    {}, args.result_dir, f"train_test_example_{plotted}")
+
+                    compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu()/255,
+                                                       particle_locations=targets[0]['boxes'].cpu(),
+                                                       heatmaps=target_heatmaps[0].cpu(),
+                                                       heatmaps_title="target heatmaps",
+                                                       result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",
+                                                       result_dir=args.result_dir)
+
+                    plotted += 1
 
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
 
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-                outputs = model(latent_micrographs.reshape((args.batch_size, args.latent_dim, 14, 14)))  # TODO: don't hardcode this 14
+                latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(args.batch_size, args.latent_dim, 14, 14)  # Right shape for model, we permute the hidden dimension to the second place
+                outputs = model(latent_micrographs)
 
                 assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, mse_loss)
 

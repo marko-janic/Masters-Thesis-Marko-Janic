@@ -234,13 +234,13 @@ def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps,
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
     ax1.set_title('Ground Truth')
-    ax2.set_title(heatmaps_title)
 
     draw_image_with_objects_on_ax(ax1, micrograph, particle_locations, "output_box", {},
                                   "r")
 
     for i in range(len(heatmaps)):
-        im2 = ax2.imshow(heatmaps[i].T, origin="lower") # , vmin=0, vmax=1
+        ax2.set_title(heatmaps_title)
+        im2 = ax2.imshow(heatmaps[i])  # , vmin=0, vmax=1
 
         cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
 
