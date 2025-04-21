@@ -74,8 +74,8 @@ def create_heatmaps_from_targets(data_list, num_predictions, device):
             center_x, center_y, particle_width, particle_height = boxes[particle_idx]
             center_x = center_x.item() * heatmap_size
             center_y = center_y.item() * heatmap_size
-            sigma_x = (particle_width.item() * heatmap_size) / 6  # Approximation for Gaussian spread
-            sigma_y = (particle_height.item() * heatmap_size) / 6
+            sigma_x = (particle_width.item() * heatmap_size) / 3  # Approximation for Gaussian spread
+            sigma_y = (particle_height.item() * heatmap_size) / 3
 
             # Define the Gaussian distribution
             mean = torch.tensor([center_x, center_y])
