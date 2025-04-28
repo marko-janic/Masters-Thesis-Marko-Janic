@@ -223,6 +223,10 @@ def main():
 
                 losses = mse_loss(outputs["heatmaps"], reordered_target_heatmaps)
 
+                # vit ouptut: batch_size x 197 x 768
+                # input to model: batch_size x 768 x 14 x 14
+                # output of the model: batch_size x num_predictions x 112 x 112
+
                 optimizer.zero_grad()
                 losses.backward()
                 optimizer.step()
