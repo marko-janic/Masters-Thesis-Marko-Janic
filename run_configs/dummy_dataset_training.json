@@ -1,16 +1,16 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "result_dir_appended_name": "vitpose_target_heatmaps_fixed_bigger_target_heatmaps",
+    "result_dir_appended_name": "noisy_training",
 
-    "dataset_path": "dataset/dummy_dataset_no_overlap/data",
+    "dataset_path": "dataset/dummy_dataset_max_overlap_0.0_noise_0.8_uniform_noise_True/data",
     "dataset_size": 20000,
     "num_particles": 7,
     "particle_width": 80,
     "particle_height": 80,
 
     "device": "cuda",
-    "epochs": 100,
+    "epochs": 1000,
     "batch_size": 16,
     "learning_rate": 0.001,
     "checkpoint_interval": 1800,

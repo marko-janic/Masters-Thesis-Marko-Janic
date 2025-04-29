@@ -235,17 +235,18 @@ def main():
                 epoch_bar.set_postfix(loss=losses.item())
                 epoch_bar.update(1)
 
-                if time.time() - last_checkpoint_time > args.checkpoint_interval:
-                    avg_loss = running_loss / batch_counter
+                avg_loss = running_loss / batch_counter
+                # Save running loss to log file
+                with open(args.loss_log_path, 'a') as f:
+                    f.write(f"{epoch},{batch_index},{avg_loss}\n")
 
+                if time.time() - last_checkpoint_time > args.checkpoint_interval:
                     # Save running loss to log file
                     with open(args.loss_log_path, 'a') as f:
                         f.write(f"{epoch},{batch_index},{avg_loss}\n")
-
                     # Save checkpoint
                     torch.save(model.state_dict(), os.path.join(args.result_dir,
                                                                 f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
-
                     last_checkpoint_time = time.time()
                     batch_counter = 0
                     running_loss = 0.0
