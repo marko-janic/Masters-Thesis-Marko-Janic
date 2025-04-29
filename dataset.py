@@ -26,12 +26,15 @@ def get_args():
     parser.add_argument("--min_particles", type=int, default=1)
     parser.add_argument("--max_particles", type=int, default=5)
     parser.add_argument("--particle_radius", type=int, default=40, help="Particle radius in pixels")
-    parser.add_argument("--output_dir", type=str, default="dataset/dummy_dataset_no_overlap_noise0.9")
+    parser.add_argument("--output_dir", type=str, default="dataset/dummy_dataset")
     parser.add_argument("--max_overlap", type=float, default=0.0, help="Maximum allowed overlap of"
                                                                        "particles. 0 is no overlap 1 is full overlap")
-    parser.add_argument("--noise", type=float, default=0.9, help="How much the generated image should be"
+    parser.add_argument("--noise", type=float, default=0.8, help="How much the generated image should be"
                                                                  "blended with random noise, 0 is none 1 means the "
                                                                  "generated image will be fully noisy")
+    parser.add_argument("--uniform_noise", type=bool, default=True, help="If set to true the noise added "
+                                                                         "to the image will be the same for all color "
+                                                                         "channels")
 
     args = parser.parse_args()
     return args
@@ -50,7 +53,12 @@ def create_dummy_dataset(args):
         output_dir: Directory to save the dataset
         max_overlap: Maximum allowed percentage overlap between particles (0.0 to 1.0)
         noise: Level of Gaussian noise to add (0.0 = no noise, 1.0 = fully noisy)
+        uniform_noise: Boolean, If set to true the noise added to the image will be the same for all color channels
     """
+    # Adjust output_dir to include max_overlap, noise, and uniform_noise
+    args.output_dir = (f"{args.output_dir}_max_overlap_{args.max_overlap}_noise_{args.noise}_uniform_noise_"
+                       f"{args.uniform_noise}")
+
     create_folder_if_missing(args.output_dir)
     create_folder_if_missing(os.path.join(args.output_dir, 'data'))
 
@@ -104,7 +112,11 @@ def create_dummy_dataset(args):
         # Add Gaussian noise
         if args.noise > 0.0:
             # Generate random noise image
-            random_noise = np.random.randint(0, 256, image.shape, dtype=np.uint8)
+            if args.uniform_noise:
+                random_noise = np.random.randint(0, 256, (image.shape[0], image.shape[1], 1), dtype=np.uint8)
+                random_noise = np.repeat(random_noise, 3, axis=2)  # Make noise uniform across channels
+            else:
+                random_noise = np.random.randint(0, 256, image.shape, dtype=np.uint8)
             
             # Blend the original image with the random noise
             image = (1 - args.noise) * image + args.noise * random_noise
