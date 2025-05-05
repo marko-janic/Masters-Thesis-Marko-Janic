@@ -22,7 +22,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--image_size", type=int, default=224)
-    parser.add_argument("--num_images", type=int, default=20000)
+    parser.add_argument("--num_images", type=int, default=500)
     parser.add_argument("--min_particles", type=int, default=1)
     parser.add_argument("--max_particles", type=int, default=5)
     parser.add_argument("--particle_radius", type=int, default=40, help="Particle radius in pixels")

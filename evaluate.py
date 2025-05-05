@@ -15,6 +15,18 @@ from vit_model import get_encoded_image
 
 
 def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataloader, criterion, example_predictions):
+    """
+
+    :param args:
+    :param model:
+    :param vit_model:
+    :param vit_image_processor:
+    :param dataset:
+    :param test_dataloader:
+    :param criterion:
+    :param example_predictions:
+    :return:
+    """
     result_dir = os.path.join(args.result_dir, f'evaluation_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}')
     create_folder_if_missing(result_dir)
 
@@ -28,23 +40,19 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             model.eval()
             criterion.eval()
 
-            # TODO: MOVE THIS TO A FUNCTION ============================================================================
             targets = dataset.get_targets_from_target_indexes(index, args.device)
             target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
                                                            device=args.device)
             encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
             latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
             latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(1, args.latent_dim, 14, 14)
-            # TODO: MOVE THIS TO A FUNCTION ============================================================================
 
             outputs = model(latent_micrographs)
 
-            # TODO: MOVE THIS TO A FUNCTION ============================================================================
             assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, criterion)
             reordered_target_heatmaps = torch.zeros_like(target_heatmaps)
             for batch_idx, (row_ind, col_ind) in enumerate(assignments):
                 reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]
-            # TODO: MOVE THIS TO A FUNCTION ============================================================================
 
             losses = criterion(outputs["heatmaps"], target_heatmaps)
 
@@ -52,15 +60,21 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
             if example_counter < example_predictions:  # TODO: needs a lot of refactoring
                 pred_coords, scores = _get_max_preds(outputs["heatmaps"])
-                particle_width_height_columns = torch.full((pred_coords.shape[0], pred_coords.shape[1], 2), 80/224,
+                particle_width_height_columns = torch.full((pred_coords.shape[0], pred_coords.shape[1], 2), 80/224,  # TODO: This needs to be adjusted if you wanna do different particle heights and widths
                                                            device=pred_coords.device)
                 pred_coords = torch.cat([pred_coords, particle_width_height_columns], dim=2)
 
-                pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords.cpu().numpy())
-                ground_truth = transform_coords_to_pixel_coords(224, 224, targets[0]['boxes'][:, :4])
+                # Filter pred_coords based on scores > 0.8 while preserving batch dimensions
+                pred_coords = torch.where(scores > 0.7, pred_coords, torch.zeros_like(pred_coords))
+
+                pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords)
+                pred_coords[:, :, 1] = 224 - pred_coords[:, :, 1]  # TODO this is all still hacky and needs to be fixed
+
+                ground_truth = transform_coords_to_pixel_coords(224, 224,
+                                                                targets[0]['boxes'][:, :4].unsqueeze(0))
 
                 compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu()/255,
-                                                   particle_locations=ground_truth,
+                                                   particle_locations=ground_truth[0],
                                                    heatmaps=outputs["heatmaps"][0],
                                                    heatmaps_title="Model output",
                                                    result_folder_name=f"model_to_ground_truth_heatmaps_comparison_"
@@ -74,7 +88,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
                 compare_predictions_with_ground_truth(
                     image_tensor=micrographs[0].cpu()/255,
-                    ground_truth=ground_truth,
+                    ground_truth=ground_truth[0],
                     predictions=pred_coords[0],
                     object_type="output_box",
                     object_parameters={"box_width": 10, "box_height": 10},

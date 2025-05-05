@@ -50,31 +50,34 @@ def transform_preds(coords, center, scale, output_size, use_udp=False):
 
 
 def _get_max_preds(heatmaps):
-    """Get keypoint predictions from score maps using tensors.
+    """Get keypoint predictions from score maps.
     Note:
         batch_size: N
         num_keypoints: K
         heatmap height: H
         heatmap width: W
     Args:
-        heatmaps (torch.Tensor[N, K, H, W]): model predicted heatmaps.
+        heatmaps (torch.tensor[N, K, H, W]): model predicted heatmaps.
     Returns:
         tuple: A tuple containing aggregated results.
-        - preds (torch.Tensor[N, K, 2]): Predicted keypoint location.
-        - maxvals (torch.Tensor[N, K, 1]): Scores (confidence) of the keypoints.
+        - preds (torch.tensor[N, K, 2]): Predicted keypoint location (normalized).
+        - maxvals (torch.tensor[N, K, 1]): Scores (confidence) of the keypoints.
     """
-    assert isinstance(heatmaps, torch.Tensor), 'heatmaps should be torch.Tensor'
-    assert heatmaps.ndim == 4, 'heatmaps should be 4-dimensional'
-
+    assert isinstance(heatmaps, torch.Tensor), "Heatmaps must be a torch tensor"
     N, K, H, W = heatmaps.shape
+
+    # Flatten heatmaps to find max values and their indices
     heatmaps_reshaped = heatmaps.view(N, K, -1)
-    maxvals, idx = torch.max(heatmaps_reshaped, dim=2, keepdim=True)
+    maxvals, idx = torch.max(heatmaps_reshaped, dim=2)
 
-    preds = idx.repeat(1, 1, 2).float()
-    preds[:, :, 0] = (preds[:, :, 0] % W).float() / H  # Normalize it here between 0 and 1
-    preds[:, :, 1] = (preds[:, :, 1] // W).float() / W  # Normalize it between 0 and 1
+    # Convert indices to x, y coordinates
+    preds = torch.zeros((N, K, 2), device=heatmaps.device)
+    preds[..., 0] = (idx % W) / W  # normalized x-coordinates
+    preds[..., 1] = (idx // W) / H  # normalized y-coordinates
 
-    preds = torch.where(maxvals > 0.0, preds, torch.tensor(-1.0, device=heatmaps.device))
+    # Reshape maxvals to match the expected output shape
+    maxvals = maxvals.unsqueeze(-1)
+
     return preds, maxvals
 
 
