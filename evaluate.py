@@ -68,7 +68,6 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 pred_coords = torch.where(scores > 0.7, pred_coords, torch.zeros_like(pred_coords))
 
                 pred_coords = transform_coords_to_pixel_coords(224, 224, pred_coords)
-                pred_coords[:, :, 1] = 224 - pred_coords[:, :, 1]  # TODO this is all still hacky and needs to be fixed
 
                 ground_truth = transform_coords_to_pixel_coords(224, 224,
                                                                 targets[0]['boxes'][:, :4].unsqueeze(0))
