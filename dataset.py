@@ -305,7 +305,6 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
     return sub_micrographs
 
 
-# TODO: this is super outdated and needs to be reworked
 class ShrecDataset(Dataset):
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
 
@@ -322,10 +321,10 @@ class ShrecDataset(Dataset):
         """
 
         self.dataset_path = dataset_path
-        self.model_number = model_number  # TODO: needed later for noisy projection
+        self.model_number = model_number
         self.micrograph_size = micrograph_size  # This is only needed for creating the sub micrographs
 
-        self.sub_micrograph_size = sub_micrograph_size  #TODO: RENAME THIS TO
+        self.sub_micrograph_size = sub_micrograph_size
         self.sampling_points = sampling_points
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
@@ -336,6 +335,8 @@ class ShrecDataset(Dataset):
 
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
                       permissive=True) as f:
+            self.grandmodel = torch.tensor(f.data)
+
             self.micrograph = torch.tensor(f.data.sum(axis=0))  # We know 0 is correct from testing, 0 is top view
             # We need to normalize our micrograph between 0 and 1 for the loss function and the ViT model
             self.micrograph = self.micrograph/self.micrograph.max()
@@ -351,7 +352,6 @@ class ShrecDataset(Dataset):
         :param idx: The index to take from
         """
         sub_micrograph_entry = self.sub_micrographs.iloc[idx]
-        # TODO: look at if we want to do the channels like this (just repetition)
         return (sub_micrograph_entry['sub_micrograph'].unsqueeze(0).repeat(3, 1, 1),
                 sub_micrograph_entry['top_left_coordinates'])
 
