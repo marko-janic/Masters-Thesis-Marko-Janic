@@ -2,21 +2,20 @@
 ViT models and stuff: https://huggingface.co/docs/transformers/en/model_doc/vit
 """
 import torch
-import types
 
-from transformers import ViTModel, ViTImageProcessor
-from torchvision.models import vit_b_16, vit_l_16, ViT_B_16_Weights
+from transformers import ViTModel, ViTFeatureExtractor, ViTImageProcessor
 
 
 def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_image_processor: ViTImageProcessor):
     """
     :param image: torch tensor of shape batch x channels x height x width
     :param vit_model:
-    :param vit_image_processor:
+    :param vit_image_processor: See https://huggingface.co/docs/transformers/en/model_doc/vit
     :return:
     """
-    inputs = vit_image_processor(images=image, return_tensors='pt', do_rescale=False)
-    outputs = vit_model(pixel_values=inputs['pixel_values'], output_hidden_states=True)
+    with torch.no_grad():
+        inputs = vit_image_processor(images=image, return_tensors='pt')
+        outputs = vit_model(pixel_values=inputs['pixel_values'], output_hidden_states=True)
 
     return outputs
 

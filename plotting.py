@@ -11,25 +11,51 @@ import numpy as np
 from util.utils import create_folder_if_missing
 
 matplotlib.use('Agg')  # To avoid error: _tkinter.TclError: no display name and no $DISPLAY environment variable
+plt.rcParams['figure.dpi'] = 300
+
+
+def save_image(image, plot_title, output_dir):
+    """
+    Save an image with a title to the specified output directory.
+
+    :param image: Image as a torch tensor of size channels x height x width
+    :param plot_title: Title of the plot
+    :param output_dir: Directory to save the image
+    """
+    # Ensure the output directory exists
+    create_folder_if_missing(output_dir)
+
+    # Convert PyTorch tensor to numpy array if necessary
+    if hasattr(image, 'cpu') and hasattr(image, 'numpy'):
+        image = image.permute(1, 2, 0).cpu().detach().numpy()
+
+    # Plot and save the image
+    plt.figure()
+    plt.imshow(image)
+    plt.title(plot_title)
+    plt.axis('off')
+    plt.savefig(os.path.join(output_dir, f"{plot_title.replace(' ', '_')}.png"))
+    plt.close()
 
 
 def plot_loss_log(loss_log_path, result_dir):
     """
     Reads the loss log file and plots the losses as a semilogy plot.
 
-    :param loss_log_path: Path to the loss log file. It needs to have a column "epoch" and a column "average_loss"
+    :param loss_log_path: Path to the loss log file. It needs to have columns "epoch", "batch", and "average_loss".
     :param result_dir: Directory to save the plot.
     """
     if os.path.exists(loss_log_path):
         # Read the loss log file
         loss_data = pd.read_csv(loss_log_path)
         epochs = loss_data['epoch']
+        batches = loss_data['batch']
         losses = loss_data['average_loss']
 
         # Plot the losses
         plt.figure()
-        plt.semilogy(epochs, losses, label='Loss')
-        plt.xlabel('Epoch')
+        plt.semilogy(epochs + batches / batches.max(), losses, label='Loss')  # Combine epoch and batch for x-axis
+        plt.xlabel('Epoch + Batch (normalized)')
         plt.ylabel('Loss (log scale)')
         plt.title('Training Loss')
         plt.legend()
@@ -201,3 +227,62 @@ def compare_predictions_with_ground_truth(image_tensor, ground_truth, prediction
     ax2.set_title('Predictions')
 
     plt.savefig(os.path.join(result_dir, file_name))
+
+
+def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps, heatmaps_title, result_folder_name,
+                                       result_dir):
+    create_folder_if_missing(os.path.join(result_dir, result_folder_name))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.set_title('Ground Truth')
+
+    draw_image_with_objects_on_ax(ax1, micrograph, particle_locations, "output_box", {},
+                                  "r")
+
+    for i in range(len(heatmaps)):
+        ax2.set_title(heatmaps_title)
+        im2 = ax2.imshow(heatmaps[i])  # , vmin=0, vmax=1
+
+        cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
+
+        plt.savefig(os.path.join(result_dir, result_folder_name, f"heatmap_{i}_compared_to_ground_truth.png"))
+
+        cbar2.remove()
+        ax2.cla()  # Clear before doing the next comparison
+
+    plt.close(fig)
+
+
+def compare_heatmaps(heatmaps_gt, heatmaps_pred, result_folder_name, result_dir):
+    """
+
+    :param heatmaps_gt: torch tensor of size num_predictions x H x W
+    :param heatmaps_pred: torch tensor of size num_predictions x H x W
+    :param result_folder_name:
+    :param result_dir:
+    :return:
+    """
+    create_folder_if_missing(os.path.join(result_dir, result_folder_name))
+
+    assert len(heatmaps_gt) == len(heatmaps_pred), "Heatmaps don't have the same length"
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+
+    for i in range(len(heatmaps_gt)):
+        ax1.set_title('Ground Truth')
+        ax2.set_title('Predictions')
+
+        im1 = ax1.imshow(heatmaps_gt[i])
+        im2 = ax2.imshow(heatmaps_pred[i])
+
+        cbar1 = fig.colorbar(im1, ax=ax1, orientation='vertical', shrink=0.5)
+        cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
+
+        plt.savefig(os.path.join(result_dir, result_folder_name, f"heatmap_compared_to_ground_truth_heatmap_{i}.png"))
+
+        cbar1.remove()
+        cbar2.remove()
+        ax1.cla()
+        ax2.cla()
+
+    plt.close(fig)

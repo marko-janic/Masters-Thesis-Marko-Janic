@@ -10,13 +10,13 @@ import torch.optim as optim
 from tqdm import tqdm
 
 # Local imports
-from model import ParticlePicker
+from model import TopdownHeatmapSimpleHead
 from util.utils import create_folder_if_missing
 from dataset import DummyDataset
 from loss import build
 from evaluate import evaluate
-from train import prepare_outputs_for_loss, prepare_dataloaders
-from plotting import save_image_with_bounding_object, plot_loss_log
+from train import prepare_dataloaders, create_heatmaps_from_targets, find_optimal_assignment_heatmaps
+from plotting import save_image_with_bounding_object, plot_loss_log, compare_heatmaps_with_ground_truth
 from vit_model import get_vit_model, get_encoded_image
 
 
@@ -30,7 +30,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
@@ -49,8 +49,9 @@ def get_args():
     parser.add_argument("--result_dir", type=str,
                         default=f'experiments/experiment_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_',
                         help="Directory to save results to")
-    parser.add_argument("--result_dir_appended_name", type=str,
+    parser.add_argument("--result_dir_appended_name", type=str, default="",
                         help="Extra string to append to the end of the result directory")
+    parser.add_argument("--use_train_dataset_for_evaluation", type=bool, default=False)
 
     # Training
     parser.add_argument("--batch_size", type=int, default=16, help="Size of each training batch")
@@ -73,9 +74,6 @@ def get_args():
                                                                               "embeddings that the vit model generates,"
                                                                               "this is based on the patch size of the"
                                                                               "vit model")
-    parser.add_argument("--include_class_token", type=bool, help="Whether or not to include "
-                                                                 "the class token of the transformer in the model")
-    parser.add_argument("--only_use_class_token", type=bool, help="Only use class token for model")
 
     # Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -106,12 +104,11 @@ def get_args():
                 setattr(args, key, value)
 
     args.result_dir = args.result_dir + args.result_dir_appended_name
-    args.loss_log_path = ""
-    if args.mode != "eval":
-        args.loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
 
     if args.existing_result_folder is not None and args.mode == "eval":
         args.result_dir = os.path.join('experiments', args.existing_result_folder)
+
+    args.loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
 
     if args.mode == "eval":
         print("Running in evaluation mode")
@@ -163,15 +160,17 @@ def main():
                                                             batch_size=args.batch_size,
                                                             result_dir=args.result_dir,
                                                             split_file_name=args.split_file_name,
-                                                            create_split_file=args.mode == "train")
+                                                            create_split_file=args.mode == "train",
+                                                            use_train_dataset_for_evaluation=
+                                                            args.use_train_dataset_for_evaluation)
 
-    model = ParticlePicker(latent_dim=args.latent_dim, num_particles=args.num_particles,
-                           image_width=dataset.image_width, image_height=dataset.image_height,
-                           num_patch_embeddings=args.num_patch_embeddings, include_class_token=args.include_class_token,
-                           only_use_class_token=args.only_use_class_token)
-
+    model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
+                                     out_channels=args.num_particles)
+    model.init_weights()
     model.to(args.device)
+
     criterion, postprocessors = build(args)
+    mse_loss = torch.nn.MSELoss()
 
     if args.mode == "train":
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
@@ -187,7 +186,7 @@ def main():
         # Save untrained checkpoint for debugging purposes
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
 
-        plotted = False
+        plotted = 0
         for epoch in range(args.epochs):
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
@@ -195,23 +194,38 @@ def main():
                 batch_counter += 1
 
                 targets = dataset.get_targets_from_target_indexes(index, args.device)
+                target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
+                                                               device=args.device)
 
-                if not plotted:
-                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
-                                                    {}, args.result_dir, "train_test_example")
-                    plotted = True
+                if plotted < 5:
+                    save_image_with_bounding_object(micrographs[0].cpu()/255, targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
+                                                    {}, args.result_dir, f"train_test_example_{plotted}")
+
+                    compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu()/255,
+                                                       particle_locations=targets[0]['boxes'].cpu(),
+                                                       heatmaps=target_heatmaps[0].cpu(),
+                                                       heatmaps_title="target heatmaps",
+                                                       result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",
+                                                       result_dir=args.result_dir)
+
+                    plotted += 1
 
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
-                if args.only_use_class_token:
-                    latent_micrographs = encoded_image['pooler_output'].to(args.device)
-                else:
-                    latent_micrographs = encoded_image['last_hidden_state'].to(args.device)
-                predictions = model(latent_micrographs)
-                outputs = prepare_outputs_for_loss(predictions)
 
-                loss_dict = criterion(outputs, targets)
-                weight_dict = criterion.weight_dict
-                losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+                latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
+                latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(args.batch_size, args.latent_dim, 14, 14)  # Right shape for model, we permute the hidden dimension to the second place
+                outputs = model(latent_micrographs)
+
+                assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, mse_loss)
+                reordered_target_heatmaps = torch.zeros_like(target_heatmaps)
+                for batch_idx, (row_ind, col_ind) in enumerate(assignments):
+                    reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]
+
+                losses = mse_loss(outputs["heatmaps"], reordered_target_heatmaps)
+
+                # vit ouptut: batch_size x 197 x 768
+                # input to model: batch_size x 768 x 14 x 14
+                # output of the model: batch_size x num_predictions x 112 x 112
 
                 optimizer.zero_grad()
                 losses.backward()
@@ -221,18 +235,18 @@ def main():
                 epoch_bar.set_postfix(loss=losses.item())
                 epoch_bar.update(1)
 
-                if time.time() - last_checkpoint_time > args.checkpoint_interval:
-                    avg_loss = running_loss / batch_counter
+                avg_loss = running_loss / batch_counter
+                # Save running loss to log file
+                with open(args.loss_log_path, 'a') as f:
+                    f.write(f"{epoch},{batch_index},{avg_loss}\n")
 
+                if time.time() - last_checkpoint_time > args.checkpoint_interval:
                     # Save running loss to log file
                     with open(args.loss_log_path, 'a') as f:
                         f.write(f"{epoch},{batch_index},{avg_loss}\n")
-
                     # Save checkpoint
-                    if epoch % args.checkpoint_interval == 0:
-                        torch.save(model.state_dict(), os.path.join(args.result_dir,
-                                                                    f'checkpoints/checkpoint_epoch_{epoch}_{batch_index}.pth'))
-
+                    torch.save(model.state_dict(), os.path.join(args.result_dir,
+                                                                f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
                     last_checkpoint_time = time.time()
                     batch_counter = 0
                     running_loss = 0.0
@@ -245,15 +259,17 @@ def main():
         plot_loss_log(args.loss_log_path, args.result_dir)
 
     if args.mode == "eval":
+        if not os.path.exists(os.path.join(args.result_dir, "losses_plot.png")):
+            plot_loss_log(args.loss_log_path, args.result_dir)
+
         checkpoint_path = os.path.join(args.result_dir, 'checkpoint_final.pth')
         if os.path.exists(checkpoint_path):
             model.load_state_dict(torch.load(checkpoint_path, map_location=args.device))
         else:
             raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
 
-        evaluate(args=args, criterion=criterion, vit_model=vit_model, vit_image_processor=vit_image_processor,
-                 model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8,
-                 postprocessors=postprocessors)
+        evaluate(args=args, criterion=mse_loss, vit_model=vit_model, vit_image_processor=vit_image_processor,
+                 model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8)
 
 
 if __name__ == "__main__":

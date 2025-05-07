@@ -1,3 +1,4 @@
+import argparse
 import os
 import random
 import torch
@@ -17,53 +18,77 @@ from PIL import Image
 from util.utils import create_folder_if_missing
 
 
-def create_dummy_dataset(image_size, num_images, min_particles, max_particles, particle_radius, output_dir,
-                         max_overlap=0.0):
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--image_size", type=int, default=224)
+    parser.add_argument("--num_images", type=int, default=500)
+    parser.add_argument("--min_particles", type=int, default=1)
+    parser.add_argument("--max_particles", type=int, default=5)
+    parser.add_argument("--particle_radius", type=int, default=40, help="Particle radius in pixels")
+    parser.add_argument("--output_dir", type=str, default="dataset/dummy_dataset")
+    parser.add_argument("--max_overlap", type=float, default=0.0, help="Maximum allowed overlap of"
+                                                                       "particles. 0 is no overlap 1 is full overlap")
+    parser.add_argument("--noise", type=float, default=0.8, help="How much the generated image should be"
+                                                                 "blended with random noise, 0 is none 1 means the "
+                                                                 "generated image will be fully noisy")
+    parser.add_argument("--uniform_noise", type=bool, default=True, help="If set to true the noise added "
+                                                                         "to the image will be the same for all color "
+                                                                         "channels")
+
+    args = parser.parse_args()
+    return args
+
+
+def create_dummy_dataset(args):
     """
     Creates a dummy dataset and saves it.
 
-    :param image_size: Size of images that are created
-    :param num_images: Number of images to create
-    :param min_particles: Minimum number of particles per image
-    :param max_particles: Maximum number of particles per image
-    :param particle_radius: Size of particles that are drawn
-    :param output_dir: Directory to save the dataset
-    :param max_overlap: Maximum allowed percentage overlap between particles (0.0 to 1.0)
+    :param args: argparse.ArgumentParser object with the following args:
+        image_size: Size of images that are created
+        num_images: Number of images to create
+        min_particles: Minimum number of particles per image
+        max_particles: Maximum number of particles per image
+        particle_radius: Size of particles that are drawn
+        output_dir: Directory to save the dataset
+        max_overlap: Maximum allowed percentage overlap between particles (0.0 to 1.0)
+        noise: Level of Gaussian noise to add (0.0 = no noise, 1.0 = fully noisy)
+        uniform_noise: Boolean, If set to true the noise added to the image will be the same for all color channels
     """
-    create_folder_if_missing(output_dir)
-    create_folder_if_missing(os.path.join(output_dir, 'data'))
+    # Adjust output_dir to include max_overlap, noise, and uniform_noise
+    args.output_dir = (f"{args.output_dir}_max_overlap_{args.max_overlap}_noise_{args.noise}_uniform_noise_"
+                       f"{args.uniform_noise}")
 
-    readme_path = os.path.join(output_dir, 'README.txt')
+    create_folder_if_missing(args.output_dir)
+    create_folder_if_missing(os.path.join(args.output_dir, 'data'))
+
+    readme_path = os.path.join(args.output_dir, 'README.txt')
     with open(readme_path, 'w') as f:
-        f.write(f"image_size: {image_size}\n")
-        f.write(f"num_images: {num_images}\n")
-        f.write(f"min_particles: {min_particles}\n")
-        f.write(f"max_particles: {max_particles}\n")
-        f.write(f"particle_radius: {particle_radius}\n")
-        f.write(f"output_dir: {output_dir}\n")
+        for arg in vars(args):
+            f.write(f"{arg}: {getattr(args, arg)}\n")
 
-    for i in tqdm(range(num_images), desc="Creating images"):
+    for i in tqdm(range(args.num_images), desc="Creating images"):
         fig, ax = plt.subplots(figsize=(2.24, 2.24), dpi=100)
         fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        ax.set_xlim(0, image_size)
-        ax.set_ylim(0, image_size)
+        ax.set_xlim(0, args.image_size)
+        ax.set_ylim(0, args.image_size)
         ax.axis('off')
 
         coordinates = []
-        num_dots = random.randint(min_particles, max_particles)
+        num_dots = random.randint(args.min_particles, args.max_particles)
         for _ in range(num_dots):
             counter = 0
             # Check 
             while True:
-                x = np.random.randint(0, image_size)
-                y = np.random.randint(0, image_size)
-                new_circle = patches.Circle((x, y), radius=particle_radius, color='black')
+                x = np.random.randint(0, args.image_size)
+                y = np.random.randint(0, args.image_size)
+                new_circle = patches.Circle((x, y), radius=args.particle_radius, color='black')
 
                 # Check overlap with existing particles
                 overlap = False
                 for coord in coordinates:
                     dist = np.sqrt((x - coord[0])**2 + (y - coord[1])**2)
-                    if dist < 2 * particle_radius * (1 - max_overlap):
+                    if dist < 2 * args.particle_radius * (1 - args.max_overlap):
                         overlap = True
                         break
 
@@ -76,19 +101,37 @@ def create_dummy_dataset(image_size, num_images, min_particles, max_particles, p
                     print(f"Too many attempts to place a particle without overlap. Skipping one patch at image {i}")
                     break
 
-        image_path = os.path.join(output_dir, f'data/micrograph_{i}.png')
-        plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
+        # Save the image with noise
+        image_path = os.path.join(args.output_dir, f'data/micrograph_{i}.png')
+        fig.canvas.draw()
+        image = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
+        image = image.reshape(fig.canvas.get_width_height()[::-1] + (4,))  # ARGB has 4 channels
+        image = image[:, :, 1:]  # Drop the alpha channel to get RGB
         plt.close(fig)
 
-        coordinates_path = os.path.join(output_dir, f'data/micrograph_{i}_coords.txt')
+        # Add Gaussian noise
+        if args.noise > 0.0:
+            # Generate random noise image
+            if args.uniform_noise:
+                random_noise = np.random.randint(0, 256, (image.shape[0], image.shape[1], 1), dtype=np.uint8)
+                random_noise = np.repeat(random_noise, 3, axis=2)  # Make noise uniform across channels
+            else:
+                random_noise = np.random.randint(0, 256, image.shape, dtype=np.uint8)
+            
+            # Blend the original image with the random noise
+            image = (1 - args.noise) * image + args.noise * random_noise
+            image = np.clip(image, 0, 255).astype(np.uint8)
+
+        Image.fromarray(image).save(image_path)
+
+        coordinates_path = os.path.join(args.output_dir, f'data/micrograph_{i}_coords.txt')
         with open(coordinates_path, 'w') as f:
             for coord in coordinates:
                 f.write(f'{coord[0]},{coord[1]}\n')
 
 
 class DummyDataset(Dataset):
-    def __init__(self, dataset_size, particle_width=10, particle_height=10, image_width=224, image_height=224,
-                 dataset_path='dataset/dummy_dataset/data'):
+    def __init__(self, dataset_size, particle_width, particle_height, dataset_path, image_width=224, image_height=224):
         self.dataset_path = dataset_path
         self.particle_width = particle_width
         self.particle_height = particle_height
@@ -98,10 +141,6 @@ class DummyDataset(Dataset):
         self.micrographs = []
         self.targets = []
 
-        preprocess = transforms.Compose([
-            transforms.ToTensor(),  # Automatically rescales between 0 and 1
-        ])
-
         for idx in range(dataset_size):
 
             # The image (micrograph)
@@ -110,7 +149,10 @@ class DummyDataset(Dataset):
                 raise Exception(f"The file {micrograph_path} doesn't exist.")
 
             image = Image.open(micrograph_path).convert("RGB")
-            self.micrographs.append(preprocess(image))
+            transform = transforms.ToTensor()
+            image_tensor = transform(image) * 255
+
+            self.micrographs.append(image_tensor)
 
             # The target (coordinates + classes)
             coordinates_path = os.path.join(self.dataset_path, f'micrograph_{idx}_coords.txt')
@@ -263,7 +305,6 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points):
     return sub_micrographs
 
 
-# TODO: this is super outdated and needs to be reworked
 class ShrecDataset(Dataset):
     projection_number = 29  # Which projection to use for noisy example. See alignment_simulated.txt files
 
@@ -280,10 +321,10 @@ class ShrecDataset(Dataset):
         """
 
         self.dataset_path = dataset_path
-        self.model_number = model_number  # TODO: needed later for noisy projection
+        self.model_number = model_number
         self.micrograph_size = micrograph_size  # This is only needed for creating the sub micrographs
 
-        self.sub_micrograph_size = sub_micrograph_size  #TODO: RENAME THIS TO
+        self.sub_micrograph_size = sub_micrograph_size
         self.sampling_points = sampling_points
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
@@ -294,6 +335,8 @@ class ShrecDataset(Dataset):
 
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
                       permissive=True) as f:
+            self.grandmodel = torch.tensor(f.data)
+
             self.micrograph = torch.tensor(f.data.sum(axis=0))  # We know 0 is correct from testing, 0 is top view
             # We need to normalize our micrograph between 0 and 1 for the loss function and the ViT model
             self.micrograph = self.micrograph/self.micrograph.max()
@@ -309,11 +352,10 @@ class ShrecDataset(Dataset):
         :param idx: The index to take from
         """
         sub_micrograph_entry = self.sub_micrographs.iloc[idx]
-        # TODO: look at if we want to do the channels like this (just repetition)
         return (sub_micrograph_entry['sub_micrograph'].unsqueeze(0).repeat(3, 1, 1),
                 sub_micrograph_entry['top_left_coordinates'])
 
 
 if __name__ == "__main__":
-    create_dummy_dataset(224, 20000, 1, 5, 40,
-                         "dataset/dummy_dataset_no_overlap", max_overlap=0.0)
+    args = get_args()
+    create_dummy_dataset(args)
