@@ -80,7 +80,5 @@ class ShrecDatasetTests(unittest.TestCase):
                                             result_dir=folder, file_name=f"example_{i}.png")
 
 
-
-
 if __name__ == '__main__':
     unittest.main()
