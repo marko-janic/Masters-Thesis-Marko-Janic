@@ -6,6 +6,7 @@ import time
 import json
 
 import torch.optim as optim
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
@@ -30,9 +31,9 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
                         help="Path to the configuration file")
-    parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy")
+    parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
                         help="Path to existing result folder to load model from.")
@@ -131,6 +132,7 @@ def create_folders_and_initiate_files(args):
     """
     create_folder_if_missing(args.result_dir)
     create_folder_if_missing(os.path.join(args.result_dir, 'checkpoints'))
+    create_folder_if_missing(os.path.join(args.result_dir, 'training_examples'))
 
     # Save Training information into file
     if args.mode != "eval":
@@ -169,13 +171,13 @@ def main():
     model.init_weights()
     model.to(args.device)
 
-    criterion, postprocessors = build(args)
+    criterion, postprocessors = build(args)  # TODO: remove this its not used anymore
     mse_loss = torch.nn.MSELoss()
 
     if args.mode == "train":
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
         model.train()
-        criterion.train()
+        criterion.train()  # TODO: remove this its not used anymore
 
         last_checkpoint_time = time.time()
         # This is different from batch_index as this only counts how many batches have been done since the last avg_loss
@@ -198,15 +200,24 @@ def main():
                                                                device=args.device)
 
                 if plotted < 5:
-                    save_image_with_bounding_object(micrographs[0].cpu()/255, targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
-                                                    {}, args.result_dir, f"train_test_example_{plotted}")
+                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
+                                                    {},
+                                                    os.path.join(args.result_dir, 'training_examples'),
+                                                    f"train_test_example_{plotted}")
 
-                    compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu()/255,
+                    compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
                                                        particle_locations=targets[0]['boxes'].cpu(),
                                                        heatmaps=target_heatmaps[0].cpu(),
                                                        heatmaps_title="target heatmaps",
                                                        result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",
-                                                       result_dir=args.result_dir)
+                                                       result_dir=os.path.join(args.result_dir, 'training_examples'))
+
+                    vit_processed_micrographs = vit_image_processor(images=micrographs, return_tensors="pt")
+                    plt.imshow(vit_processed_micrographs["pixel_values"][0].permute(1, 2, 0))
+                    plt.title("Micrograph after running through vit processor")
+                    plt.savefig(os.path.join(args.result_dir, 'training_examples',
+                                             f"vit_processed_micrograph_{plotted}.png"))
+                    plt.close()
 
                     plotted += 1
 

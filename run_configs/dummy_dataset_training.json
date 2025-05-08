@@ -1,10 +1,10 @@
 {
     "dataset": "dummy",
     "mode": "train",
-    "result_dir_appended_name": "noisy_training",
+    "result_dir_appended_name": "TESTING",
 
-    "dataset_path": "dataset/dummy_dataset_max_overlap_0.0_noise_0.8_uniform_noise_True/data",
-    "dataset_size": 20000,
+    "dataset_path": "dataset/dummy_dataset_max_overlap_0.0_noise_0.0/data",
+    "dataset_size": 500,
     "num_particles": 7,
     "particle_width": 80,
     "particle_height": 80,
