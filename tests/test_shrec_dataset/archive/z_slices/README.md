@@ -1,0 +1,1 @@
+We chose to ignore z slices between 0 to 140 and 360 to end because those are empty in the shrec dataset examples

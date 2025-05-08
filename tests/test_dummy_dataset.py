@@ -1,6 +1,7 @@
 import unittest
 import os
 import torch
+import argparse
 
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
@@ -15,36 +16,34 @@ from dataset import DummyDataset
 from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import save_image_with_bounding_object
 
-TEST_DATASET_PATH = '../dataset/dummy_dataset_overlapping/data'
-TEST_RESULTS_FOLDER = 'test_dummy_dataset'
-TRAIN_EVAL_SPLIT = 0.9
-BATCH_SIZE = 8
-EXAMPLE_VISUALIZATIONS = 3
-DATASET_SIZE = 50
+
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--result_dir", type=str, default='test_dummy_dataset')
+    parser.add_argument("--dataset_path", type=str, default='../dataset/dummy_dataset_max_overlap_0.0_noise_0.0/data/')
+    parser.add_argument("--train_eval_split", type=float, default=0.9)
+    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--example_visualizations", type=int, default=3)
+    parser.add_argument("--dataset_size", type=int, default=50)
+
+    args = parser.parse_args()
+
+    return args
 
 
 class DummyDatasetTests(unittest.TestCase):
     def setUp(self):
-        create_folder_if_missing(TEST_RESULTS_FOLDER)
-        self.dataset = DummyDataset(dataset_size=DATASET_SIZE, dataset_path=TEST_DATASET_PATH)
-
-    def test_shapes(self):
-        pass
-
-    def test_micrographs_normalization(self):
-        for i in range(self.dataset.__len__()):
-            micrograph, target_index = self.dataset.__getitem__(i)
-            # The following lines are not true anymore since I'm using the transforms, maybe check if this is correct
-            #self.assertGreaterEqual(micrograph.min(), 0)
-            #self.assertGreaterEqual(self.dataset.targets[target_index]['boxes'].min(), 0)
-            #self.assertLessEqual(micrograph.max(), 1)
-            #self.assertLessEqual(self.dataset.targets[target_index]['boxes'].max(), 1)
+        self.args = get_args()
+        create_folder_if_missing(self.args.result_dir)
+        self.dataset = DummyDataset(dataset_size=self.args.dataset_size, dataset_path=self.args.dataset_path,
+                                    particle_width=40, particle_height=40)
 
     def test_dataset_dataloader(self):
-        train_size = int(TRAIN_EVAL_SPLIT * len(self.dataset))
+        train_size = int(self.args.train_eval_split * len(self.dataset))
         test_size = len(self.dataset) - train_size
         train_dataset, test_dataset = random_split(self.dataset, [train_size, test_size])
-        train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, drop_last=True)
+        train_dataloader = DataLoader(train_dataset, batch_size=self.args.batch_size, drop_last=True)
         test_dataloader = DataLoader(test_dataset, batch_size=1)
 
         for micrographs, target_indexes in train_dataloader:
@@ -57,28 +56,29 @@ class DummyDatasetTests(unittest.TestCase):
             pass
 
     def test_dataset_images(self):
-        for i in range(EXAMPLE_VISUALIZATIONS):
+        for i in range(self.args.example_visualizations):
             micrograph, target_index = self.dataset.__getitem__(i)
             fig, ax = plt.subplots(1)
             ax.imshow(micrograph.permute(1, 2, 0).cpu().numpy())
-            plt.savefig(os.path.join(TEST_RESULTS_FOLDER, f'example_{i}.png'))
+            plt.savefig(os.path.join(self.args.result_dir, f'example_{i}.png'))
             plt.close(fig)
 
-            coordinates = self.dataset.targets[target_index]['boxes'][:, :2]
+            coordinates = self.dataset.targets[target_index]['boxes'].unsqueeze(0)
             coordinates = transform_coords_to_pixel_coords(image_width=self.dataset.image_width,
                                                            image_height=self.dataset.image_height, coords=coordinates)
-            save_image_with_bounding_object(image_tensor=micrograph, particle_locations=coordinates,
-                                            object_type="circle", object_parameters={"circle_radius": 4},
-                                            result_dir=TEST_RESULTS_FOLDER, file_name=f'example_{i}_circles.png')
-            if i < 1:
-                save_image_with_bounding_object(micrograph, coordinates, "box",
-                                                {"box_width": 10, "box_height": 10}, TEST_RESULTS_FOLDER,
-                                                f"example_{i}_boxes.png")
+            save_image_with_bounding_object(image_tensor=micrograph, particle_locations=coordinates[0],
+                                            object_type="circle", object_parameters={"circle_radius": 40},
+                                            result_dir=self.args.result_dir, file_name=f'example_{i}_circles.png')
+            save_image_with_bounding_object(micrograph, coordinates[0], "box",
+                                            {"box_width": 80, "box_height": 80}, self.args.result_dir,
+                                            f"example_{i}_boxes.png")
 
 
-def test_explicit_images():
+def test_explicit_images(args):
     """
     Just a helper function to check hardcoded loading
+    args needs:
+    - result_dir
     """
     path_number = 2
     transform = transforms.ToTensor()  # This rescales it to [0, 1]
@@ -103,7 +103,7 @@ def test_explicit_images():
         circle = patches.Circle((x, y), 4, linewidth=1, edgecolor='r', facecolor='none')
         ax.add_patch(circle)
 
-    plt.savefig(os.path.join(TEST_RESULTS_FOLDER, f'test_{path_number}.png'))
+    plt.savefig(os.path.join(args.result_dir, f'test_{path_number}.png'))
     plt.close()
 
 

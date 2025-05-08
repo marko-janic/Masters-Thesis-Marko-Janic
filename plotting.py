@@ -102,27 +102,30 @@ def draw_output_boxes(ax, particle_locations, image_height, image_width, box_col
         box_height = coords[3]
 
         x = coords[0] - box_width / 2
-        y = image_height - coords[1] - box_height / 2
+        y = coords[1] + box_height / 2  # Plus here because patches.Rectangle draws boxes assuming the origin is the bottom left
 
-        box = patches.Rectangle((x, y), box_width, box_height, linewidth=1, edgecolor=box_color, facecolor='none')
+        # We do this weird image_height - y here because patches draws assuming the origin is in the bottom left corner
+        box = patches.Rectangle((x, image_height - y), box_width, box_height, linewidth=1, edgecolor=box_color, facecolor='none')
         ax.add_patch(box)
 
 
 def draw_bounding_boxes(ax, particle_locations, image_height, image_width, box_width, box_height, box_color):
     for coords in particle_locations:
         x = coords[0] - box_width / 2
-        y = image_height - coords[1] - box_height / 2
+        y = coords[1] + box_height / 2  # Box height here because box is drawn based on the top left corner
 
-        box = patches.Rectangle((x, y), box_width, box_height, linewidth=1, edgecolor=box_color, facecolor='none')
+        # We do this weird image_height - y here because patches draws assuming the origin is in the bottom left corner
+        box = patches.Rectangle((x, image_height - y), box_width, box_height, linewidth=1, edgecolor=box_color, facecolor='none')
         ax.add_patch(box)
 
 
 def draw_bounding_circles(ax, particle_locations, image_height, image_width, circle_radius, box_color):
     for coords in particle_locations:
         x = coords[0]
-        y = image_height - coords[1]
+        y = coords[1]
 
-        circle = patches.Circle((x, y), circle_radius, linewidth=1, edgecolor=box_color, facecolor='none')
+        # We do this weird image_height - y here because patches draws assuming the origin is in the bottom left corner
+        circle = patches.Circle((x, image_height - y), circle_radius, linewidth=1, edgecolor=box_color, facecolor='none')
         ax.add_patch(circle)
 
 
@@ -182,8 +185,8 @@ def draw_image_with_objects_on_ax(ax, image_tensor, particle_locations, object_t
     # Validate image
     if len(image_tensor.shape) < 3:
         raise Exception("The image doesn't have enough dimensions, expected: [C, H, W]")
-    if image_tensor.shape[0] != 3:
-        raise Exception("The image tensor must have three channels")
+    #if image_tensor.shape[0] != 3:
+    #    raise Exception("The image tensor must have three channels")
     channels, image_height, image_width = image_tensor.shape
     # Permute the tensor if necessary because imshow wants width x height x channels
     image_tensor = image_tensor.permute(1, 2, 0).cpu().numpy()
