@@ -24,6 +24,7 @@ from util.utils import print_separator
 warnings.simplefilter('ignore')  # to mute some warnings produced when opening the tomos
 
 
+# THIS FILE IS SUPER OUTDATED, NEEDS TO BE MOVED INTO test_shrec_dataset.py
 def shrec_dataloader_example(result_dir):
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)

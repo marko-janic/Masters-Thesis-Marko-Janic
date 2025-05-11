@@ -4,6 +4,7 @@ import os
 import torch
 
 import matplotlib.pyplot as plt
+import mrcfile as mrc
 
 # Local imports
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
@@ -17,8 +18,11 @@ def get_args():
     parser.add_argument("--result_dir", type=str, default='test_shrec_dataset')
     parser.add_argument("--dataset_path", type=str, default='../dataset/shrec21_full_dataset/')
     parser.add_argument("--sampling_points", type=int, default=4)
-    parser.add_argument("--z_slice_size", type=int, default=20)
+    parser.add_argument("--z_slice_size", type=int, default=5)
     parser.add_argument("--example_visualizations", type=int, default=20)
+    parser.add_argument("--model_number", type=int, default=1)
+    parser.add_argument("--particle_width", type=int, default=20)
+    parser.add_argument("--particle_height", type=int, default=20)
 
     args = parser.parse_args()
 
@@ -30,7 +34,8 @@ class ShrecDatasetTests(unittest.TestCase):
         self.args = get_args()
         create_folder_if_missing(self.args.result_dir)
         self.dataset = ShrecDataset(sampling_points=self.args.sampling_points, dataset_path=self.args.dataset_path,
-                                    z_slice_size=self.args.z_slice_size)
+                                    z_slice_size=self.args.z_slice_size, particle_width=self.args.particle_width,
+                                    particle_height=self.args.particle_height)
 
     def test_shapes(self):
         sub_micrograph, coordinate_tl = self.dataset.__getitem__(0)
@@ -42,11 +47,10 @@ class ShrecDatasetTests(unittest.TestCase):
         self.assertEqual((coordinate_tl[0], coordinate_tl[1]), (0, 0))
         self.assertEqual(dataset_length, (self.args.sampling_points**2) * (self.dataset.grandmodel.shape[0] // self.dataset.z_slice_size))
 
-    def test_get_particle_locations(self):
-        sub_micrograph, coordinate_tl = self.dataset.__getitem__(0)
-        particle_locations = get_particle_locations_from_coordinates(coordinate_tl, self.dataset.sub_micrograph_size,
-                                                                     self.dataset.particle_locations,
-                                                                     z_slice_size=self.dataset.z_slice_size)
+    def test_backprojections_visualizations(self):
+        with mrc.open(os.path.join(self.args.dataset_path, f"model_{self.args.model_number}", "reconstruction.mrc"),
+                      permissive=True) as f:
+            print(f.data.shape)
 
     def test_visualize_z_slices(self):
         folder = os.path.join(self.args.result_dir, "z_slices")
@@ -69,13 +73,13 @@ class ShrecDatasetTests(unittest.TestCase):
             selected_particles = get_particle_locations_from_coordinates(coordinates_tl=coordinate_tl,
                                                                          sub_micrograph_size=self.dataset.sub_micrograph_size,
                                                                          particle_locations=self.dataset.particle_locations,
-                                                                         z_slice_size=self.dataset.z_slice_size)
-            selected_dropped_columns = selected_particles[['X', 'Y']].to_numpy()
-            selected_particles_tensor = torch.tensor(selected_dropped_columns)
-            selected_particles_tensor[:, 1] = self.dataset.sub_micrograph_size - selected_particles_tensor[:, 1]
+                                                                         z_slice_size=self.dataset.z_slice_size,
+                                                                         particle_width=20,
+                                                                         particle_height=20)
+            selected_particles["boxes"][:, 1] = self.dataset.sub_micrograph_size - selected_particles["boxes"][:, 1]
 
             save_image_with_bounding_object(image_tensor=sub_micrograph[0:1],
-                                            particle_locations=selected_particles_tensor,
+                                            particle_locations=selected_particles["boxes"],
                                             object_type="box", object_parameters={"box_width": 30, "box_height": 30},
                                             result_dir=folder, file_name=f"example_{i}.png")
 

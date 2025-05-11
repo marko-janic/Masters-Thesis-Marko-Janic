@@ -4,6 +4,7 @@ import os
 import datetime
 import time
 import json
+import random
 
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -16,7 +17,8 @@ from util.utils import create_folder_if_missing
 from dataset import DummyDataset
 from loss import build
 from evaluate import evaluate
-from train import prepare_dataloaders, create_heatmaps_from_targets, find_optimal_assignment_heatmaps
+from train import prepare_dataloaders, create_heatmaps_from_targets, find_optimal_assignment_heatmaps, get_dataset, \
+    get_targets
 from plotting import save_image_with_bounding_object, plot_loss_log, compare_heatmaps_with_ground_truth
 from vit_model import get_vit_model, get_encoded_image
 
@@ -33,17 +35,9 @@ def get_args():
     # Program Arguments
     parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_training.json",
                         help="Path to the configuration file")
-    parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
                         help="Path to existing result folder to load model from.")
-    parser.add_argument("--dataset_path", type=str)
-    parser.add_argument("--dataset_size", type=int)
-    # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
-    parser.add_argument("--num_particles", type=int, help="Number of particles that the model outputs as predictions")
-    parser.add_argument("--particle_width", type=int, default=80)
-    parser.add_argument("--particle_height", type=int, default=80)
-    parser.add_argument("--epochs", type=int, help="Number of training epochs")
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
 
     # Experiment Results
@@ -55,11 +49,11 @@ def get_args():
     parser.add_argument("--use_train_dataset_for_evaluation", type=bool, default=False)
 
     # Training
+    parser.add_argument("--epochs", type=int, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=16, help="Size of each training batch")
     parser.add_argument("--learning_rate", type=float, help="Learning rate for training")
     parser.add_argument("--checkpoint_interval", type=int,
                         help="Save model checkpoint every checkpoint_interval seconds")
-
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",
                         help="File to save running loss for each epoch")
     parser.add_argument("--train_eval_split", type=float, default=0.9,
@@ -75,7 +69,32 @@ def get_args():
                                                                               "embeddings that the vit model generates,"
                                                                               "this is based on the patch size of the"
                                                                               "vit model")
+    # Dataset general
+    parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy, shrec")
+    parser.add_argument("--dataset_path", type=str)
+    # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
+    parser.add_argument("--num_particles", type=int, help="Number of particles that the model outputs as predictions")
+    parser.add_argument("--particle_width", type=int)
+    parser.add_argument("--particle_height", type=int)
 
+    # Dummy Dataset
+    parser.add_argument("--dataset_size", type=int)
+
+    # Shrec Dataset
+    parser.add_argument("--shrec_sampling_points", type=int,
+                        help="Number of points to use per z slice when generating sub micrographs for the shrec "
+                             "dataset. The resulting number of sub micrographs will be "
+                             "sampling_points^2 * num_z_slices")
+    parser.add_argument("--shrec_z_slice_size", type=int, help="Size in pixels for z slices for the shrec "
+                                                               "dataset")
+    parser.add_argument("--shrec_model_number", type=int, default=1,
+                        help="Which model of the shrec dataset to use, there are models from 0 to 9")
+    parser.add_argument("--shrec_min_z", type=int, default=150, help="Minimum z to start taking z slices "
+                                                                     "from for the shrec dataset")
+    parser.add_argument("--shrec_max_z", type=int, default=360, help="Maximum z to start taking z slices "
+                                                                     "from for the shrec dataset")
+
+    # Outdated / Not used anymore
     # Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
                         help="Class coefficient in the matching cost")
@@ -154,8 +173,7 @@ def main():
     vit_model, vit_image_processor = get_vit_model()
 
     # Training
-    dataset = DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
-                           particle_width=args.particle_width, particle_height=args.particle_height)
+    dataset = get_dataset(args.dataset, args)
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader = prepare_dataloaders(dataset=dataset, train_eval_split=args.train_eval_split,
@@ -193,38 +211,49 @@ def main():
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
             for batch_index, (micrographs, index) in enumerate(train_dataloader):
-                batch_counter += 1
+                batch_counter += 1  # TODO: pretty sure batch counter and index are the same, just use +1 on the bottom when doing the average loss calculation
 
-                targets = dataset.get_targets_from_target_indexes(index, args.device)
+                targets = get_targets(args.dataset, dataset, index, args.device)
                 target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
                                                                device=args.device)
 
-                if plotted < 5:
-                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224, "output_box",  # TODO: This 224 is hacky, fix it
+                if plotted < 5:  # TODO: move this into seperate function
+                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224,  # TODO: fix 224
+                                                    "output_box",  # TODO: This 224 is hacky, fix it
                                                     {},
                                                     os.path.join(args.result_dir, 'training_examples'),
                                                     f"train_test_example_{plotted}")
 
                     compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
-                                                       particle_locations=targets[0]['boxes'].cpu(),
+                                                       particle_locations=targets[0]['boxes'].cpu()*224,  # TODO: fix 224
                                                        heatmaps=target_heatmaps[0].cpu(),
                                                        heatmaps_title="target heatmaps",
                                                        result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",
                                                        result_dir=os.path.join(args.result_dir, 'training_examples'))
 
-                    vit_processed_micrographs = vit_image_processor(images=micrographs, return_tensors="pt")
-                    plt.imshow(vit_processed_micrographs["pixel_values"][0].permute(1, 2, 0))
-                    plt.title("Micrograph after running through vit processor")
+                    vit_processed_micrographs = vit_image_processor(images=micrographs, return_tensors="pt",
+                                                                    do_rescale=False)
+                    # Output of this is between -1 and 1
+                    vit_example_input = vit_processed_micrographs["pixel_values"][0].permute(1, 2, 0)
+                    if vit_example_input.max() > 0:
+                        vit_example_input = (vit_example_input - vit_example_input.min()) / (vit_example_input.max() -
+                                                                                             vit_example_input.min())
+                    if vit_example_input.max() == -1:  # In this case we got a fully black image
+                        vit_example_input += 1
+                    plt.imshow(vit_example_input)
+                    plt.title(f"Micrograph after running through vit processor, min={vit_processed_micrographs['pixel_values'][0].min()}, max={vit_processed_micrographs['pixel_values'][0].max()}")
                     plt.savefig(os.path.join(args.result_dir, 'training_examples',
                                              f"vit_processed_micrograph_{plotted}.png"))
                     plt.close()
-
                     plotted += 1
 
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
 
+                # 1: here because we don't need the class token
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-                latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(args.batch_size, args.latent_dim, 14, 14)  # Right shape for model, we permute the hidden dimension to the second place
+                # Right shape for model, we permute the hidden dimension to the second place
+                latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(args.batch_size, args.latent_dim,
+                                                                                 14, 14)
                 outputs = model(latent_micrographs)
 
                 assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, mse_loss)
@@ -233,10 +262,6 @@ def main():
                     reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]
 
                 losses = mse_loss(outputs["heatmaps"], reordered_target_heatmaps)
-
-                # vit ouptut: batch_size x 197 x 768
-                # input to model: batch_size x 768 x 14 x 14
-                # output of the model: batch_size x num_predictions x 112 x 112
 
                 optimizer.zero_grad()
                 losses.backward()

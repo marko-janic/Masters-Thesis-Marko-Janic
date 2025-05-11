@@ -11,6 +11,9 @@ reconstructing a single averaged particles from the estimation of the previous m
 
 ## Development
 
+### Adding own Dataset
+Use Dataset class from torch. Make sure all images are 224 x 224. Make sure all images are between 0 and 1.
+
 ### Recommended Folder structure
 TODO
 

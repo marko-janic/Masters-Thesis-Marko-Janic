@@ -6,6 +6,54 @@ from torch.utils.data import DataLoader, Subset
 from scipy.optimize import linear_sum_assignment
 
 # Local imports
+from dataset import DummyDataset, ShrecDataset, get_particle_locations_from_coordinates
+
+
+def get_dataset(dataset_name, args):
+    """
+    Gives you back the dataset based on the specified dataset
+    :param dataset_name:
+    :param args:
+    :return:
+    """
+    if dataset_name == "dummy":
+        return DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
+                            particle_width=args.particle_width, particle_height=args.particle_height)
+    elif dataset_name == "shrec":
+        return ShrecDataset(sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
+                            model_number=args.shrec_model_number, min_z=args.shrec_min_z, max_z=args.shrec_max_z,
+                            particle_height=args.particle_height, particle_width=args.particle_width)
+    else:
+        raise Exception(f"The dataset {dataset_name}, is not supported.")
+
+
+def get_targets(dataset_name, dataset, index, device):
+    """
+    Gives you back targets depending on your dataset
+    :param dataset_name:
+    :param dataset: torch dataset class
+    :param index: Depends on the dataset passed
+    :param device:
+    :return:
+    """
+    if dataset_name == "dummy":
+        return dataset.get_targets_from_target_indexes(index, device)
+    elif dataset_name == "shrec":
+        targets = []
+        for i in range(len(index)):
+            selected_particles = get_particle_locations_from_coordinates(coordinates_tl=index[i],
+                                                                         sub_micrograph_size=dataset.sub_micrograph_size,
+                                                                         particle_locations=dataset.particle_locations,
+                                                                         z_slice_size=dataset.z_slice_size,
+                                                                         particle_width=dataset.particle_width,
+                                                                         particle_height=dataset.particle_height)
+            # We flip it here because of the coordinates being weird
+            selected_particles["boxes"][:, 1] = dataset.sub_micrograph_size - selected_particles["boxes"][:, 1]
+            selected_particles["boxes"] /= 224
+            targets.append(selected_particles)
+        return targets
+    else:
+        raise Exception(f"The dataset {dataset}, is not supported.")
 
 
 def prepare_dataloaders(dataset, train_eval_split, batch_size, result_dir, split_file_name, create_split_file,

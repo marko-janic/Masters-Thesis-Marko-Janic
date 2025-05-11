@@ -111,6 +111,7 @@ def create_dummy_dataset(args):
 
         # Add Gaussian noise
         if args.noise > 0.0:
+            # TODO: fix this noise implementation, its weird, use SNR
             # Generate random noise image
             if args.uniform_noise:
                 random_noise = np.random.randint(0, 256, (image.shape[0], image.shape[1], 1), dtype=np.uint8)
@@ -120,7 +121,7 @@ def create_dummy_dataset(args):
             
             # Blend the original image with the random noise
             image = (1 - args.noise) * image + args.noise * random_noise
-            image = np.clip(image, 0, 255).astype(np.uint8)
+            image = np.clip(image, 0, 255).astype(np.uint8)  # TODO: this is wrong now
 
         Image.fromarray(image).save(image_path)
 
@@ -150,7 +151,7 @@ class DummyDataset(Dataset):
 
             image = Image.open(micrograph_path).convert("RGB")
             transform = transforms.ToTensor()
-            image_tensor = transform(image) * 255
+            image_tensor = transform(image)
 
             self.micrographs.append(image_tensor)
 
@@ -205,7 +206,7 @@ class DummyDataset(Dataset):
         return self.micrographs[idx], idx
 
 
-def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_locations, z_slice_size,
+def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_width, particle_height, particle_locations, z_slice_size,
                                             orientation="normal"):
     """
     Given coordinates, this function determines the location of all relevant particles in the sub micrograph
@@ -215,7 +216,7 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
     :param sub_micrograph_size: Size of the sub micrographs, usually 224
     :param particle_locations: Pandas DataFrame containing all particle locations of the micrograph needs x,y,z columns
     :param orientation: TODO
-    :return: Pandas DataFrame with columns ['X', 'Y', 'Z'] which corresponds to the particles present in the
+    :return: A dictionary with "boxes" key containing a tensor of bounding boxes for particles present in the
         sub micrograph determined by coordinate_tl. The coordinates are scaled to be 0 if theyre on the top left point
         of the sub micrograph
     """
@@ -235,15 +236,22 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
                                                 (particle_locations['Z'] <= z_max)]
 
         # We subtract the minimum coordinates since we want the locations in the sub_micrograph so to speak
-        selected_particles.loc[:, 'X'] = selected_particles['X'] - x_min
-        selected_particles.loc[:, 'Y'] = selected_particles['Y'] - y_min
+        selected_particles.loc[:, 'X'] = (selected_particles['X'] - x_min)
+        selected_particles.loc[:, 'Y'] = (selected_particles['Y'] - y_min)
 
-        return selected_particles
+        # Remove the "Z" column
+        selected_particles = selected_particles.drop(columns=['Z'])
+
+        # Convert to dictionary with "boxes" key
+        boxes = torch.tensor(selected_particles[['X', 'Y']].values, dtype=torch.float32)
+        particle_sizes = torch.tensor([particle_width, particle_height]).repeat(len(boxes), 1)
+        boxes = torch.cat((boxes, particle_sizes), dim=1)
+
+        return {"boxes": boxes}
     else:
         raise Exception(f'The orientation {orientation} is not a valid orientation')
 
 
-# TODO: this is super outdated and needs to be reworked
 def get_coordinates_in_sub_micrograph(coordinates_in_original_image, coordinate_tl):
     """
     Scales the coordinates from the original micrograph to the sub micrograph.
@@ -291,8 +299,11 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
 
             # Ensure we don't go out of bounds
             if end_x <= width and end_y <= height:
-                sub_micrographs_list.append((micrograph[start_y:end_y, start_x:end_x],
-                                             torch.tensor([start_x, start_y, start_z])))
+                sub_micrograph = micrograph[start_y:end_y, start_x:end_x].unsqueeze(0)
+                if micrograph.max() > 0:  # We don't need to normalize if everything is 0
+                    sub_micrograph = (sub_micrograph - sub_micrograph.min()) / (sub_micrograph.max() - sub_micrograph.min())
+                sub_micrograph = sub_micrograph.repeat(3, 1, 1)
+                sub_micrographs_list.append((sub_micrograph, torch.tensor([start_x, start_y, start_z])))
 
     # The reason we did a list first is because of this:
     # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
@@ -302,8 +313,9 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
 
 
 class ShrecDataset(Dataset):
-    def __init__(self, sampling_points, z_slice_size, micrograph_size=512, sub_micrograph_size=224, model_number=1,
-                 dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360):
+    def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, micrograph_size=512,
+                 sub_micrograph_size=224, model_number=1, dataset_path='dataset/shrec21_full_dataset/', min_z=140,
+                 max_z=360):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -318,6 +330,8 @@ class ShrecDataset(Dataset):
         """
 
         self.dataset_path = dataset_path
+        self.particle_width = particle_width
+        self.particle_height = particle_height
         self.model_number = model_number
         self.micrograph_size = micrograph_size  # This is only needed for creating the sub micrographs
         self.z_slice_size = z_slice_size
@@ -357,7 +371,7 @@ class ShrecDataset(Dataset):
         :param idx: The index to take from
         """
         sub_micrograph_entry = self.sub_micrographs.iloc[idx]
-        return (sub_micrograph_entry['sub_micrograph'].unsqueeze(0).repeat(3, 1, 1),
+        return (sub_micrograph_entry['sub_micrograph'],
                 sub_micrograph_entry['top_left_coordinates'])
 
 

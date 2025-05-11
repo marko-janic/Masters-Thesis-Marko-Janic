@@ -14,7 +14,7 @@ def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_image_proces
     :return:
     """
     with torch.no_grad():
-        inputs = vit_image_processor(images=image, return_tensors='pt')
+        inputs = vit_image_processor(images=image, return_tensors='pt', do_rescale=False)
         outputs = vit_model(pixel_values=inputs['pixel_values'], output_hidden_states=True)
 
     return outputs

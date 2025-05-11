@@ -1,0 +1,27 @@
+{
+    "dataset": "shrec",
+    "mode": "train",
+    "result_dir_appended_name": "TESTING",
+
+    "dataset_path": "dataset/shrec21_full_dataset/",
+    "num_particles": 20,
+    "particle_width": 20,
+    "particle_height": 20,
+
+    "device": "cuda",
+    "epochs": 1000,
+    "batch_size": 16,
+    "learning_rate": 0.001,
+    "checkpoint_interval": 1800,
+    "loss_log_file": "loss_log.txt",
+
+    "train_eval_split": 0.9,
+    "latent_dim": 768,
+    "num_patch_embeddings": 196,
+
+    "shrec_sampling_points": 16,
+    "shrec_z_slice_size": 5,
+    "shrec_model_number": 1,
+    "shrec_min_z": 150,
+    "shrec_max_z": 360
+}
