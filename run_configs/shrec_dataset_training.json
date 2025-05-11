@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "TESTING",
+    "result_dir_appended_name": "",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,

@@ -211,7 +211,7 @@ def main():
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
             for batch_index, (micrographs, index) in enumerate(train_dataloader):
-                batch_counter += 1  # TODO: pretty sure batch counter and index are the same, just use +1 on the bottom when doing the average loss calculation
+                batch_counter += 1
 
                 targets = get_targets(args.dataset, dataset, index, args.device)
                 target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
