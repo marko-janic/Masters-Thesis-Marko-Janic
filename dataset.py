@@ -300,10 +300,10 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
             # Ensure we don't go out of bounds
             if end_x <= width and end_y <= height:
                 sub_micrograph = micrograph[start_y:end_y, start_x:end_x].unsqueeze(0)
-                if micrograph.max() > 0:  # We don't need to normalize if everything is 0
+                if micrograph.max() > micrograph.min():  # We don't need to normalize if everything is 0
                     sub_micrograph = (sub_micrograph - sub_micrograph.min()) / (sub_micrograph.max() -
                                                                                 sub_micrograph.min())
-                    if sub_micrograph.max() < 0:  # If its zero after normalization then we don't need it
+                    if sub_micrograph.max() <= sub_micrograph.min():  # If its zero after normalization then we don't need it
                         continue
                 else:
                     continue
