@@ -290,25 +290,26 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
     step_size_y = (height - crop_size) // (sampling_points - 1)
 
     sub_micrographs_list = []
-    for i in range(sampling_points):  # horizontal steps
-        for j in range(sampling_points):  # vertical steps
-            start_x = i * step_size_x
-            start_y = j * step_size_y
-            end_y = start_y + crop_size
-            end_x = start_x + crop_size
+    if micrograph.max() > micrograph.min():  # We don't want useless images
+        for i in range(sampling_points):  # horizontal steps
+            for j in range(sampling_points):  # vertical steps
+                start_x = i * step_size_x
+                start_y = j * step_size_y
+                end_y = start_y + crop_size
+                end_x = start_x + crop_size
 
-            # Ensure we don't go out of bounds
-            if end_x <= width and end_y <= height:
-                sub_micrograph = micrograph[start_y:end_y, start_x:end_x].unsqueeze(0)
-                if micrograph.max() > micrograph.min():  # We don't need to normalize if everything is 0
-                    sub_micrograph = (sub_micrograph - sub_micrograph.min()) / (sub_micrograph.max() -
-                                                                                sub_micrograph.min())
-                    if sub_micrograph.max() <= sub_micrograph.min():  # If its zero after normalization then we don't need it
-                        continue
-                else:
-                    continue
-                sub_micrograph = sub_micrograph.repeat(3, 1, 1)
-                sub_micrographs_list.append((sub_micrograph, torch.tensor([start_x, start_y, start_z])))
+                # Ensure we don't go out of bounds
+                if end_x <= width and end_y <= height:
+                    sub_micrograph = micrograph[start_y:end_y, start_x:end_x].unsqueeze(0)
+                    if sub_micrograph.max() > sub_micrograph.min():  # We don't need to normalize if everything is 0
+                        sub_micrograph = (sub_micrograph - sub_micrograph.min()) / (sub_micrograph.max() -
+                                                                                    sub_micrograph.min())
+                    sub_micrograph = sub_micrograph.repeat(3, 1, 1)
+
+                    if not torch.isnan(sub_micrograph).all():
+                        sub_micrographs_list.append((sub_micrograph, torch.tensor([start_x, start_y, start_z])))
+                    else:
+                        print("One nan tensor found")
 
     # The reason we did a list first is because of this:
     # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
