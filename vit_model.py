@@ -14,7 +14,7 @@ def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_image_proces
     :return:
     """
 
-    for tensor in image:
+    for tensor in image:  # TODO: Remove these unecessary cheks
         if torch.isnan(tensor).all():
             print(f"This one is fucked, min: {tensor.min()}, max: {tensor.max()}, dtype: {tensor.dtype}")
 

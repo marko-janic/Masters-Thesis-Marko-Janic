@@ -1,0 +1,23 @@
+{
+    "dataset": "shrec",
+    "mode": "eval",
+    "existing_result_folder": "experiment_2025-05-12_19-57-45_shrec_grandmodel",
+
+    "dataset_path": "dataset/shrec21_full_dataset/",
+    "num_particles": 20,
+    "particle_width": 20,
+    "particle_height": 20,
+
+    "device": "cpu",
+    "use_train_dataset_for_evaluation": false,
+
+    "train_eval_split": 0.9,
+    "latent_dim": 768,
+    "num_patch_embeddings": 196,
+
+    "shrec_sampling_points": 16,
+    "shrec_z_slice_size": 5,
+    "shrec_model_number": 1,
+    "shrec_min_z": 150,
+    "shrec_max_z": 360
+}
