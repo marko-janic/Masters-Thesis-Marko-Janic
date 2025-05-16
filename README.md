@@ -10,6 +10,12 @@ evaluation of the different approaches will be done by following the formalism d
 reconstructing a single averaged particles from the estimation of the previous methods.
 
 ## Development
+### Description of pipeline
+Input of size batch_size x 3 x 224 x 224 -> vit model preprocessor -> vit model -> output of size batch_size x 197 x 768
+-> Resize to batch_size x 768 x 14 x 14 -> model -> output of size batch_size x num_predictions x 112 x 112 -> 
+calculate predictions by taking maximum of each heatmap and checking if it's above the threshold we set.
+
+The output is 197 due to the embedded patches + class token. We don't use the class token.
 
 ### Adding own Dataset
 Use Dataset class from torch. Make sure all images are 224 x 224. Make sure all images are between 0 and 1.
