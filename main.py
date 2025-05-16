@@ -33,7 +33,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
@@ -72,6 +72,8 @@ def get_args():
     # Dataset general
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy, shrec")
     parser.add_argument("--dataset_path", type=str)
+    parser.add_argument("--vit_input_size", type=int, help="Size of image that is put through the vit",
+                        default=224)
     # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
     parser.add_argument("--num_particles", type=int, help="Number of particles that the model outputs as predictions")
     parser.add_argument("--particle_width", type=int)
@@ -95,14 +97,14 @@ def get_args():
                                                                      "from for the shrec dataset")
 
     # Outdated / Not used anymore
-    # Matcher
+    # Matcher for crytransformer loss
     parser.add_argument('--set_cost_class', default=1, type=float,
                         help="Class coefficient in the matching cost")
     parser.add_argument('--set_cost_bbox', default=5, type=float,
                         help="L1 box coefficient in the matching cost")
     parser.add_argument('--set_cost_giou', default=2, type=float,
                         help="giou box coefficient in the matching cost")
-    # Loss coefficients
+    # Loss coefficients for cryo transformer loss
     parser.add_argument('--mask_loss_coef', default=1, type=float)
     parser.add_argument('--dice_loss_coef', default=1, type=float)
     parser.add_argument('--bbox_loss_coef', default=5, type=float)

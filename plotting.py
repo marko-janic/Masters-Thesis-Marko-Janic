@@ -185,8 +185,6 @@ def draw_image_with_objects_on_ax(ax, image_tensor, particle_locations, object_t
     # Validate image
     if len(image_tensor.shape) < 3:
         raise Exception("The image doesn't have enough dimensions, expected: [C, H, W]")
-    #if image_tensor.shape[0] != 3:
-    #    raise Exception("The image tensor must have three channels")
     channels, image_height, image_width = image_tensor.shape
     # Permute the tensor if necessary because imshow wants width x height x channels
     image_tensor = image_tensor.permute(1, 2, 0).cpu().numpy()
@@ -205,7 +203,7 @@ def draw_image_with_objects_on_ax(ax, image_tensor, particle_locations, object_t
 
 
 def compare_predictions_with_ground_truth(image_tensor, ground_truth, predictions, object_type, object_parameters,
-                                          result_dir, file_name, gt_color='r', pred_color='r'):
+                                          result_dir, file_name, gt_color='r', pred_color='r', figure_title=""):
     """
     Visualize model predictions side by side with the ground truth.
 
@@ -219,9 +217,11 @@ def compare_predictions_with_ground_truth(image_tensor, ground_truth, prediction
     :param file_name: File name of file that is saved
     :param gt_color: Border color of ground truth circles
     :param pred_color: Border color of prediction circles
+    :param figure_title:
     """
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig.suptitle(figure_title)
 
     draw_image_with_objects_on_ax(ax1, image_tensor, ground_truth, object_type, object_parameters, gt_color)
     draw_image_with_objects_on_ax(ax2, image_tensor, predictions, "output_box", object_parameters, pred_color)
