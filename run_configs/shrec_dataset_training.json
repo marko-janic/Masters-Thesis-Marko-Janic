@@ -1,13 +1,13 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "moderate_noise",
+    "result_dir_appended_name": "bigger_heatmaps",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
-    "particle_width": 20,
-    "particle_height": 20,
-    "add_noise": true,
+    "particle_width": 60,
+    "particle_height": 60,
+    "add_noise": false,
     "noise": 10,
 
     "device": "cuda",
