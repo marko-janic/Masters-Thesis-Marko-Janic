@@ -40,6 +40,44 @@ def get_args():
     return args
 
 
+def add_noise_to_micrograph(micrograph: torch.Tensor, noise_db: float) -> torch.Tensor:
+    """
+    Adds Gaussian noise to the micrograph to achieve the specified SNR (in dB).
+    SNR defined here: https://sites.ualberta.ca/~msacchi/SNR_Def.pdf
+    Args:
+        micrograph (torch.Tensor): Input tensor of shape (H, W) or (B, C, H, W).
+        noise_db (float): Desired SNR in dB (signal-to-noise ratio).
+
+    Returns:
+        torch.Tensor: Noisy micrograph tensor with the same shape as input.
+    """
+    # Flatten to (N, *) for batch processing
+    orig_shape = micrograph.shape
+    if micrograph.dim() == 2:
+        signal = micrograph
+    else:
+        signal = micrograph.view(-1, *micrograph.shape[-2:])
+
+    # Compute signal power
+    signal_power = signal.pow(2).mean(dim=(-2, -1), keepdim=True)
+
+    # Compute noise power for desired SNR
+    snr_linear = 10 ** (noise_db / 10)
+    noise_power = signal_power / snr_linear
+
+    # Generate Gaussian noise
+    noise = torch.randn_like(signal) * noise_power.sqrt()
+
+    # Add noise
+    noisy_signal = signal + noise
+
+    # Reshape back to original
+    if micrograph.dim() == 2:
+        return noisy_signal
+    else:
+        return noisy_signal.view(orig_shape)
+
+
 def create_dummy_dataset(args):
     """
     Creates a dummy dataset and saves it.
@@ -111,17 +149,7 @@ def create_dummy_dataset(args):
 
         # Add Gaussian noise
         if args.noise > 0.0:
-            # TODO: fix this noise implementation, its weird, use SNR
-            # Generate random noise image
-            if args.uniform_noise:
-                random_noise = np.random.randint(0, 256, (image.shape[0], image.shape[1], 1), dtype=np.uint8)
-                random_noise = np.repeat(random_noise, 3, axis=2)  # Make noise uniform across channels
-            else:
-                random_noise = np.random.randint(0, 256, image.shape, dtype=np.uint8)
-            
-            # Blend the original image with the random noise
-            image = (1 - args.noise) * image + args.noise * random_noise
-            image = np.clip(image, 0, 255).astype(np.uint8)  # TODO: this is wrong now
+            pass  # TODO: implement this
 
         Image.fromarray(image).save(image_path)
 
@@ -319,9 +347,9 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
 
 
 class ShrecDataset(Dataset):
-    def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, micrograph_size=512,
-                 sub_micrograph_size=224, model_number=1, dataset_path='dataset/shrec21_full_dataset/', min_z=140,
-                 max_z=360):
+    def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, noise, add_noise=False,
+                 micrograph_size=512, sub_micrograph_size=224, model_number=1,
+                 dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -333,6 +361,8 @@ class ShrecDataset(Dataset):
         :param dataset_path: Path to dataset
         :param min_z: z slices start from here
         :param max_z: z slices end here
+        :param add_noise: If noise should be added to the micrographs or not
+        :param noise: The level of noise to add to the individual micrographs
         """
 
         self.dataset_path = dataset_path
@@ -345,6 +375,8 @@ class ShrecDataset(Dataset):
         self.max_z = max_z
         self.sub_micrograph_size = sub_micrograph_size
         self.sampling_points = sampling_points
+        self.noise = noise
+        self.add_noise = add_noise
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
@@ -359,10 +391,14 @@ class ShrecDataset(Dataset):
         self.micrographs = []
         self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])
 
-        for i in range((max_z - min_z) // self.z_slice_size):  # TOOD: theres a small piece at the top that is not being made into a micrograph because of the floor division, make sure this is ok
+        for i in range((max_z - min_z) // self.z_slice_size):
             start_z = min_z + (i * self.z_slice_size)
             end_z = start_z + z_slice_size
             micrograph = self.grandmodel[start_z:end_z].sum(dim=0)  # We know 0 is correct from testing, 0 is top view
+
+            if add_noise:
+                micrograph = add_noise_to_micrograph(micrograph=micrograph, noise_db=self.noise)
+
             self.micrographs.append((micrograph, start_z))
             sub_micrographs_df = create_sub_micrographs(micrograph, self.sub_micrograph_size, self.sampling_points,
                                                         start_z=start_z)
@@ -382,5 +418,5 @@ class ShrecDataset(Dataset):
 
 
 if __name__ == "__main__":
-    args = get_args()
-    create_dummy_dataset(args)
+    dummy_args = get_args()
+    create_dummy_dataset(dummy_args)

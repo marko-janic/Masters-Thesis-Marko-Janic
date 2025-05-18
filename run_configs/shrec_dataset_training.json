@@ -1,12 +1,14 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "",
+    "result_dir_appended_name": "moderate_noise",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
     "particle_width": 20,
     "particle_height": 20,
+    "add_noise": true,
+    "noise": 10,
 
     "device": "cuda",
     "epochs": 1000,

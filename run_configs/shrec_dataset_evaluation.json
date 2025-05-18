@@ -8,6 +8,8 @@
     "particle_width": 20,
     "particle_height": 20,
     "prediction_threshold": 0.5,
+    "add_noise": true,
+    "noise": 10,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,

@@ -33,7 +33,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_training.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
@@ -82,6 +82,10 @@ def get_args():
     parser.add_argument("--num_particles", type=int, help="Number of particles that the model outputs as predictions")
     parser.add_argument("--particle_width", type=int)
     parser.add_argument("--particle_height", type=int)
+    parser.add_argument("--add_noise", type=bool, help="Whether to add noise to the image or not")
+    parser.add_argument("--noise", type=float, help="Level of noise to add to the dataset. Given in dB and"
+                                                    "correspond to SNR that the noisy image should have compared to the"
+                                                    "normal one")
 
     # Dummy Dataset
     parser.add_argument("--dataset_size", type=int)
