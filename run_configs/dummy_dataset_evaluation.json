@@ -1,13 +1,14 @@
 {
     "dataset": "dummy",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-04-21_02-41-54_vitpose_target_heatmaps_fixed_bigger_target_heatmaps",
+    "existing_result_folder": "experiment_2025-04-21_02-41-54_dummy_no_noise",
 
     "dataset_path": "dataset/dummy_dataset_max_overlap_0.0_noise_0.0/data",
     "dataset_size": 500,
     "num_particles": 7,
     "particle_width": 80,
     "particle_height": 80,
+    "prediction_threshold": 0.5,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,

@@ -23,17 +23,17 @@ from plotting import save_image_with_bounding_object, plot_loss_log, compare_hea
 from vit_model import get_vit_model, get_encoded_image
 
 
-# Set the seed for reproducibility
-# seed = 42
-# random.seed(seed)
-# torch.manual_seed(seed)
+## Set the seed for reproducibility
+#seed = 42
+#random.seed(seed)
+#torch.manual_seed(seed)
 
 
 def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/dummy_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
@@ -62,6 +62,10 @@ def get_args():
     parser.add_argument("--split_file_name", type=str, default="dataset_split_indices.json",
                         help="File with dataset split indices. Used to get the same train test split after program has"
                              "already been run")
+
+    # Evaluation
+    parser.add_argument('--prediction_threshold', type=float,
+                        help='Threshold from which the maximum of a heatmap is considered to be a prediction')  # TODO: Probably not needed anymore
 
     # Data and Model
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
@@ -111,9 +115,7 @@ def get_args():
     parser.add_argument('--giou_loss_coef', default=2, type=float)
     parser.add_argument('--eos_coef', default=0.1, type=float,
                         help="Relative classification weight of the no-object class")
-
-    # Evaluation
-    parser.add_argument('--quartile_threshold', type=float, default=0.0, help='Quartile threshold')  # TODO: Needs refactoring
+    parser.add_argument('--quartile_threshold', type=float, default=0.0, help='Quartile threshold')  # TODO: Probably not needed anymore
 
     args = parser.parse_args()
 

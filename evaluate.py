@@ -81,8 +81,9 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                                        args.particle_width / args.vit_input_size,
                                                        device=pred_coords.device)
             pred_coords = torch.cat([pred_coords, particle_width_height_columns], dim=2)
-            # Filter pred_coords based on scores > 0.8 while preserving batch dimensions
-            pred_coords = torch.where(pred_scores > 0.7, pred_coords, torch.zeros_like(pred_coords))  # TODO 0.7 as args
+            # Filter pred_coords based on scores > threshold while preserving batch dimensions
+            pred_coords = torch.where(pred_scores > args.prediction_threshold, pred_coords,
+                                      torch.zeros_like(pred_coords))  # TODO 0.7 as args
             pred_coords = transform_coords_to_pixel_coords(args.vit_input_size, args.vit_input_size, pred_coords)
 
             pixel_difference = pred_coords[:, :, :2] - reordered_padded_target_boxes
@@ -152,3 +153,4 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         log_file.write(f"Average pixel loss: {avg_pixel_loss}\n")
         log_file.write(f"Average number of missed predictions: {avg_missed_predictions}\n")
         log_file.write(f"Average number of extra predictions: {avg_extra_predictions}\n")
+        log_file.write(f"prediction_threshold: {args.prediction_threshold}")
