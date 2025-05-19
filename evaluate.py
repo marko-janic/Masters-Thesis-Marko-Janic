@@ -17,7 +17,8 @@ from vit_model import get_encoded_image
 def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataloader, criterion, example_predictions):
     """
 
-    :param args:
+    :param args: Needs:
+        one_heatmap: bool
     :param model:
     :param vit_model:
     :param vit_image_processor:
@@ -45,7 +46,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
             targets = get_targets(dataset_name=args.dataset, dataset=dataset, index=index, device=args.device)
             target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                           device=args.device)
+                                                           device=args.device, one_heatmap=args.one_heatmap)
             encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
             # the 1: is because we don't need the class token
             latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]

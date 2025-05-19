@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-05-12_19-57-45_shrec_grandmodel",
+    "existing_result_folder": "experiment_2025-05-19_20-54-23_TESTING",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
@@ -10,6 +10,7 @@
     "prediction_threshold": 0.5,
     "add_noise": true,
     "noise": 10,
+    "one_heatmap": true,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,

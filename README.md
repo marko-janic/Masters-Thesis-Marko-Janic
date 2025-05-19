@@ -17,6 +17,15 @@ calculate predictions by taking maximum of each heatmap and checking if it's abo
 
 The output is 197 due to the embedded patches + class token. We don't use the class token.
 
+### Important arguments
+- one_heatmap: If set to true the targets for the model will contain one heatmap with multiple gaussians on it instead 
+of having one heatmap per prediction.
+- particle_width
+- particle_height
+- mode
+- add_noise
+- noise
+
 ### Adding own Dataset
 Use Dataset class from torch. Make sure all images are 224 x 224. Make sure all images are between 0 and 1.
 

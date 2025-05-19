@@ -33,7 +33,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_training.json",
+    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
@@ -62,6 +62,9 @@ def get_args():
     parser.add_argument("--split_file_name", type=str, default="dataset_split_indices.json",
                         help="File with dataset split indices. Used to get the same train test split after program has"
                              "already been run")
+    parser.add_argument("--one_heatmap", type=bool,
+                        help="If set to true the targets for the model will contain one heatmap with multiple gaussians"
+                             "on it instead of having one heatmap per prediction.")
 
     # Evaluation
     parser.add_argument('--prediction_threshold', type=float,
@@ -192,8 +195,13 @@ def main():
                                                             use_train_dataset_for_evaluation=
                                                             args.use_train_dataset_for_evaluation)
 
-    model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
-                                     out_channels=args.num_particles)
+    if not args.one_heatmap:
+        model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
+                                         out_channels=args.num_particles)
+    else:
+        model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
+                                         out_channels=1)
+
     model.init_weights()
     model.to(args.device)
 
@@ -223,7 +231,7 @@ def main():
 
                 targets = get_targets(args.dataset, dataset, index, args.device)
                 target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                               device=args.device)
+                                                               device=args.device, one_heatmap=args.one_heatmap)
 
                 if plotted < 5:  # TODO: move this into seperate function
                     save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224,  # TODO: fix 224

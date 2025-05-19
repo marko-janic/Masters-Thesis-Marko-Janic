@@ -102,19 +102,22 @@ def prepare_dataloaders(dataset, train_eval_split, batch_size, result_dir, split
     return train_dataloader, test_dataloader
 
 
-def create_heatmaps_from_targets(data_list, num_predictions, device):
+def create_heatmaps_from_targets(data_list, num_predictions, device, one_heatmap=False):
     """
     Create heatmaps for particles in a batch of images using PyTorch's MultivariateNormal.
 
     Args:
         data_list (list of dict): A list of dictionaries, each containing a key "boxes" with a torch tensor of size (num_particles x 4).
         num_predictions (int): Number of predictions (heatmaps) to generate for each image.
+        device:
+        one_heatmap: If set to true the target heatmap will just be one summed one so to speak
 
     Returns:
         torch.Tensor: A tensor of size (batch_size x num_predictions x 112 x 112).
     """
     batch_size = len(data_list)
-    heatmap_size = 112  # TOOD: don't hardcode this
+    heatmap_size = 112  # TODO: don't hardcode this
+
     output = torch.full((batch_size, num_predictions, heatmap_size, heatmap_size), 0.0)
 
     for batch_idx, data in enumerate(data_list):
@@ -149,6 +152,9 @@ def create_heatmaps_from_targets(data_list, num_predictions, device):
 
             # Add the Gaussian to the heatmap
             output[batch_idx, particle_idx] = heatmap
+
+    if one_heatmap:
+        output = output.max(dim=1, keepdim=True)[0]  # at [1] it would be the indices but we don't care about those
 
     return output.to(device)
 

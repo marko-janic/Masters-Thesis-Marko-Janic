@@ -1,14 +1,15 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "bigger_heatmaps",
+    "result_dir_appended_name": "TESTING",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
-    "particle_width": 60,
-    "particle_height": 60,
+    "particle_width": 20,
+    "particle_height": 20,
     "add_noise": false,
     "noise": 10,
+    "one_heatmap": true,
 
     "device": "cuda",
     "epochs": 1000,
