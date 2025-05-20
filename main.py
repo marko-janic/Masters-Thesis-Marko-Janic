@@ -33,7 +33,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_training.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
