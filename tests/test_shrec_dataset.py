@@ -2,9 +2,11 @@ import unittest
 import argparse
 import os
 import torch
+import napari
 
 import matplotlib.pyplot as plt
 import mrcfile as mrc
+import numpy as np
 
 # Local imports
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
@@ -18,11 +20,14 @@ def get_args():
     parser.add_argument("--result_dir", type=str, default='test_shrec_dataset')
     parser.add_argument("--dataset_path", type=str, default='../dataset/shrec21_full_dataset/')
     parser.add_argument("--sampling_points", type=int, default=4)
-    parser.add_argument("--z_slice_size", type=int, default=5)
+    parser.add_argument("--z_slice_size", type=int, default=1)
+    parser.add_argument("--min_z", type=int, default=0)
+    parser.add_argument("--max_z", type=int, default=512)
     parser.add_argument("--example_visualizations", type=int, default=20)
     parser.add_argument("--model_number", type=int, default=1)
     parser.add_argument("--particle_width", type=int, default=20)
     parser.add_argument("--particle_height", type=int, default=20)
+    parser.add_argument("--noise", type=int, default=10)
 
     args = parser.parse_args()
 
@@ -35,7 +40,14 @@ class ShrecDatasetTests(unittest.TestCase):
         create_folder_if_missing(self.args.result_dir)
         self.dataset = ShrecDataset(sampling_points=self.args.sampling_points, dataset_path=self.args.dataset_path,
                                     z_slice_size=self.args.z_slice_size, particle_width=self.args.particle_width,
-                                    particle_height=self.args.particle_height)
+                                    particle_height=self.args.particle_height, noise=self.args.noise, add_noise=False,
+                                    min_z=self.args.min_z, max_z=self.args.max_z)
+
+    def test_plotly_volume(self):
+        tensor = self.dataset.grandmodel.cpu().numpy()
+
+        napari.view_image(tensor, name='3D Volume', colormap='gray')
+        napari.run()
 
     def test_shapes(self):
         sub_micrograph, coordinate_tl = self.dataset.__getitem__(0)
@@ -58,7 +70,7 @@ class ShrecDatasetTests(unittest.TestCase):
 
         for i in range(len(self.dataset.micrographs)):
             plt.imshow(self.dataset.micrographs[i][0])
-            plt.title(f"Min z: {self.dataset.micrographs[i][1]}")
+            plt.title(f"Min z: {self.dataset.micrographs[i][1]}, Max: z: {self.dataset.micrographs[i][2]}")
             plt.savefig(os.path.join(folder, f"micrograph_slice_{i}.png"))
             plt.close()
 

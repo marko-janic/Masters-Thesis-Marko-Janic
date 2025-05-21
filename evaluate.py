@@ -68,7 +68,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         "device",
         "existing_result_folder",
         "mode",
-        "config"
+        "config",
+        "result_dir_appended_name"
     ]
     arguments_file_evaluation = os.path.join(result_dir, 'arguments.txt')
     arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')

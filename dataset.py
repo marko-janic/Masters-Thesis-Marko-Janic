@@ -399,7 +399,7 @@ class ShrecDataset(Dataset):
             if add_noise:
                 micrograph = add_noise_to_micrograph(micrograph=micrograph, noise_db=self.noise)
 
-            self.micrographs.append((micrograph, start_z))
+            self.micrographs.append((micrograph, start_z, end_z))
             sub_micrographs_df = create_sub_micrographs(micrograph, self.sub_micrograph_size, self.sampling_points,
                                                         start_z=start_z)
             self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
