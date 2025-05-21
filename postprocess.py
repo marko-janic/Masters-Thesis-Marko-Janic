@@ -6,6 +6,8 @@ import torch
 import torch.nn.functional as F
 import warnings
 
+from typing import Tuple
+
 
 def transform_preds(coords, center, scale, output_size, use_udp=False):
     """Get final keypoint predictions from heatmaps and apply scaling and
@@ -49,7 +51,7 @@ def transform_preds(coords, center, scale, output_size, use_udp=False):
     return target_coords
 
 
-def _get_max_preds(heatmaps):
+def _get_max_preds(heatmaps) -> Tuple[torch.Tensor, torch.Tensor]:
     """Get keypoint predictions from score maps.
     Note:
         batch_size: N

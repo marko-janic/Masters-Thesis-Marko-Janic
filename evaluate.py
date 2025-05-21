@@ -14,11 +14,30 @@ from plotting import compare_predictions_with_ground_truth, compare_heatmaps_wit
 from vit_model import get_encoded_image
 
 
+def read_arguments_file(filepath):
+    args_dict = {}
+    with open(filepath, 'r') as f_file:
+        for line in f_file:
+            if ':' in line:
+                key_val, value = line.strip().split(':', 1)
+                args_dict[key_val.strip()] = value.strip()
+    return args_dict
+
+
 def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataloader, criterion, example_predictions):
     """
 
     :param args: Needs:
-        one_heatmap: bool
+        one_heatmap
+        result_dir
+        dataset
+        num_particles
+        device
+        latent_dim
+        vit_input_size
+        particle_height
+        particle_width
+        prediction_threshold
     :param model:
     :param vit_model:
     :param vit_image_processor:
@@ -30,6 +49,59 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
     """
     result_dir = os.path.join(args.result_dir, f'evaluation_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
     create_folder_if_missing(result_dir)
+    with open(os.path.join(result_dir, 'arguments.txt'), 'w') as f:
+        for arg in vars(args):
+            f.write(f"{arg}: {getattr(args, arg)}\n")
+
+    experiment_result_dir = args.result_dir
+
+    # --- Begin argument consistency check ---
+    allowed_missing_or_different_keys = [
+        # Add keys here that are allowed to be missing in evaluation args
+        # Example:
+        # "some_optional_key",
+        "loss_log_path",
+        "prediction_threshold",
+        "checkpoint_interval",
+        "learning_rate",
+        "epochs",
+        "device",
+        "existing_result_folder",
+        "mode",
+        "config"
+    ]
+    arguments_file_evaluation = os.path.join(result_dir, 'arguments.txt')
+    arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')
+    if not os.path.exists(arguments_file_experiment):
+        raise FileNotFoundError(f"arguments.txt not found in experiment_result_dir: {experiment_result_dir}")
+
+    args_evaluation = read_arguments_file(arguments_file_evaluation)
+    args_experiment = read_arguments_file(arguments_file_experiment)
+
+    with open(arguments_file_evaluation, 'a') as log_f:
+        for key in args_evaluation:
+            if key in allowed_missing_or_different_keys:
+                continue  # skip allowed keys for both missing and difference
+            if key in args_experiment:
+                if args_evaluation[key] != args_experiment[key]:
+                    msg = (f"Argument '{key}' differs:\n"
+                           f"  evaluation_result_dir value: {args_evaluation[key]}\n"
+                           f"  experiment_result_dir value: {args_experiment[key]}")
+                    print(msg)
+                    log_f.write(f"[DIFFERENCE] {msg}\n")
+            else:
+                msg = f"Argument '{key}' is only present in evaluation arguments.txt"
+                print(msg)
+                log_f.write(f"[MISSING] {msg}\n")
+        # Check for keys in experiment args that are missing in evaluation args, unless allowed
+        for key in args_experiment:
+            if key in allowed_missing_or_different_keys:
+                continue  # skip allowed keys for both missing and difference
+            if key not in args_evaluation:
+                msg = f"Argument '{key}' is present in experiment arguments.txt but missing in evaluation"
+                print(msg)
+                log_f.write(f"[MISSING_IN_EVAL] {msg}\n")
+    # --- End argument consistency check ---
 
     model.eval()
     criterion.eval()
@@ -84,7 +156,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             pred_coords = torch.cat([pred_coords, particle_width_height_columns], dim=2)
             # Filter pred_coords based on scores > threshold while preserving batch dimensions
             pred_coords = torch.where(pred_scores > args.prediction_threshold, pred_coords,
-                                      torch.zeros_like(pred_coords))  # TODO 0.7 as args
+                                      torch.zeros_like(pred_coords))
             pred_coords = transform_coords_to_pixel_coords(args.vit_input_size, args.vit_input_size, pred_coords)
 
             pixel_difference = pred_coords[:, :, :2] - reordered_padded_target_boxes
