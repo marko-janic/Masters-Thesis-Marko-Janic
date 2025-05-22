@@ -306,7 +306,7 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
     :param micrograph: A tensor of the micrograph to take sub micrographs from.
     :param crop_size: size of the sliding window
     :param sampling_points: The amount of stops the sliding window takes on one side of the micrograph.
-    :param: start_z: Starting z for all submicrographs created for the given micrograph
+    :param start_z: Starting z for all submicrographs created for the given micrograph
     :return: A dataframe where the first column is a tensor of sub micrograph and the second a tensor with
     the coordinates of the top left most point of that sub micrograph in the original picture.
     """
@@ -346,10 +346,64 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
     return sub_micrographs
 
 
+def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, particle_height, device, amplitude=1.0,
+                              volume_shape=(512, 512, 512)):
+    """
+    Creates a 3D tensor with 3D Gaussians centered at each particle location.
+    Only computes each Gaussian in a local window around its center.
+
+    :param particle_locations: DataFrame with columns ['X', 'Y', 'Z'] (must be in voxel coordinates)
+    :param volume_shape: Shape of the output tensor (default: 512x512x512)
+    :param particle_width: Standard deviation for X axis (in voxels) and Z axis
+    :param particle_height: Standard deviation for Y axis (in voxels)
+    :param device:
+    :param amplitude: Peak value of each Gaussian
+    :return: 3D torch.Tensor of shape volume_shape
+    """
+    volume = torch.zeros(volume_shape, dtype=torch.float32, device=device)
+
+    # Magic numbers for sigmas :3
+    sigma_x = particle_width / 6
+    sigma_y = particle_height / 6
+    sigma_z = sigma_x  # Isotropic in Z
+
+    # Define window size (e.g., 3 sigma in each direction), we do this to save computation time for the gaussians
+    wx = int(3 * sigma_x)
+    wy = int(3 * sigma_y)
+    wz = int(3 * sigma_z)
+
+    for _, row in particle_locations.iterrows():
+        cx, cy, cz = int(row['X']), int(row['Y']), int(row['Z'])
+
+        # Define bounds, making sure they are within the volume
+        x_min, x_max = max(cx - wx, 0), min(cx + wx + 1, volume_shape[2])
+        y_min, y_max = max(cy - wy, 0), min(cy + wy + 1, volume_shape[1])
+        z_min, z_max = max(cz - wz, 0), min(cz + wz + 1, volume_shape[0])
+
+        # Create local grids
+        z = torch.arange(z_min, z_max, device=device).view(-1, 1, 1)
+        y = torch.arange(y_min, y_max, device=device).view(1, -1, 1)
+        x = torch.arange(x_min, x_max, device=device).view(1, 1, -1)
+
+        # Compute local Gaussian
+        gaussian = amplitude * torch.exp(
+            -(((x - cx) ** 2) / (2 * sigma_x ** 2) +
+              ((y - cy) ** 2) / (2 * sigma_y ** 2) +
+              ((z - cz) ** 2) / (2 * sigma_z ** 2))
+        )
+
+        # Update only the local region
+        volume[z_min:z_max, y_min:y_max, x_min:x_max] = torch.max(
+            volume[z_min:z_max, y_min:y_max, x_min:x_max], gaussian
+        )
+
+    return volume
+
+
 class ShrecDataset(Dataset):
-    def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, noise, add_noise=False,
-                 micrograph_size=512, sub_micrograph_size=224, model_number=1,
-                 dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360):
+    def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, noise, gaussians_3d,
+                 add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=1,
+                 dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu"):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -362,7 +416,9 @@ class ShrecDataset(Dataset):
         :param min_z: z slices start from here
         :param max_z: z slices end here
         :param add_noise: If noise should be added to the micrographs or not
+        :param gaussians_3d: whether to use 3d gaussians or not
         :param noise: The level of noise to add to the individual micrographs
+        :param device
         """
 
         self.dataset_path = dataset_path
@@ -377,6 +433,8 @@ class ShrecDataset(Dataset):
         self.sampling_points = sampling_points
         self.noise = noise
         self.add_noise = add_noise
+        self.gaussians_3d = gaussians_3d
+        self.device = device
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
@@ -387,6 +445,12 @@ class ShrecDataset(Dataset):
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
                       permissive=True) as f:
             self.grandmodel = torch.tensor(f.data)  # shape [512, 512, 512]
+
+        if gaussians_3d:
+            self.heatmaps_volume = create_3d_gaussian_volume(particle_locations=self.particle_locations,
+                                                             particle_width=self.particle_width,
+                                                             particle_height=self.particle_height, amplitude=1.0,
+                                                             device=self.device)
 
         self.micrographs = []
         self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])

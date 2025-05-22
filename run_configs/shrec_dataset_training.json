@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "grandmodel_one_heatmap",
+    "result_dir_appended_name": "TESTING",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
@@ -10,6 +10,7 @@
     "add_noise": false,
     "noise": 10,
     "one_heatmap": true,
+    "gaussians_3d": true,
 
     "device": "cuda",
     "epochs": 1000,

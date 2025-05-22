@@ -89,6 +89,8 @@ def get_args():
     parser.add_argument("--noise", type=float, help="Level of noise to add to the dataset. Given in dB and"
                                                     "correspond to SNR that the noisy image should have compared to the"
                                                     "normal one")
+    parser.add_argument("--gaussians_3d", type=bool, help="Whether to use 3d gaussians for the heatmaps or"
+                                                          "not")
 
     # Dummy Dataset
     parser.add_argument("--dataset_size", type=int)

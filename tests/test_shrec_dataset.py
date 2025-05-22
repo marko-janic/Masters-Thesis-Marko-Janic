@@ -28,6 +28,8 @@ def get_args():
     parser.add_argument("--particle_width", type=int, default=20)
     parser.add_argument("--particle_height", type=int, default=20)
     parser.add_argument("--noise", type=int, default=10)
+    parser.add_argument("--add_noise", type=bool, default=False)
+    parser.add_argument("--gaussians_3d", type=bool, default=True)
 
     args = parser.parse_args()
 
@@ -40,13 +42,17 @@ class ShrecDatasetTests(unittest.TestCase):
         create_folder_if_missing(self.args.result_dir)
         self.dataset = ShrecDataset(sampling_points=self.args.sampling_points, dataset_path=self.args.dataset_path,
                                     z_slice_size=self.args.z_slice_size, particle_width=self.args.particle_width,
-                                    particle_height=self.args.particle_height, noise=self.args.noise, add_noise=False,
-                                    min_z=self.args.min_z, max_z=self.args.max_z)
+                                    particle_height=self.args.particle_height, noise=self.args.noise,
+                                    add_noise=self.args.add_noise, min_z=self.args.min_z, max_z=self.args.max_z,
+                                    gaussians_3d=self.args.gaussians_3d)
 
-    def test_plotly_volume(self):
-        tensor = self.dataset.grandmodel.cpu().numpy()
+    def test_volume(self):
+        grandmodel = self.dataset.grandmodel.cpu().numpy()
+        heatmaps = self.dataset.heatmaps_volume.cpu().numpy()
 
-        napari.view_image(tensor, name='3D Volume', colormap='gray')
+        viewer = napari.Viewer()
+        viewer.add_image(grandmodel, name='Grandmodel Volume', colormap='gray')
+        viewer.add_image(heatmaps, name='Heatmaps Volume', colormap='magenta')
         napari.run()
 
     def test_shapes(self):

@@ -11,6 +11,7 @@
     "add_noise": false,
     "noise": 10,
     "one_heatmap": true,
+    "gaussians_3d": false,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,
