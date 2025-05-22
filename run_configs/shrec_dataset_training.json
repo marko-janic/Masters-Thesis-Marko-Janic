@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "TESTING",
+    "result_dir_appended_name": "3d_gaussians_variance_divided_by_3.5",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
@@ -13,7 +13,7 @@
     "gaussians_3d": true,
 
     "device": "cuda",
-    "epochs": 1000,
+    "epochs": 200,
     "batch_size": 16,
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
