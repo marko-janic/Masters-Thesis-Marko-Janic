@@ -25,6 +25,8 @@ of having one heatmap per prediction.
 - mode
 - add_noise
 - noise
+- gaussians_3d: Will create a 3d volume with 3d gaussians around particle locations and then feed flat slices of that
+volume to the model instead of making 2d target heatmaps with 2d gaussians
 
 ### Adding own Dataset
 Use Dataset class from torch. Make sure all images are 224 x 224. Make sure all images are between 0 and 1.

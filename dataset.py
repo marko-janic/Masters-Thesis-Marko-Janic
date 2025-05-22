@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -363,8 +364,8 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     volume = torch.zeros(volume_shape, dtype=torch.float32, device=device)
 
     # Magic numbers for sigmas :3
-    sigma_x = particle_width / 6
-    sigma_y = particle_height / 6
+    sigma_x = particle_width / 4  # TODO: maybe add these as arguments?
+    sigma_y = particle_height / 4
     sigma_z = sigma_x  # Isotropic in Z
 
     # Define window size (e.g., 3 sigma in each direction), we do this to save computation time for the gaussians
@@ -455,6 +456,10 @@ class ShrecDataset(Dataset):
         self.micrographs = []
         self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])
 
+        if gaussians_3d:
+            self.heatmaps = []
+            self.sub_heatmaps = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])
+
         for i in range((max_z - min_z) // self.z_slice_size):
             start_z = min_z + (i * self.z_slice_size)
             end_z = start_z + z_slice_size
@@ -467,6 +472,51 @@ class ShrecDataset(Dataset):
             sub_micrographs_df = create_sub_micrographs(micrograph, self.sub_micrograph_size, self.sampling_points,
                                                         start_z=start_z)
             self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
+
+            if gaussians_3d:
+                # Here we max not sum since we are trying to represent probabilities for the targets
+                heatmap = self.heatmaps_volume[start_z:end_z].max(dim=0).values
+                self.heatmaps.append((heatmap, start_z, end_z))
+
+                sub_heatmaps_df = create_sub_micrographs(heatmap, self.sub_micrograph_size, self.sampling_points,
+                                                         start_z=start_z)
+                # Resize each heatmap in the DataFrame to (112, 112), we do this weird squeezing because F.interpolate
+                # needs batched input. We take [0:1] because create_sub_micrographs automatically adds three channels
+                sub_heatmaps_df["sub_micrograph"] = sub_heatmaps_df["sub_micrograph"].apply(
+                    lambda x: F.interpolate(x[0:1].unsqueeze(0), size=(112, 112), mode='bilinear',
+                                            align_corners=False).squeeze(0)
+                )
+                self.sub_heatmaps = pd.concat([self.sub_heatmaps, sub_heatmaps_df], ignore_index=True)
+
+    def get_target_heatmaps_from_3d_gaussians(self, tl_coordinates, batch_size):
+        """
+        Given a batch of top-left coordinates, return the corresponding heatmaps as a tensor of shape
+        [batch_size, 1, heatmap_size, heatmap_size].
+        :param tl_coordinates: Tensor of shape [batch_size, 3] (x, y, z)
+        :param batch_size: Number of samples in the batch
+        :return: torch.Tensor of shape [batch_size, 1, 3, heatmap_size, heatmap_size]
+        """
+        # Ensure input is a tensor
+        if not torch.is_tensor(tl_coordinates):
+            tl_coordinates = torch.tensor(tl_coordinates)
+
+        # Prepare output list
+        heatmaps = []
+        for i in range(batch_size):
+            coord = tl_coordinates[i]
+            # Find the row in sub_heatmaps with matching top_left_coordinates
+            matches = self.sub_heatmaps['top_left_coordinates'].apply(
+                lambda x: torch.equal(x, coord)
+            )
+            idx = matches.idxmax() if matches.any() else None
+            if idx is not None:
+                heatmap = self.sub_heatmaps.iloc[idx]['sub_micrograph']
+                heatmaps.append(heatmap)
+            else:
+                raise Exception("The top left coordinates don't have equivalent target_heatmaps from the 3d gaussian"
+                                "volume. This should not happen :3, have fun debugging.")
+
+        return torch.stack(heatmaps, dim=0)
 
     def __len__(self):
         return len(self.sub_micrographs)

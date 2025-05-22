@@ -244,7 +244,7 @@ def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps,
 
     for i in range(len(heatmaps)):
         ax2.set_title(heatmaps_title)
-        im2 = ax2.imshow(heatmaps[i])  # , vmin=0, vmax=1
+        im2 = ax2.imshow(heatmaps[i])
 
         cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
 

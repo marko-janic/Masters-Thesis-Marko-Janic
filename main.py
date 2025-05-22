@@ -33,7 +33,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_training.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
@@ -148,6 +148,11 @@ def get_args():
     elif args.mode == "train":
         print("Running in training mode")
 
+    # Some validation here
+    if args.gaussians_3d and not args.one_heatmap:
+        raise Exception("You can't set gaussians_3d to True but not one_heatmap. gaussians_3d will always produce"
+                        "one_heatmap. This is important for the model, see code.")
+
     return args
 
 
@@ -231,19 +236,17 @@ def main():
             for batch_index, (micrographs, index) in enumerate(train_dataloader):
                 batch_counter += 1
 
-                targets = get_targets(args.dataset, dataset, index, args.device)
-                target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                               device=args.device, one_heatmap=args.one_heatmap)
+                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index)
 
                 if plotted < 5:  # TODO: move this into seperate function
-                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*224,  # TODO: fix 224
-                                                    "output_box",  # TODO: This 224 is hacky, fix it
+                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*args.vit_input_size,
+                                                    "output_box",
                                                     {},
                                                     os.path.join(args.result_dir, 'training_examples'),
                                                     f"train_test_example_{plotted}")
 
                     compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
-                                                       particle_locations=targets[0]['boxes'].cpu()*224,  # TODO: fix 224
+                                                       particle_locations=targets[0]['boxes'].cpu()*args.vit_input_size,
                                                        heatmaps=target_heatmaps[0].cpu(),
                                                        heatmaps_title="target heatmaps",
                                                        result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",

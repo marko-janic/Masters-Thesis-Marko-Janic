@@ -32,18 +32,29 @@ def get_dataset(dataset_name, args):
         raise Exception(f"The dataset {dataset_name}, is not supported.")
 
 
-def get_targets(dataset_name, dataset, index, device):
+def get_targets(args, dataset, index):
     """
     Gives you back targets depending on your dataset
-    :param dataset_name:
+    :param args: Needs (See the args for docs):
+        dataset,
+        device,
+        one_heatmap,
+        num_particles,
     :param dataset: torch dataset class
-    :param index: Depends on the dataset passed
-    :param device:
-    :return:
+    :param index: Depends on the dataset:
+        For dummy: just an index to use to call get_targets_from_target_indexes
+        For shrec: torch.Tensor[batch_size, 3] representing the top left coordinates of all the micrographs in the
+            batch. Again really just used to call its function get_target_heatmaps_from_3d_gaussians
+    :return: Tuple(torch.Tensor[batch_size, num_predictions, heatmap_size, heatmap_size], list).
+    The list is of length batch_size with dicts which under the "boxes" key have a torch.Tensor[4], representing
+    particle locations.
     """
-    if dataset_name == "dummy":
-        return dataset.get_targets_from_target_indexes(index, device)
-    elif dataset_name == "shrec":
+    if args.dataset == "dummy":
+        targets = dataset.get_targets_from_target_indexes(index, args.device)
+        target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
+                                                       device=args.device, one_heatmap=args.one_heatmap)
+        return target_heatmaps, targets
+    elif args.dataset == "shrec":
         targets = []
         for i in range(len(index)):
             selected_particles = get_particle_locations_from_coordinates(coordinates_tl=index[i],
@@ -56,7 +67,14 @@ def get_targets(dataset_name, dataset, index, device):
             selected_particles["boxes"][:, 1] = dataset.sub_micrograph_size - selected_particles["boxes"][:, 1]
             selected_particles["boxes"] /= 224
             targets.append(selected_particles)
-        return targets
+
+        if args.gaussians_3d:
+            target_heatmaps = dataset.get_target_heatmaps_from_3d_gaussians(index, batch_size=args.batch_size)
+        else:
+            target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
+                                                           device=args.device, one_heatmap=args.one_heatmap)
+
+        return target_heatmaps, targets
     else:
         raise Exception(f"The dataset {dataset}, is not supported.")
 
@@ -109,7 +127,8 @@ def create_heatmaps_from_targets(data_list, num_predictions, device, one_heatmap
     Create heatmaps for particles in a batch of images using PyTorch's MultivariateNormal.
 
     Args:
-        data_list (list of dict): A list of dictionaries, each containing a key "boxes" with a torch tensor of size (num_particles x 4).
+        data_list (list of dict): A list of dictionaries, each containing a key "boxes" with a torch tensor of size
+        (num_particles x 4).
         num_predictions (int): Number of predictions (heatmaps) to generate for each image.
         device:
         one_heatmap: If set to true the target heatmap will just be one summed one so to speak
