@@ -12,7 +12,7 @@
 #SBATCH --mem-per-cpu=8G     #Amount of RAM/core to reserve
 
 module purge
-module load Python/3.10.8-GCCcore-12.2.0
-source venv/bin/activate
+module load Miniconda3
+conda activate masters_thesis_marko_janic
 
 python main.py --config run_configs/dummy_dataset_training.json
