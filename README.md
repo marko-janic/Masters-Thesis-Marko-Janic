@@ -39,11 +39,11 @@ TODO
 ### General
 Create conda environment from conda_environment.yml:
 ```
-conda env create -f environment.yaml
+conda env create -f conda_environment.yml
 ```
 Add new dependencies to conda environment if necessary (probably won't be):
 ```
-conda env export > environment.yml
+conda env export > conda_environment.yml
 ```
 
 ### sciCORE (Linux)
