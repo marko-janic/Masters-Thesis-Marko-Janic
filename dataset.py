@@ -378,6 +378,11 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     wz = int(3 * sigma_z)
 
     for _, row in particle_locations.iterrows():
+        class_name = str(row['class'])
+        # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
+        if class_name == "4V94":
+            continue
+
         cx, cy, cz = int(row['X']), int(row['Y']), int(row['Z'])
 
         # Define bounds, making sure they are within the volume
