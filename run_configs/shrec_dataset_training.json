@@ -1,16 +1,19 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "3d_gaussians_variance_divided_by_3.5",
+    "result_dir_appended_name": "fbp_no_noise",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
     "particle_width": 20,
     "particle_height": 20,
+    "particle_depth": 20,
     "add_noise": false,
     "noise": 10,
     "one_heatmap": true,
     "gaussians_3d": true,
+    "use_fbp": true,
+    "fbp_num_projections": 60,
 
     "device": "cuda",
     "epochs": 200,
@@ -24,8 +27,8 @@
     "num_patch_embeddings": 196,
 
     "shrec_sampling_points": 16,
-    "shrec_z_slice_size": 5,
+    "shrec_z_slice_size": 1,
     "shrec_model_number": 1,
-    "shrec_min_z": 150,
-    "shrec_max_z": 360
+    "shrec_min_z": 160,
+    "shrec_max_z": 348
 }
