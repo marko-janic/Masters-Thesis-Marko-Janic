@@ -27,7 +27,8 @@ def get_dataset(dataset_name, args):
     elif dataset_name == "shrec":
         return ShrecDataset(sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
                             model_number=args.shrec_model_number, min_z=args.shrec_min_z, max_z=args.shrec_max_z,
-                            particle_height=args.particle_height, particle_width=args.particle_width, noise=args.noise,
+                            particle_height=args.particle_height, particle_width=args.particle_width,
+                            particle_depth=args.particle_depth, noise=args.noise,
                             add_noise=args.add_noise, gaussians_3d=args.gaussians_3d, device=args.device,
                             use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle, fbp_max_angle=args.fbp_max_angle,
                             fbp_num_projections=args.fbp_num_projections)
@@ -65,7 +66,8 @@ def get_targets(args, dataset, index):
                                                                          particle_locations=dataset.particle_locations,
                                                                          z_slice_size=dataset.z_slice_size,
                                                                          particle_width=dataset.particle_width,
-                                                                         particle_height=dataset.particle_height)
+                                                                         particle_height=dataset.particle_height,
+                                                                         particle_depth=dataset.particle_depth)
             # We flip it here because of the coordinates being weird
             selected_particles["boxes"][:, 1] = dataset.sub_micrograph_size - selected_particles["boxes"][:, 1]
             selected_particles["boxes"] /= 224

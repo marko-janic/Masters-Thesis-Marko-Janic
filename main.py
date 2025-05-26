@@ -85,6 +85,8 @@ def get_args():
     parser.add_argument("--num_particles", type=int, help="Number of particles that the model outputs as predictions")
     parser.add_argument("--particle_width", type=int)
     parser.add_argument("--particle_height", type=int)
+    parser.add_argument("--particle_depth", type=int, help="Only relevenat for shrec dataset and others"
+                                                           "that use 3d volumes to take slices from.")
     parser.add_argument("--add_noise", type=bool, help="Whether to add noise to the image or not")
     parser.add_argument("--noise", type=float, help="Level of noise to add to the dataset. Given in dB and"
                                                     "correspond to SNR that the noisy image should have compared to the"

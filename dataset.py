@@ -238,7 +238,7 @@ class DummyDataset(Dataset):
 
 
 def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_width, particle_height, particle_locations, z_slice_size,
-                                            orientation="normal"):
+                                            orientation="normal", particle_depth=0):
     """
     Given coordinates, this function determines the location of all relevant particles in the sub micrograph
 
@@ -256,15 +256,17 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         x_max = x_min + sub_micrograph_size
         y_min = coordinates_tl[1].item()
         y_max = y_min + sub_micrograph_size
-        z_min = coordinates_tl[2].item()
-        z_max = z_min + z_slice_size
+        z_min = coordinates_tl[2].item() - (particle_depth/2)
+        z_max = z_min + z_slice_size + (particle_depth/2)
 
+        # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
                                                 (particle_locations['X'] <= x_max) &
                                                 (particle_locations['Y'] >= y_min) &
                                                 (particle_locations['Y'] <= y_max) &
                                                 (particle_locations['Z'] >= z_min) &
-                                                (particle_locations['Z'] <= z_max)]
+                                                (particle_locations['Z'] <= z_max) &
+                                                (particle_locations['class'] != "4V94")]
 
         # We subtract the minimum coordinates since we want the locations in the sub_micrograph so to speak
         selected_particles.loc[:, 'X'] = (selected_particles['X'] - x_min)
@@ -426,8 +428,8 @@ def reconstruct_fbp_volume(projections, angles, n3):
 
 
 class ShrecDataset(Dataset):
-    def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, noise, gaussians_3d,
-                 add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=1,
+    def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, particle_depth, noise,
+                 gaussians_3d, add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=1,
                  dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
                  fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60):
         """
@@ -454,6 +456,7 @@ class ShrecDataset(Dataset):
         self.dataset_path = dataset_path
         self.particle_width = particle_width
         self.particle_height = particle_height
+        self.particle_depth = particle_depth
         self.model_number = model_number
         self.micrograph_size = micrograph_size  # This is only needed for creating the sub micrographs
         self.z_slice_size = z_slice_size
