@@ -13,7 +13,7 @@
 
 module purge
 module load Miniconda3
-conda activate
+conda init
 conda activate masters_thesis_marko_janic
 
 python main.py --config run_configs/shrec_dataset_training.json
