@@ -403,7 +403,7 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     return volume
 
 
-def generate_projections(vol,angles):
+def generate_projections(vol, angles):
     # note angles in radians
     n1, n2, n3 = vol.shape
     pg = ts.parallel(angles=angles, shape=(n1, n2),)
@@ -488,8 +488,8 @@ class ShrecDataset(Dataset):
 
         if self.use_fbp:
             angles = np.linspace(self.fbp_min_angle, self.fbp_max_angle, fbp_num_projections)
-            projections = generate_projections(self.grandmodel, angles)
-            self.grandmodel_fbp = reconstruct_fbp_volume(projections, angles, self.grandmodel.shape[0])
+            projections = generate_projections(self.grandmodel.permute(2, 1, 0), angles)
+            self.grandmodel_fbp = reconstruct_fbp_volume(projections, angles, self.grandmodel.shape[0]).permute(2, 1, 0)
 
         self.micrographs = []
         self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])

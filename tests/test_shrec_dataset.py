@@ -7,6 +7,7 @@ import napari
 import matplotlib.pyplot as plt
 import mrcfile as mrc
 import numpy as np
+from tqdm import tqdm
 
 # Local imports
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
@@ -22,7 +23,7 @@ def get_args():
     parser.add_argument("--sampling_points", type=int, default=4)
     parser.add_argument("--z_slice_size", type=int, default=1)
     parser.add_argument("--min_z", type=int, default=166)
-    parser.add_argument("--max_z", type=int, default=357)
+    parser.add_argument("--max_z", type=int, default=180)
     parser.add_argument("--example_visualizations", type=int, default=20)
     parser.add_argument("--model_number", type=int, default=1)
     parser.add_argument("--particle_width", type=int, default=20)
@@ -82,7 +83,7 @@ class ShrecDatasetTests(unittest.TestCase):
         folder = os.path.join(self.args.result_dir, "z_slices")
         create_folder_if_missing(folder)
 
-        for i in range(len(self.dataset.micrographs)):
+        for i in tqdm(range(len(self.dataset.micrographs)), desc="Visualizing z slices"):
             plt.imshow(self.dataset.micrographs[i][0])
             plt.title(f"Min z: {self.dataset.micrographs[i][1]}, Max: z: {self.dataset.micrographs[i][2]}")
             plt.savefig(os.path.join(folder, f"micrograph_slice_{i}.png"))
