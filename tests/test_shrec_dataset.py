@@ -21,8 +21,8 @@ def get_args():
     parser.add_argument("--dataset_path", type=str, default='../dataset/shrec21_full_dataset/')
     parser.add_argument("--sampling_points", type=int, default=4)
     parser.add_argument("--z_slice_size", type=int, default=1)
-    parser.add_argument("--min_z", type=int, default=0)
-    parser.add_argument("--max_z", type=int, default=512)
+    parser.add_argument("--min_z", type=int, default=166)
+    parser.add_argument("--max_z", type=int, default=357)
     parser.add_argument("--example_visualizations", type=int, default=20)
     parser.add_argument("--model_number", type=int, default=1)
     parser.add_argument("--particle_width", type=int, default=20)
@@ -30,6 +30,10 @@ def get_args():
     parser.add_argument("--noise", type=int, default=10)
     parser.add_argument("--add_noise", type=bool, default=False)
     parser.add_argument("--gaussians_3d", type=bool, default=True)
+    parser.add_argument("--use_fbp", type=bool, default=True)
+    parser.add_argument("--fbp_num_projections", type=int, default=60)
+    parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
+    parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
 
     args = parser.parse_args()
 
@@ -44,15 +48,19 @@ class ShrecDatasetTests(unittest.TestCase):
                                     z_slice_size=self.args.z_slice_size, particle_width=self.args.particle_width,
                                     particle_height=self.args.particle_height, noise=self.args.noise,
                                     add_noise=self.args.add_noise, min_z=self.args.min_z, max_z=self.args.max_z,
-                                    gaussians_3d=self.args.gaussians_3d)
+                                    gaussians_3d=self.args.gaussians_3d, use_fbp=self.args.use_fbp,
+                                    fbp_num_projections=self.args.fbp_num_projections,
+                                    fbp_min_angle=self.args.fbp_min_angle, fbp_max_angle=self.args.fbp_max_angle)
 
     def test_volume(self):
         grandmodel = self.dataset.grandmodel.cpu().numpy()
         heatmaps = self.dataset.heatmaps_volume.cpu().numpy()
+        fbp_volume = self.dataset.grandmodel_fbp.cpu().numpy()
 
         viewer = napari.Viewer()
         viewer.add_image(grandmodel, name='Grandmodel Volume', colormap='gray')
         viewer.add_image(heatmaps, name='Heatmaps Volume', colormap='magenta')
+        viewer.add_image(fbp_volume, name='FBP Reconstructed voume', colormap='gray')
         napari.run()
 
     def test_shapes(self):

@@ -91,6 +91,13 @@ def get_args():
                                                     "normal one")
     parser.add_argument("--gaussians_3d", type=bool, help="Whether to use 3d gaussians for the heatmaps or"
                                                           "not")
+    parser.add_argument("--use_fbp", type=bool, help="Whether to use a simulated fbp of the volume or not")
+    parser.add_argument("--fbp_num_projections", type=int, help="Number of projections for fbp simulation"
+                                                                "on volume.")
+    parser.add_argument("--fbp_min_angle", type=float, default=-torch.pi/3,
+                        help="Minimum angle of fbp simulation given in radians")
+    parser.add_argument("--fbp_max_angle", type=float, default=torch.pi/3,
+                        help="Maximum angle of fbp simulation given in radians")
 
     # Dummy Dataset
     parser.add_argument("--dataset_size", type=int)
@@ -152,6 +159,9 @@ def get_args():
     if args.gaussians_3d and not args.one_heatmap:
         raise Exception("You can't set gaussians_3d to True but not one_heatmap. gaussians_3d will always produce"
                         "one_heatmap. This is important for the model, see code.")
+    if args.use_fbp and not args.gaussians_3d:
+        raise Exception("You can't set use_fbp to True but not gaussians_3d. use_fbp requires that you use 3d "
+                        "gaussians.")
 
     return args
 

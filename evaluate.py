@@ -117,9 +117,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             model.eval()
             criterion.eval()
 
-            targets = get_targets(dataset_name=args.dataset, dataset=dataset, index=index, device=args.device)
-            target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                           device=args.device, one_heatmap=args.one_heatmap)
+            target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index)
+
             encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
             # the 1: is because we don't need the class token
             latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]

@@ -13,9 +13,9 @@ reconstructing a single averaged particles from the estimation of the previous m
 ### Description of pipeline
 Input of size batch_size x 3 x 224 x 224 -> vit model preprocessor -> vit model -> output of size batch_size x 197 x 768
 -> Resize to batch_size x 768 x 14 x 14 -> model -> output of size batch_size x num_predictions x 112 x 112 -> 
-calculate predictions by taking maximum of each heatmap and checking if it's above the threshold we set.
+calculate predictions by taking local maxima of each heatmap and checking if it's above the threshold we set.
 
-The output is 197 due to the embedded patches + class token. We don't use the class token.
+The output of the vit model is 197 due to the embedded patches + class token. We don't use the class token.
 
 ### Important arguments
 - one_heatmap: If set to true the targets for the model will contain one heatmap with multiple gaussians on it instead 
@@ -26,7 +26,8 @@ of having one heatmap per prediction.
 - add_noise
 - noise
 - gaussians_3d: Will create a 3d volume with 3d gaussians around particle locations and then feed flat slices of that
-volume to the model instead of making 2d target heatmaps with 2d gaussians
+volume to the model instead of making 2d target heatmaps with 2d gaussians.
+- use_fbp
 
 ### Adding own Dataset
 Use Dataset class from torch. Make sure all images are 224 x 224. Make sure all images are between 0 and 1.
@@ -34,24 +35,15 @@ Use Dataset class from torch. Make sure all images are 224 x 224. Make sure all 
 ### Recommended Folder structure
 TODO
 
+## Installation
 ### General
-Create virtual environment:
+Create conda environment from conda_environment.yml:
 ```
-python -m venv venv
+conda env create -f environment.yaml
 ```
-Install requirements from requirements file:
+Add new dependencies to conda environment if necessary (probably won't be):
 ```
-pip install -r requirements.txt
-```
-Write new requirements to requirements file:
-```
-pip freeze > requirements.txt
-```
-
-### Windows
-Activate virtual environment (Windows):
-```
-.\venv\Scripts\activate
+conda env export > environment.yml
 ```
 
 ### sciCORE (Linux)

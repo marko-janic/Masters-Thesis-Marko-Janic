@@ -18,6 +18,7 @@ def get_dataset(dataset_name, args):
         add_noise,
         gaussians_3d,
         device,
+        use_fbp,
     :return:
     """
     if dataset_name == "dummy":
@@ -27,7 +28,9 @@ def get_dataset(dataset_name, args):
         return ShrecDataset(sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
                             model_number=args.shrec_model_number, min_z=args.shrec_min_z, max_z=args.shrec_max_z,
                             particle_height=args.particle_height, particle_width=args.particle_width, noise=args.noise,
-                            add_noise=args.add_noise, gaussians_3d=args.gaussians_3d, device=args.device)
+                            add_noise=args.add_noise, gaussians_3d=args.gaussians_3d, device=args.device,
+                            use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle, fbp_max_angle=args.fbp_max_angle,
+                            fbp_num_projections=args.fbp_num_projections)
     else:
         raise Exception(f"The dataset {dataset_name}, is not supported.")
 

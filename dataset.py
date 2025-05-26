@@ -10,7 +10,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import torchvision.transforms as transforms
 import torch.nn.functional as F
+import tomosipo as ts
 
+from ts_algorithms import fbp
 from torch.utils.data import Dataset
 from tqdm import tqdm
 from PIL import Image
@@ -401,10 +403,33 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     return volume
 
 
+def generate_projections(vol,angles):
+    # note angles in radians
+    n1, n2, n3 = vol.shape
+    pg = ts.parallel(angles=angles, shape=(n1, n2),)
+    vg = ts.volume(shape=(n1, n3, n2))  # Reordering so that this is samle as ODL
+    A = ts.operator(vg, pg)
+    projection = A(vol.permute(0, 2, 1))
+    return projection.permute(1, 0, 2)
+
+
+def reconstruct_fbp_volume(projections, angles, n3):
+    # Define the forward operator
+    # angels in radians
+    n1 = projections.shape[1]
+    n2 = projections.shape[2]
+    pg = ts.parallel(angles=angles, shape=(n1, n2),)
+    vg = ts.volume(shape=(n1, n3, n2))  # Reordering so that this is samle as ODL
+    A = ts.operator(vg, pg)
+    V_FBP = fbp(A, projections.permute(1, 0, 2)).permute(0, 2, 1)
+    return V_FBP
+
+
 class ShrecDataset(Dataset):
     def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, noise, gaussians_3d,
                  add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=1,
-                 dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu"):
+                 dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
+                 fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -419,6 +444,10 @@ class ShrecDataset(Dataset):
         :param add_noise: If noise should be added to the micrographs or not
         :param gaussians_3d: whether to use 3d gaussians or not
         :param noise: The level of noise to add to the individual micrographs
+        :param use_fbp: To use a simulated fbp reconstruction of the grandmodel
+        :param:fbp_num_projections: Num of measurements to simulate for reconstructing the grandmodel using fbp
+        :param fbp_min_angle
+        :param fbp_max_angle
         :param device
         """
 
@@ -436,6 +465,10 @@ class ShrecDataset(Dataset):
         self.add_noise = add_noise
         self.gaussians_3d = gaussians_3d
         self.device = device
+        self.use_fbp = use_fbp
+        self.fbp_min_angle = fbp_min_angle
+        self.fbp_max_angle = fbp_max_angle
+        self.fbp_num_projections = fbp_num_projections
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
@@ -447,24 +480,35 @@ class ShrecDataset(Dataset):
                       permissive=True) as f:
             self.grandmodel = torch.tensor(f.data)  # shape [512, 512, 512]
 
-        if gaussians_3d:
+        if self.gaussians_3d:
             self.heatmaps_volume = create_3d_gaussian_volume(particle_locations=self.particle_locations,
                                                              particle_width=self.particle_width,
                                                              particle_height=self.particle_height, amplitude=1.0,
                                                              device=self.device)
 
+        if self.use_fbp:
+            angles = np.linspace(self.fbp_min_angle, self.fbp_max_angle, fbp_num_projections)
+            projections = generate_projections(self.grandmodel, angles)
+            self.grandmodel_fbp = reconstruct_fbp_volume(projections, angles, self.grandmodel.shape[0])
+
         self.micrographs = []
         self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])
 
-        if gaussians_3d:
+        if self.gaussians_3d:
             self.heatmaps = []
             self.sub_heatmaps = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])
 
         for i in range((max_z - min_z) // self.z_slice_size):
             start_z = min_z + (i * self.z_slice_size)
             end_z = start_z + z_slice_size
-            micrograph = self.grandmodel[start_z:end_z].sum(dim=0)  # We know 0 is correct from testing, 0 is top view
 
+            if not self.use_fbp:
+                # We know 0 is correct from testing, 0 is top view so to speak
+                micrograph = self.grandmodel[start_z:end_z].sum(dim=0)
+            else:
+                micrograph = self.grandmodel_fbp[start_z:end_z].sum(dim=0)
+
+            # TODO: Change this, we don't add noise to the reconstrution but rather to the projections themselves
             if add_noise:
                 micrograph = add_noise_to_micrograph(micrograph=micrograph, noise_db=self.noise)
 
@@ -473,7 +517,7 @@ class ShrecDataset(Dataset):
                                                         start_z=start_z)
             self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
 
-            if gaussians_3d:
+            if self.gaussians_3d:
                 # Here we max not sum since we are trying to represent probabilities for the targets
                 heatmap = self.heatmaps_volume[start_z:end_z].max(dim=0).values
                 self.heatmaps.append((heatmap, start_z, end_z))
