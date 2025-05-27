@@ -532,6 +532,7 @@ class ShrecDataset(Dataset):
 
                 sub_heatmaps_df = create_sub_micrographs(heatmap, self.sub_micrograph_size, self.sampling_points,
                                                          start_z=start_z)
+                sub_heatmaps_df = sub_heatmaps_df.copy()
                 # Resize each heatmap in the DataFrame to (112, 112), we do this weird squeezing because F.interpolate
                 # needs batched input. We take [0:1] because create_sub_micrographs automatically adds three channels
                 sub_heatmaps_df["sub_micrograph"] = sub_heatmaps_df["sub_micrograph"].apply(
