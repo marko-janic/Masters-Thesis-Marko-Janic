@@ -486,7 +486,7 @@ class ShrecDataset(Dataset):
 
         with mrc.open(os.path.join(self.dataset_path, f'model_{self.model_number}/grandmodel.mrc'),
                       permissive=True) as f:
-            self.grandmodel = torch.tensor(f.data)  # shape [512, 512, 512]
+            self.grandmodel = torch.tensor(f.data, dtype=torch.float32)  # shape [512, 512, 512]
 
         if self.gaussians_3d:
             self.heatmaps_volume = create_3d_gaussian_volume(particle_locations=self.particle_locations,
