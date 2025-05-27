@@ -266,7 +266,7 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
                                                 (particle_locations['Y'] <= y_max) &
                                                 (particle_locations['Z'] >= z_min) &
                                                 (particle_locations['Z'] <= z_max) &
-                                                (particle_locations['class'] != "4V94")]
+                                                (particle_locations['class'] != "4V94")].copy()
 
         # We subtract the minimum coordinates since we want the locations in the sub_micrograph so to speak
         selected_particles.loc[:, 'X'] = (selected_particles['X'] - x_min)
@@ -532,7 +532,6 @@ class ShrecDataset(Dataset):
 
                 sub_heatmaps_df = create_sub_micrographs(heatmap, self.sub_micrograph_size, self.sampling_points,
                                                          start_z=start_z)
-                sub_heatmaps_df = sub_heatmaps_df.copy()
                 # Resize each heatmap in the DataFrame to (112, 112), we do this weird squeezing because F.interpolate
                 # needs batched input. We take [0:1] because create_sub_micrographs automatically adds three channels
                 sub_heatmaps_df["sub_micrograph"] = sub_heatmaps_df["sub_micrograph"].apply(
