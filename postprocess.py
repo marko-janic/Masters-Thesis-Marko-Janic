@@ -76,7 +76,7 @@ def _get_max_preds(heatmaps) -> Tuple[torch.Tensor, torch.Tensor]:
     preds = torch.zeros((N, K, 2), device=heatmaps.device)
     preds[..., 0] = (idx % W) / W  # normalized x-coordinates
     preds[..., 1] = 1 - (torch.div(idx, W, rounding_mode='trunc') / H)  # normalized y-coordinates, we do this 1 - because the origin of the image
-    # is the bottom left
+    # is the bottom left, torch.div to avoid rounding issues warnings
 
     # Reshape maxvals to match the expected output shape
     maxvals = maxvals.unsqueeze(-1)

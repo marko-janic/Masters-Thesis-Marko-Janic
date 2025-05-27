@@ -43,23 +43,18 @@ def get_args():
     return args
 
 
-def add_noise_to_micrograph(micrograph: torch.Tensor, noise_db: float) -> torch.Tensor:
+def add_noise_to_projections(projections: torch.Tensor, noise_db: float) -> torch.Tensor:
     """
     Adds Gaussian noise to the micrograph to achieve the specified SNR (in dB).
     SNR defined here: https://sites.ualberta.ca/~msacchi/SNR_Def.pdf
     Args:
-        micrograph (torch.Tensor): Input tensor of shape (H, W) or (B, C, H, W).
-        noise_db (float): Desired SNR in dB (signal-to-noise ratio).
+        projections (torch.Tensor): Input tensor of shape (num_projections, H, W)
+        noise_db (float): Desired SNR in dB (signal-to-noise ratio)
 
     Returns:
         torch.Tensor: Noisy micrograph tensor with the same shape as input.
     """
-    # Flatten to (N, *) for batch processing
-    orig_shape = micrograph.shape
-    if micrograph.dim() == 2:
-        signal = micrograph
-    else:
-        signal = micrograph.view(-1, *micrograph.shape[-2:])
+    signal = projections
 
     # Compute signal power
     signal_power = signal.pow(2).mean(dim=(-2, -1), keepdim=True)
@@ -75,10 +70,7 @@ def add_noise_to_micrograph(micrograph: torch.Tensor, noise_db: float) -> torch.
     noisy_signal = signal + noise
 
     # Reshape back to original
-    if micrograph.dim() == 2:
-        return noisy_signal
-    else:
-        return noisy_signal.view(orig_shape)
+    return noisy_signal
 
 
 def create_dummy_dataset(args):
@@ -266,7 +258,7 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
                                                 (particle_locations['Y'] <= y_max) &
                                                 (particle_locations['Z'] >= z_min) &
                                                 (particle_locations['Z'] <= z_max) &
-                                                (particle_locations['class'] != "4V94")].copy()
+                                                (particle_locations['class'] != "4V94")].copy()  # Copy to avoid SettingWithCopyWarning
 
         # We subtract the minimum coordinates since we want the locations in the sub_micrograph so to speak
         selected_particles.loc[:, 'X'] = (selected_particles['X'] - x_min)
@@ -497,6 +489,8 @@ class ShrecDataset(Dataset):
         if self.use_fbp:
             angles = np.linspace(self.fbp_min_angle, self.fbp_max_angle, fbp_num_projections)
             projections = generate_projections(self.grandmodel.permute(2, 1, 0), angles)
+            if self.add_noise:  # We add noise to the projections and then reconstruct to simulate how it would be
+                projections = add_noise_to_projections(projections, noise_db=self.noise)
             self.grandmodel_fbp = reconstruct_fbp_volume(projections, angles, self.grandmodel.shape[0]).permute(2, 1, 0)
 
         self.micrographs = []
@@ -515,10 +509,6 @@ class ShrecDataset(Dataset):
                 micrograph = self.grandmodel[start_z:end_z].sum(dim=0)
             else:
                 micrograph = self.grandmodel_fbp[start_z:end_z].sum(dim=0)
-
-            # TODO: Change this, we don't add noise to the reconstrution but rather to the projections themselves
-            if add_noise:
-                micrograph = add_noise_to_micrograph(micrograph=micrograph, noise_db=self.noise)
 
             self.micrographs.append((micrograph, start_z, end_z))
             sub_micrographs_df = create_sub_micrographs(micrograph, self.sub_micrograph_size, self.sampling_points,
