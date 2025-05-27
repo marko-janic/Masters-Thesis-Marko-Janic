@@ -9,7 +9,7 @@
     "particle_height": 20,
     "particle_depth": 20,
     "add_noise": true,
-    "noise": 5,
+    "noise": 0,
     "one_heatmap": true,
     "gaussians_3d": true,
     "use_fbp": true,
