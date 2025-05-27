@@ -13,7 +13,6 @@
 
 module purge
 module load Miniconda3
-source deactivate
 source activate masters_thesis_marko_janic
 conda list
 
