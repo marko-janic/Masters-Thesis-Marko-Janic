@@ -248,8 +248,8 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         x_max = x_min + sub_micrograph_size
         y_min = coordinates_tl[1].item()
         y_max = y_min + sub_micrograph_size
-        z_min = coordinates_tl[2].item() - (particle_depth/2)
-        z_max = z_min + z_slice_size + (particle_depth/2)
+        z_min = coordinates_tl[2].item() - (particle_depth*0.3)
+        z_max = z_min + z_slice_size + (particle_depth*0.3)
 
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         selected_particles = particle_locations[(particle_locations['X'] >= x_min) &

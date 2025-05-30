@@ -33,7 +33,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_training.json",
+    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
@@ -68,7 +68,10 @@ def get_args():
 
     # Evaluation
     parser.add_argument('--prediction_threshold', type=float,
-                        help='Threshold from which the maximum of a heatmap is considered to be a prediction')  # TODO: Probably not needed anymore
+                        help='Threshold from which the maximum of a heatmap is considered to be a prediction')
+    parser.add_argument('--neighborhood_size', type=int,
+                        help='Only relevant if one_heatmap is True. Determines the neighborhood size for predicting'
+                             'local maxima on heatmap')
 
     # Data and Model
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
@@ -202,7 +205,8 @@ def main():
     # ViT model
     vit_model, vit_image_processor = get_vit_model()
 
-    # Training
+    # Dataset
+    print("Creating Dataset...")
     dataset = get_dataset(args.dataset, args)
 
     # We only need to create the split file if were training, otherwise we read from it
