@@ -251,6 +251,7 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         z_min = coordinates_tl[2].item() - (particle_depth*0.3)
         z_max = z_min + z_slice_size + (particle_depth*0.3)
 
+        # TODO: we want to fix this to include if we only train for one particle here
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
                                                 (particle_locations['X'] <= x_max) &

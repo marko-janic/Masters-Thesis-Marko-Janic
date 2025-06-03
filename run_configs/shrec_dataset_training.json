@@ -1,15 +1,15 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "particle_1U6G_fbp_no_noise",
+    "result_dir_appended_name": "particle_1U6G_fbp_noise_10db",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
     "particle_width": 20,
     "particle_height": 20,
     "particle_depth": 20,
-    "add_noise": false,
-    "noise": 0,
+    "add_noise": true,
+    "noise": 10,
     "one_heatmap": true,
     "gaussians_3d": true,
     "use_fbp": true,
