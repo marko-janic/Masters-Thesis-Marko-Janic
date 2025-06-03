@@ -33,10 +33,11 @@ def get_args():
     parser.add_argument("--noise", type=int, default=10)
     parser.add_argument("--add_noise", type=bool, default=False)
     parser.add_argument("--gaussians_3d", type=bool, default=True)
-    parser.add_argument("--use_fbp", type=bool, default=True)
+    parser.add_argument("--use_fbp", type=bool, default=False)
     parser.add_argument("--fbp_num_projections", type=int, default=60)
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
     parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
+    parser.add_argument("--shrec_specific_particle", type=str, default="1U6G")
 
     args = parser.parse_args()
 
@@ -54,7 +55,8 @@ class ShrecDatasetTests(unittest.TestCase):
                                     gaussians_3d=self.args.gaussians_3d, use_fbp=self.args.use_fbp,
                                     fbp_num_projections=self.args.fbp_num_projections,
                                     fbp_min_angle=self.args.fbp_min_angle, fbp_max_angle=self.args.fbp_max_angle,
-                                    particle_depth=self.args.particle_depth)
+                                    particle_depth=self.args.particle_depth,
+                                    shrec_specific_particle=self.args.shrec_specific_particle)
 
     def test_3d_volume_local_maxima(self):
         heatmaps_volume = self.dataset.heatmaps_volume.cpu().numpy()

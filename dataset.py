@@ -344,7 +344,7 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
 
 
 def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, particle_height, device, amplitude=1.0,
-                              volume_shape=(512, 512, 512)):
+                              volume_shape=(512, 512, 512), shrec_specific_particle=None):
     """
     Creates a 3D tensor with 3D Gaussians centered at each particle location.
     Only computes each Gaussian in a local window around its center.
@@ -355,6 +355,7 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     :param particle_height: Standard deviation for Y axis (in voxels)
     :param device:
     :param amplitude: Peak value of each Gaussian
+    :param shrec_specific_particle Only use this particle for the heatmaps
     :return: 3D torch.Tensor of shape volume_shape
     """
     volume = torch.zeros(volume_shape, dtype=torch.float32, device=device)
@@ -374,6 +375,12 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         if class_name == "4V94":
             continue
+
+        if shrec_specific_particle is None or shrec_specific_particle == "":
+            pass
+        else:
+            if class_name != shrec_specific_particle:  # Only make the particle for the specified particle
+                continue
 
         cx, cy, cz = int(row['X']), int(row['Y']), int(row['Z'])
 
@@ -428,7 +435,8 @@ class ShrecDataset(Dataset):
     def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, particle_depth, noise,
                  gaussians_3d, add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=1,
                  dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
-                 fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60):
+                 fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60,
+                 shrec_specific_particle=None):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -469,6 +477,7 @@ class ShrecDataset(Dataset):
         self.fbp_min_angle = fbp_min_angle
         self.fbp_max_angle = fbp_max_angle
         self.fbp_num_projections = fbp_num_projections
+        self.shrec_specific_particle = shrec_specific_particle
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = (
@@ -484,7 +493,8 @@ class ShrecDataset(Dataset):
             self.heatmaps_volume = create_3d_gaussian_volume(particle_locations=self.particle_locations,
                                                              particle_width=self.particle_width,
                                                              particle_height=self.particle_height, amplitude=1.0,
-                                                             device=self.device)
+                                                             device=self.device,
+                                                             shrec_specific_particle=self.shrec_specific_particle)
 
         if self.use_fbp:
             angles = np.linspace(self.fbp_min_angle, self.fbp_max_angle, fbp_num_projections)

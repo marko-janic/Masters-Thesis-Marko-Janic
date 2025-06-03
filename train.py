@@ -31,7 +31,8 @@ def get_dataset(dataset_name, args):
                             particle_depth=args.particle_depth, noise=args.noise,
                             add_noise=args.add_noise, gaussians_3d=args.gaussians_3d, device=args.device,
                             use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle, fbp_max_angle=args.fbp_max_angle,
-                            fbp_num_projections=args.fbp_num_projections)
+                            fbp_num_projections=args.fbp_num_projections,
+                            shrec_specific_particle=args.shrec_specific_particle)
     else:
         raise Exception(f"The dataset {dataset_name}, is not supported.")
 

@@ -123,6 +123,9 @@ def get_args():
                                                                      "from for the shrec dataset")
     parser.add_argument("--shrec_max_z", type=int, default=360, help="Maximum z to start taking z slices "
                                                                      "from for the shrec dataset")
+    # TODO: Add support for multiple particles maybe?
+    parser.add_argument("--shrec_specific_particle", type=str, default=None,
+                        help="If specified, the dataset will only create 3d gaussians for the specified particle.")
 
     # Outdated / Not used anymore
     # Matcher for crytransformer loss

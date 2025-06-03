@@ -30,5 +30,6 @@
     "shrec_z_slice_size": 1,
     "shrec_model_number": 1,
     "shrec_min_z": 160,
-    "shrec_max_z": 348
+    "shrec_max_z": 348,
+    "shrec_specific_particle": "1U6G"
 }
