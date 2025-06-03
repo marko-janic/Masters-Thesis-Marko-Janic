@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "noisy_fbp_5dB",
+    "result_dir_appended_name": "particle_1U6G_fbp_no_noise",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
