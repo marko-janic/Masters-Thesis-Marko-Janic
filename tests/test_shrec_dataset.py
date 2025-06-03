@@ -7,6 +7,7 @@ import napari
 import matplotlib.pyplot as plt
 import mrcfile as mrc
 import numpy as np
+from skimage.feature import peak_local_max
 from tqdm import tqdm
 
 # Local imports
@@ -54,6 +55,14 @@ class ShrecDatasetTests(unittest.TestCase):
                                     fbp_num_projections=self.args.fbp_num_projections,
                                     fbp_min_angle=self.args.fbp_min_angle, fbp_max_angle=self.args.fbp_max_angle,
                                     particle_depth=self.args.particle_depth)
+
+    def test_3d_volume_local_maxima(self):
+        heatmaps_volume = self.dataset.heatmaps_volume.cpu().numpy()
+        coordinates = torch.from_numpy(peak_local_max(heatmaps_volume, min_distance=6, threshold_abs=0.9))
+        viewer = napari.Viewer()
+        viewer.add_image(heatmaps_volume, name='Heatmaps Volume', colormap='magenta')
+        viewer.add_points(coordinates, size=10, face_color='red')
+        napari.run()
 
     def test_volume(self):
         grandmodel = self.dataset.grandmodel.cpu().numpy()

@@ -72,6 +72,9 @@ def get_args():
     parser.add_argument('--neighborhood_size', type=int,
                         help='Only relevant if one_heatmap is True. Determines the neighborhood size for predicting'
                              'local maxima on heatmap')
+    parser.add_argument('--volume_evaluation', type=bool,
+                        help='If True, the evaluation will be take a 3d volume as input, segment it into z slices'
+                             'and then evaluate everything such that you get all 3d coordinates of the volume.')
 
     # Data and Model
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
@@ -289,6 +292,8 @@ def main():
                 # 1: here because we don't need the class token
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
                 # Right shape for model, we permute the hidden dimension to the second place
+                # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you don't
+                #  change the vit input size
                 latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(args.batch_size, args.latent_dim,
                                                                                  14, 14)
                 outputs = model(latent_micrographs)
