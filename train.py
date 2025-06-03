@@ -68,7 +68,8 @@ def get_targets(args, dataset, index):
                                                                          z_slice_size=dataset.z_slice_size,
                                                                          particle_width=dataset.particle_width,
                                                                          particle_height=dataset.particle_height,
-                                                                         particle_depth=dataset.particle_depth)
+                                                                         particle_depth=dataset.particle_depth,
+                                                                         shrec_specific_particle=args.shrec_specific_particle)
             # We flip it here because of the coordinates being weird
             selected_particles["boxes"][:, 1] = dataset.sub_micrograph_size - selected_particles["boxes"][:, 1]
             selected_particles["boxes"] /= 224

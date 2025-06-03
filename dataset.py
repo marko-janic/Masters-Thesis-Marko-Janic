@@ -230,7 +230,7 @@ class DummyDataset(Dataset):
 
 
 def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_width, particle_height, particle_locations, z_slice_size,
-                                            orientation="normal", particle_depth=0):
+                                            orientation="normal", particle_depth=0, shrec_specific_particle=None):
     """
     Given coordinates, this function determines the location of all relevant particles in the sub micrograph
 
@@ -248,10 +248,12 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         x_max = x_min + sub_micrograph_size
         y_min = coordinates_tl[1].item()
         y_max = y_min + sub_micrograph_size
-        z_min = coordinates_tl[2].item() - (particle_depth*0.3)
-        z_max = z_min + z_slice_size + (particle_depth*0.3)
 
-        # TODO: we want to fix this to include if we only train for one particle here
+        # I chose 4 here because this function doesn't matter for training anymore, and it helps with actually
+        # including the right particles
+        z_min = coordinates_tl[2].item() - (particle_depth * 4)
+        z_max = z_min + z_slice_size + (particle_depth * 4)
+
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
                                                 (particle_locations['X'] <= x_max) &
@@ -260,6 +262,10 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
                                                 (particle_locations['Z'] >= z_min) &
                                                 (particle_locations['Z'] <= z_max) &
                                                 (particle_locations['class'] != "4V94")].copy()  # Copy to avoid SettingWithCopyWarning
+
+        # Conditional filter for shrec_specific_particle
+        if shrec_specific_particle is not None and shrec_specific_particle != "":
+            selected_particles = selected_particles[selected_particles['class'] == shrec_specific_particle]
 
         # We subtract the minimum coordinates since we want the locations in the sub_micrograph so to speak
         selected_particles.loc[:, 'X'] = (selected_particles['X'] - x_min)
