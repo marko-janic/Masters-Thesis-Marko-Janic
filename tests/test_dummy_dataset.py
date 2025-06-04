@@ -13,7 +13,7 @@ from PIL import Image
 
 # Local imports
 from dataset import DummyDataset
-from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
+from utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import save_image_with_bounding_object
 
 

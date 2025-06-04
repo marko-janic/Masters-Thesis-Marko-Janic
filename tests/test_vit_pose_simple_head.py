@@ -5,12 +5,11 @@ import torch
 from torch.utils.data import DataLoader
 
 # Local imports
-from util.utils import create_folder_if_missing
+from utils import create_folder_if_missing
 from model import TopdownHeatmapSimpleHead
-from postprocess import _get_max_preds
 from plotting import save_image, compare_heatmaps_with_ground_truth
 from dataset import DummyDataset
-from train import prepare_dataloaders, create_heatmaps_from_targets
+from train import create_heatmaps_from_targets
 
 # Set the seed for reproducibility
 seed = 42

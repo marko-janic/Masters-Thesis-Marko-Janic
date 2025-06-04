@@ -2,7 +2,7 @@
     "dataset": "shrec",
     "mode": "eval",
     "existing_result_folder": "experiment_2025-06-03_22-27-09_particle_1U6G_fbp_noise_10db",
-    "existing_evaluation_folder": "evaluation_2025-06-04_15-21-36",
+    "existing_evaluation_folder": "",
 
     "batch_size": 1,
 

@@ -4,7 +4,6 @@ import datetime
 
 import napari
 import torch
-import matplotlib.pyplot as plt
 
 import numpy as np
 from skimage.feature import peak_local_max
@@ -13,8 +12,8 @@ from tqdm import tqdm
 
 # Local imports
 from postprocess import _get_max_preds
-from train import create_heatmaps_from_targets, find_optimal_assignment_heatmaps, get_targets
-from util.utils import create_folder_if_missing, transform_coords_to_pixel_coords
+from train import find_optimal_assignment_heatmaps, get_targets
+from utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import compare_predictions_with_ground_truth, compare_heatmaps_with_ground_truth, compare_heatmaps
 from vit_model import get_encoded_image
 

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # Local imports
 from dataset import DummyDataset
-from util.utils import create_folder_if_missing
+from utils import create_folder_if_missing
 from vit_model import get_vit_model, get_encoded_image
 
 

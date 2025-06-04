@@ -6,14 +6,13 @@ import napari
 
 import matplotlib.pyplot as plt
 import mrcfile as mrc
-import numpy as np
 from skimage.feature import peak_local_max
 from tqdm import tqdm
 
 # Local imports
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
 from plotting import save_image_with_bounding_object
-from util.utils import create_folder_if_missing
+from utils import create_folder_if_missing
 
 
 def get_args():

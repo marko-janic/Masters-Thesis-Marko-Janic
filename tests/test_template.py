@@ -5,7 +5,7 @@ import unittest
 import argparse
 
 # Local imports
-from util.utils import create_folder_if_missing
+from utils import create_folder_if_missing
 
 
 def get_args():

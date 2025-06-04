@@ -4,7 +4,6 @@ import os
 import datetime
 import time
 import json
-import random
 
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -13,12 +12,9 @@ from tqdm import tqdm
 
 # Local imports
 from model import TopdownHeatmapSimpleHead
-from util.utils import create_folder_if_missing
-from dataset import DummyDataset
-from loss import build
+from utils import create_folder_if_missing
 from evaluate import evaluate
-from train import prepare_dataloaders, create_heatmaps_from_targets, find_optimal_assignment_heatmaps, get_dataset, \
-    get_targets
+from train import prepare_dataloaders, find_optimal_assignment_heatmaps, get_dataset, get_targets
 from plotting import save_image_with_bounding_object, plot_loss_log, compare_heatmaps_with_ground_truth
 from vit_model import get_vit_model, get_encoded_image
 
@@ -33,7 +29,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
+    parser.add_argument("--config", type=str, default="",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
@@ -241,13 +237,11 @@ def main():
     model.init_weights()
     model.to(args.device)
 
-    criterion, postprocessors = build(args)  # TODO: remove this its not used anymore
     mse_loss = torch.nn.MSELoss()
 
     if args.mode == "train":
         optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
         model.train()
-        criterion.train()  # TODO: remove this its not used anymore
 
         last_checkpoint_time = time.time()
         # This is different from batch_index as this only counts how many batches have been done since the last avg_loss

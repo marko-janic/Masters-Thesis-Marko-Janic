@@ -4,11 +4,10 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import numpy as np
 
 # Local imports
 
-from util.utils import create_folder_if_missing
+from utils import create_folder_if_missing
 
 matplotlib.use('Agg')  # To avoid error: _tkinter.TclError: no display name and no $DISPLAY environment variable
 plt.rcParams['figure.dpi'] = 300
