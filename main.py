@@ -33,11 +33,15 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Program Arguments
-    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_training.json",
+    parser.add_argument("--config", type=str, default="run_configs/shrec_dataset_evaluation.json",
                         help="Path to the configuration file")
     parser.add_argument("--mode", type=str, help="Mode to run the program in: train, eval")
     parser.add_argument("--existing_result_folder", type=str, default="",
                         help="Path to existing result folder to load model from.")
+    parser.add_argument("--existing_evaluation_folder", type=str, default="",
+                        help="Name (not path) of existing evaluation folder within the specified experiment folder."
+                             "Added so that you can reevaluate volumes or revisualize them without having to recompute"
+                             "the entire volume.")
     parser.add_argument("--device", type=str, default="cpu", help="Device to use")
 
     # Experiment Results
@@ -173,6 +177,9 @@ def get_args():
     if args.use_fbp and not args.gaussians_3d:
         raise Exception("You can't set use_fbp to True but not gaussians_3d. use_fbp requires that you use 3d "
                         "gaussians.")
+    if args.existing_evaluation_folder != "" and args.existing_result_folder == "":
+        raise Exception("You specified an existing evaluation folder but not an experiment folder, please specify the "
+                        "experiment folder in which the existing evaluation folder exists.")
 
     return args
 

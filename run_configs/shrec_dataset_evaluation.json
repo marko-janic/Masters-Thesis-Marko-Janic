@@ -1,7 +1,8 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-05-23_02-00-48_3d_gaussians_variance_divided_by_3.5",
+    "existing_result_folder": "experiment_2025-06-03_22-27-09_particle_1U6G_fbp_noise_10db",
+    "existing_evaluation_folder": "evaluation_2025-06-04_15-21-36",
 
     "batch_size": 1,
 
@@ -10,14 +11,15 @@
     "particle_width": 20,
     "particle_height": 20,
     "particle_depth": 20,
-    "prediction_threshold": 0.7,
+    "prediction_threshold": 0.5,
+    "neighborhood_size": 10,
     "add_noise": false,
-    "noise": 10,
+    "noise": 0,
     "one_heatmap": true,
     "gaussians_3d": true,
-    "use_fbp": false,
+    "use_fbp": true,
     "fbp_num_projections": 60,
-    "volume_evaluation": false,
+    "volume_evaluation": true,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,
