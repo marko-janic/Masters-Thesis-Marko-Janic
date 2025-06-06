@@ -62,15 +62,12 @@ def get_args():
     parser.add_argument("--split_file_name", type=str, default="dataset_split_indices.json",
                         help="File with dataset split indices. Used to get the same train test split after program has"
                              "already been run")
-    parser.add_argument("--one_heatmap", type=bool,
-                        help="If set to true the targets for the model will contain one heatmap with multiple gaussians"
-                             "on it instead of having one heatmap per prediction.")
 
     # Evaluation
     parser.add_argument('--prediction_threshold', type=float,
                         help='Threshold from which the maximum of a heatmap is considered to be a prediction')
     parser.add_argument('--neighborhood_size', type=int,
-                        help='Only relevant if one_heatmap is True. Determines the neighborhood size for predicting'
+                        help='Determines the neighborhood size for predicting'
                              'local maxima on heatmap')
     parser.add_argument('--volume_evaluation', type=bool,
                         help='If True, the evaluation will be take a 3d volume as input, segment it into z slices'
@@ -167,9 +164,6 @@ def get_args():
         print("Running in training mode")
 
     # Some validation here
-    if args.gaussians_3d and not args.one_heatmap:
-        raise Exception("You can't set gaussians_3d to True but not one_heatmap. gaussians_3d will always produce"
-                        "one_heatmap. This is important for the model, see code.")
     if args.use_fbp and not args.gaussians_3d:
         raise Exception("You can't set use_fbp to True but not gaussians_3d. use_fbp requires that you use 3d "
                         "gaussians.")
@@ -227,12 +221,7 @@ def main():
                                                             use_train_dataset_for_evaluation=
                                                             args.use_train_dataset_for_evaluation)
 
-    if not args.one_heatmap:
-        model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
-                                         out_channels=args.num_particles)
-    else:
-        model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim,
-                                         out_channels=1)
+    model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1)
 
     model.init_weights()
     model.to(args.device)

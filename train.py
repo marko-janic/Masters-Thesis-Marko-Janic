@@ -43,7 +43,6 @@ def get_targets(args, dataset, index):
     :param args: Needs (See the args for docs):
         dataset,
         device,
-        one_heatmap,
         num_particles,
     :param dataset: torch dataset class
     :param index: Depends on the dataset:
@@ -57,7 +56,7 @@ def get_targets(args, dataset, index):
     if args.dataset == "dummy":
         targets = dataset.get_targets_from_target_indexes(index, args.device)
         target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                       device=args.device, one_heatmap=args.one_heatmap)
+                                                       device=args.device)
         return target_heatmaps, targets
     elif args.dataset == "shrec":
         targets = []
@@ -79,7 +78,7 @@ def get_targets(args, dataset, index):
             target_heatmaps = dataset.get_target_heatmaps_from_3d_gaussians(index, batch_size=args.batch_size)
         else:
             target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                           device=args.device, one_heatmap=args.one_heatmap)
+                                                           device=args.device)
 
         return target_heatmaps, targets
     else:
@@ -129,7 +128,7 @@ def prepare_dataloaders(dataset, train_eval_split, batch_size, result_dir, split
     return train_dataloader, test_dataloader
 
 
-def create_heatmaps_from_targets(data_list, num_predictions, device, one_heatmap=False):
+def create_heatmaps_from_targets(data_list, num_predictions, device):
     """
     Create heatmaps for particles in a batch of images using PyTorch's MultivariateNormal.
 
@@ -138,7 +137,6 @@ def create_heatmaps_from_targets(data_list, num_predictions, device, one_heatmap
         (num_particles x 4).
         num_predictions (int): Number of predictions (heatmaps) to generate for each image.
         device:
-        one_heatmap: If set to true the target heatmap will just be one summed one so to speak
 
     Returns:
         torch.Tensor: A tensor of size (batch_size x num_predictions x 112 x 112).
@@ -181,8 +179,7 @@ def create_heatmaps_from_targets(data_list, num_predictions, device, one_heatmap
             # Add the Gaussian to the heatmap
             output[batch_idx, particle_idx] = heatmap
 
-    if one_heatmap:
-        output = output.max(dim=1, keepdim=True)[0]  # at [1] it would be the indices but we don't care about those
+    output = output.max(dim=1, keepdim=True)[0]  # at [1] it would be the indices but we don't care about those
 
     return output.to(device)
 

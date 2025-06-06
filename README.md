@@ -18,8 +18,6 @@ calculate predictions by taking local maxima of each heatmap and checking if it'
 The output of the vit model is 197 due to the embedded patches + class token. We don't use the class token.
 
 ### Important arguments
-- one_heatmap: If set to true the targets for the model will contain one heatmap with multiple gaussians on it instead 
-of having one heatmap per prediction.
 - particle_width
 - particle_height
 - mode

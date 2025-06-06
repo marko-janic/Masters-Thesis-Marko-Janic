@@ -113,7 +113,6 @@ def generate_heatmaps_volume(dataset, vit_model, vit_image_processor, device, la
 def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataloader, criterion, example_predictions):
     """
     :param args: Needs:
-        one_heatmap
         result_dir
         dataset
         num_particles
@@ -250,63 +249,34 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 losses = criterion(outputs["heatmaps"], reordered_target_heatmaps)
                 running_loss += losses.item()
 
-                if not args.one_heatmap:
-                    pred_coords, pred_scores = _get_max_preds(outputs["heatmaps"])
-                    particle_width_height_columns = torch.full((pred_coords.shape[0], pred_coords.shape[1], 2),
-                                                               args.particle_width / args.vit_input_size,
-                                                               device=pred_coords.device)
-                    pred_coords = torch.cat([pred_coords, particle_width_height_columns], dim=2)
-                    # Filter pred_coords based on scores > threshold while preserving batch dimensions
-                    pred_coords = torch.where(pred_scores > args.prediction_threshold, pred_coords,
-                                              torch.zeros_like(pred_coords))
-                    pred_coords = transform_coords_to_pixel_coords(args.vit_input_size, args.vit_input_size, pred_coords)
-                    pixel_difference = pred_coords[:, :, :2] - reordered_padded_target_boxes
+                heatmap_for_maxima = target_heatmaps[0, 0, :, :].cpu().numpy()
+                predictions = torch.from_numpy(peak_local_max(heatmap_for_maxima, min_distance=5,
+                                                              threshold_abs=args.prediction_threshold))
+                predictions *= 2  # The heatmaps are size 112 x 112 and the actual coordinates are 224 x 224
+                predictions[:, 0] = args.vit_input_size - predictions[:, 0]
+                predictions = predictions[:, [1, 0]]
+                target_coordinates = targets[0]['boxes'][:, :2]*args.vit_input_size
 
-                    target_exists = reordered_padded_target_boxes[:, :, 0] >= 0
-                    pred_exists = (pred_coords[:, :, 2] > 0) & (pred_coords[:, :, 3] > 0)
+                num_predictions = predictions.shape[0]
+                num_targets = target_coordinates.shape[0]
 
-                    # Missed predictions: target exists but no prediction
-                    missed_predictions += (target_exists & ~pred_exists).sum().item()
+                # Compute pairwise distances (num_predictions, num_targets), p=2 for euclidian distance
+                dists = torch.cdist(predictions.float(), target_coordinates.float(), p=2).cpu().numpy()
+                # Hungarian algorithm for optimal assignment
+                row_ind, col_ind = linear_sum_assignment(dists)
+                # Only consider matches where both indices are valid
+                matched_dists = dists[row_ind, col_ind]
+                avg_pixels_off = matched_dists.mean() if len(matched_dists) > 0 else 0.0
 
-                    # Extra predictions: prediction exists but no target
-                    extra_predictions = (~target_exists & pred_exists).sum().item()
+                # Extra predictions: predictions not matched (if more predictions than targets)
+                extra_predictions += max(0, num_predictions - num_targets)
+                # Missing predictions: targets not matched (if more targets than predictions)
+                missed_predictions += max(0, num_targets - num_predictions)
 
-                    # Correct predictions: both exist
-                    correct_predictions_mask = target_exists & pred_exists
-                    if correct_predictions_mask.sum() > 0:
-                        correct_pixel_diffs = pixel_difference[correct_predictions_mask]
-                        avg_pixels_off = correct_pixel_diffs.norm(dim=1).mean().item()
-                    else:
-                        avg_pixels_off = 0.0
-                else:
-                    heatmap_for_maxima = target_heatmaps[0, 0, :, :].cpu().numpy()
-                    predictions = torch.from_numpy(peak_local_max(heatmap_for_maxima, min_distance=5,
-                                                                  threshold_abs=args.prediction_threshold))
-                    predictions *= 2  # The heatmaps are size 112 x 112 and the actual coordinates are 224 x 224
-                    predictions[:, 0] = args.vit_input_size - predictions[:, 0]
-                    predictions = predictions[:, [1, 0]]
-                    target_coordinates = targets[0]['boxes'][:, :2]*args.vit_input_size
-
-                    num_predictions = predictions.shape[0]
-                    num_targets = target_coordinates.shape[0]
-
-                    # Compute pairwise distances (num_predictions, num_targets), p=2 for euclidian distance
-                    dists = torch.cdist(predictions.float(), target_coordinates.float(), p=2).cpu().numpy()
-                    # Hungarian algorithm for optimal assignment
-                    row_ind, col_ind = linear_sum_assignment(dists)
-                    # Only consider matches where both indices are valid
-                    matched_dists = dists[row_ind, col_ind]
-                    avg_pixels_off = matched_dists.mean() if len(matched_dists) > 0 else 0.0
-
-                    # Extra predictions: predictions not matched (if more predictions than targets)
-                    extra_predictions += max(0, num_predictions - num_targets)
-                    # Missing predictions: targets not matched (if more targets than predictions)
-                    missed_predictions += max(0, num_targets - num_predictions)
-
-                    pred_coords = predictions
-                    particle_width_height_columns = torch.full((pred_coords.shape[0], pred_coords.shape[1]),
-                                                               args.particle_width, device=pred_coords.device)
-                    pred_coords = torch.cat([pred_coords, particle_width_height_columns], dim=1).unsqueeze(0)
+                pred_coords = predictions
+                particle_width_height_columns = torch.full((pred_coords.shape[0], pred_coords.shape[1]),
+                                                           args.particle_width, device=pred_coords.device)
+                pred_coords = torch.cat([pred_coords, particle_width_height_columns], dim=1).unsqueeze(0)
 
                 running_missing_predictions += missed_predictions
                 running_extra_predictions += extra_predictions

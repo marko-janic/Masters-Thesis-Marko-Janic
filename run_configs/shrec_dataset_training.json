@@ -10,7 +10,6 @@
     "particle_depth": 20,
     "add_noise": true,
     "noise": 0,
-    "one_heatmap": true,
     "gaussians_3d": true,
     "use_fbp": true,
     "fbp_num_projections": 60,

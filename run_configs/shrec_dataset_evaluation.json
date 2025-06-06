@@ -15,7 +15,6 @@
     "neighborhood_size": 10,
     "add_noise": false,
     "noise": 0,
-    "one_heatmap": true,
     "gaussians_3d": true,
     "use_fbp": true,
     "fbp_num_projections": 60,
