@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "TESTING_particle_1U6G_fbp_noise_0db",
+    "result_dir_appended_name": "particle_1U6G_fbp_noise_20db",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
@@ -9,7 +9,7 @@
     "particle_height": 20,
     "particle_depth": 20,
     "add_noise": true,
-    "noise": 0,
+    "noise": 20,
     "gaussians_3d": true,
     "use_fbp": true,
     "fbp_num_projections": 60,
@@ -21,7 +21,7 @@
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
 
-    "train_eval_split": 0.9,
+    "train_eval_split": 1,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
 

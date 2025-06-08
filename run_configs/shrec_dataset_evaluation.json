@@ -1,8 +1,8 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-03_22-27-09_particle_1U6G_fbp_noise_10db",
-    "existing_evaluation_folder": "",
+    "existing_result_folder": "experiment_2025-06-03_22-12-39_particle_1U6G_fbp_no_noise",
+    "existing_evaluation_folder": "evaluation_2025-06-04_14-01-31",
 
     "batch_size": 1,
 
@@ -11,14 +11,16 @@
     "particle_width": 20,
     "particle_height": 20,
     "particle_depth": 20,
-    "prediction_threshold": 0.5,
-    "neighborhood_size": 10,
     "add_noise": false,
     "noise": 0,
     "gaussians_3d": true,
     "use_fbp": true,
     "fbp_num_projections": 60,
+
     "volume_evaluation": true,
+    "missing_pred_threshold": 30,
+    "prediction_threshold": 0.7,
+    "neighborhood_size": 10,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,

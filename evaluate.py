@@ -164,7 +164,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         "prediction_threshold",
         "neighborhood_size",
         "volume_evaluation",
-        "existing_evaluation_folder"
+        "existing_evaluation_folder",
+        "split_file_name"
     ]
     arguments_file_evaluation = os.path.join(result_dir, 'arguments.txt')
     arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')
@@ -334,13 +335,13 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                                           threshold_abs=args.prediction_threshold))
             coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are smaller
 
-            target_heatmap_volume = dataset.heatmaps_volume
-            viewer = napari.Viewer()
-            viewer.add_points(coordinates, size=5, face_color='red')
-            viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
-            viewer.add_image(output_heatmaps_volume_numpy, name='Output Heatmaps Volume', colormap='magenta')
-            viewer.add_image(dataset.grandmodel.cpu().numpy(), name='Grandmodel Volume', colormap='gray')
-            napari.run()
+            #target_heatmap_volume = dataset.heatmaps_volume
+            #viewer = napari.Viewer()
+            #viewer.add_points(coordinates, size=5, face_color='red')
+            #viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
+            #viewer.add_image(output_heatmaps_volume_numpy, name='Output Heatmaps Volume', colormap='magenta')
+            #viewer.add_image(dataset.grandmodel.cpu().numpy(), name='Grandmodel Volume', colormap='gray')
+            #napari.run()
 
             # We take order z, y, x because that's how peak_local_max returns them as well
             if args.shrec_specific_particle is None or args.shrec_specific_particle == "":
@@ -350,36 +351,68 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                     dataset.particle_locations['class'] == args.shrec_specific_particle]
                 target_coordinates = torch.tensor(filtered_particle_locations[['Z', 'Y', 'X']].values)
 
-            num_predictions = coordinates.shape[0]
-            num_targets = target_coordinates.shape[0]
+            pred_coords = coordinates.float()
+            tgt_coords = target_coordinates.float()
+            num_preds = pred_coords.shape[0]
+            num_targets = tgt_coords.shape[0]
 
-            # Compute pairwise distances (num_predictions, num_targets), p=2 for euclidian distance
-            dists = torch.cdist(coordinates.float(), target_coordinates.float(), p=2).cpu().numpy()  # TODO check if .float() call is necessary
-            # Hungarian algorithm for optimal assignment
-            row_ind, col_ind = linear_sum_assignment(dists)
-            # Only consider matches where both indices are valid
-            matched_dists = dists[row_ind, col_ind]
+            # Compute pairwise distances (num_preds, num_targets)
+            dists = torch.cdist(pred_coords, tgt_coords, p=2).cpu().numpy()
+            # Assign each prediction to the closest target
+            pred_to_target = dists.argmin(axis=1)
+            pred_to_target_dist = dists[np.arange(num_preds), pred_to_target]
+
+            # Remove predictions that are too far from any target (count as extra)
+            assigned_preds = {}
+            extra_predictions = 0
+            for pred_idx, (tgt_idx, dist) in enumerate(zip(pred_to_target, pred_to_target_dist)):
+                if dist > args.missing_pred_threshold:
+                    extra_predictions += 1
+                else:
+                    assigned_preds.setdefault(tgt_idx, []).append((pred_idx, dist))
+
+            missed_predictions = 0
+            matched_dists = []
+            for tgt_idx in range(num_targets):
+                preds_for_target = assigned_preds.get(tgt_idx, [])
+                if len(preds_for_target) == 0:
+                    missed_predictions += 1
+                elif len(preds_for_target) == 1:
+                    # One prediction for this target
+                    matched_dists.append(preds_for_target[0][1])
+                else:
+                    # Multiple predictions: pick the closest, others are extra
+                    preds_for_target.sort(key=lambda x: x[1])
+                    matched_dists.append(preds_for_target[0][1])
+                    extra_predictions += len(preds_for_target) - 1
+
+            avg_pixels_off = np.mean(matched_dists) if matched_dists else 0.0
 
             avg_loss = 0  # TODO: compute mse between target and produced heatmap here
-            avg_pixel_loss = matched_dists.mean() if len(matched_dists) > 0 else 0.0
-            # Extra predictions: predictions not matched (if more predictions than targets)
-            avg_extra_predictions = max(0, num_predictions - num_targets)
-            # Missing predictions: targets not matched (if more targets than predictions)
-            avg_missed_predictions = max(0, num_targets - num_predictions)
+            avg_pixel_loss = avg_pixels_off
+            avg_missed_predictions = missed_predictions
+            avg_extra_predictions = extra_predictions
 
+    print(f"Total number of predictions: {num_preds}")
+    print(f"Total number of targets: {num_targets}")
     print(f"Average evaluation loss: {avg_loss}")
     print(f"Average pixel loss: {avg_pixel_loss}")
     print(f"Missed predictions: {avg_missed_predictions}")
     print(f"Extra predictions: {avg_extra_predictions}")
+    print(f"prediction_threshold: {args.prediction_threshold}")
+    print(f"neighborhood_size: {args.neighborhood_size}")
+    print(f"missing_pred_threshold: {args.missing_pred_threshold}")
 
     # Logging the running loss to a txt file
     log_file_path = os.path.join(result_dir, "evaluation_log.txt")
     with open(log_file_path, "a") as log_file:
         log_file.write(f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        log_file.write(f"Total number of predictions: {num_preds}")
         log_file.write(f"Average evaluation loss: {avg_loss}\n")
         log_file.write(f"Average pixel loss: {avg_pixel_loss}\n")
         log_file.write(f"Average number of missed predictions: {avg_missed_predictions}\n")
         log_file.write(f"Average number of extra predictions: {avg_extra_predictions}\n")
         log_file.write(f"prediction_threshold: {args.prediction_threshold}\n")
         log_file.write(f"neighborhood_size: {args.neighborhood_size}\n")
+        log_file.write(f"missing_pred_threshold: {args.missing_pred_threshold}\n")
 

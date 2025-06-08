@@ -72,6 +72,9 @@ def get_args():
     parser.add_argument('--volume_evaluation', type=bool,
                         help='If True, the evaluation will be take a 3d volume as input, segment it into z slices'
                              'and then evaluate everything such that you get all 3d coordinates of the volume.')
+    parser.add_argument("--missing_pred_threshold", type=int,
+                        help="Predictions that are further away than this parameter (in pixels) from a valid target "
+                             "will be counted as missed predictions")
 
     # Data and Model
     parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
