@@ -251,8 +251,8 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
 
         # I chose 4 here because this function doesn't matter for training anymore, and it helps with actually
         # including the right particles
-        z_min = coordinates_tl[2].item() - (particle_depth * 4)
-        z_max = z_min + z_slice_size + (particle_depth * 4)
+        z_min = coordinates_tl[2].item() - particle_depth
+        z_max = z_min + z_slice_size + particle_depth
 
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
