@@ -274,8 +274,8 @@ def compare_heatmaps(heatmaps_gt, heatmaps_pred, result_folder_name, result_dir)
         ax1.set_title('Ground Truth')
         ax2.set_title('Predictions')
 
-        im1 = ax1.imshow(heatmaps_gt[i])
-        im2 = ax2.imshow(heatmaps_pred[i])
+        im1 = ax1.imshow(heatmaps_gt[i], vmin=0, vmax=1)
+        im2 = ax2.imshow(heatmaps_pred[i], vmin=0, vmax=1)
 
         cbar1 = fig.colorbar(im1, ax=ax1, orientation='vertical', shrink=0.5)
         cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
