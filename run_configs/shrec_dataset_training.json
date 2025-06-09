@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "TESTING_MIUMAU",
+    "result_dir_appended_name": "shrec_multiple_volumes_particle_1U6G",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
@@ -18,7 +18,7 @@
     "epochs": 200,
     "batch_size": 16,
     "learning_rate": 0.001,
-    "checkpoint_interval": 60,
+    "checkpoint_interval": 1800,
     "loss_log_file": "loss_log.txt",
 
     "train_eval_split": 1,
@@ -27,8 +27,8 @@
 
     "shrec_sampling_points": 3,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1],
+    "shrec_model_number": [0, 1, 2, 3, 4],
     "shrec_min_z": 170,
-    "shrec_max_z": 200,
+    "shrec_max_z": 360,
     "shrec_specific_particle": "1U6G"
 }
