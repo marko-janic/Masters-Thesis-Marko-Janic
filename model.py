@@ -55,7 +55,8 @@ class TopdownHeatmapSimpleHead(nn.Module):
                  in_channels,
                  out_channels,
                  num_deconv_layers=3,
-                 num_deconv_filters=(64, 32, 16),
+                 # TODO: add the deconv filters as arguments
+                 num_deconv_filters=(128, 64, 32),
                  num_deconv_kernels=(4, 4, 4),
                  extra=None,
                  in_index=0,
@@ -292,6 +293,7 @@ class TopdownHeatmapSimpleHead(nn.Module):
                     bias=False))
             layers.append(nn.BatchNorm2d(planes))
             layers.append(nn.ReLU(inplace=True))
+            layers.append(nn.Dropout2d(0.2))
             self.in_channels = planes
 
         return nn.Sequential(*layers)
