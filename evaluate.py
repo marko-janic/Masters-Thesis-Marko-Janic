@@ -349,15 +349,15 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             output_heatmaps_volume_numpy = resize(output_heatmaps_volume_numpy, (512, 512, 512), order=1,
                                                   preserve_range=True, anti_aliasing=True)
             viewer.add_image(output_heatmaps_volume_numpy, name='Output Heatmaps Volume', colormap='magenta')
-            viewer.add_image(dataset.grandmodel.cpu().numpy(), name='Grandmodel Volume', colormap='gray')
+            viewer.add_image(dataset.grandmodel[args.shrec_model_number[0]].cpu().numpy(), name='Grandmodel Volume', colormap='gray')
             napari.run()
 
             # We take order z, y, x because that's how peak_local_max returns them as well
             if args.shrec_specific_particle is None or args.shrec_specific_particle == "":
                 target_coordinates = torch.tensor(dataset.particle_locations[['Z', 'Y', 'X']].values)
             else:
-                filtered_particle_locations = dataset.particle_locations[
-                    dataset.particle_locations['class'] == args.shrec_specific_particle]
+                filtered_particle_locations = dataset.particle_locations[args.shrec_model_number[0]][
+                    dataset.particle_locations[args.shrec_model_number[0]]['class'] == args.shrec_specific_particle]
                 target_coordinates = torch.tensor(filtered_particle_locations[['Z', 'Y', 'X']].values)
 
             pred_coords = coordinates.float()

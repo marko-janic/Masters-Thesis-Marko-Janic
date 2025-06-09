@@ -1,8 +1,8 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-09_15-54-24_TESTING_MIUMAU",
-    "existing_evaluation_folder": "",
+    "existing_result_folder": "experiment_2025-06-09_19-38-48_multiple_shrec_volumes_smaller_model_128_64_32",
+    "existing_evaluation_folder": "evaluation_2025-06-09_23-06-20_model4",
 
     "batch_size": 1,
 
@@ -30,8 +30,8 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [1, 3],
+    "shrec_model_number": [4],
     "shrec_min_z": 160,
-    "shrec_max_z": 200,
+    "shrec_max_z": 360,
     "shrec_specific_particle": "1U6G"
 }
