@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "multiple_shrec_volumes_smaller_model_128_64_32",
+    "result_dir_appended_name": "multiple_shrec_volumes_model_64_32_16",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
@@ -24,7 +24,7 @@
     "latent_dim": 768,
     "num_patch_embeddings": 196,
 
-    "shrec_sampling_points": 3,
+    "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
     "shrec_model_number": [0, 1, 2, 3, 4],
     "shrec_min_z": 170,
