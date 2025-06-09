@@ -118,8 +118,11 @@ def get_args():
                              "sampling_points^2 * num_z_slices")
     parser.add_argument("--shrec_z_slice_size", type=int, help="Size in pixels for z slices for the shrec "
                                                                "dataset")
-    parser.add_argument("--shrec_model_number", type=int, default=1,
-                        help="Which model of the shrec dataset to use, there are models from 0 to 9")
+    parser.add_argument("--shrec_model_number", type=int, default=[1],
+                        help="Which models of the shrec dataset to use, there are models from 0 to 9. "
+                             "Has to be specified as a list and these are the models that will be used during training."
+                             "For evaluation it will only take the first element in the list, irrespective of what"
+                             "you specify after in the list")
     parser.add_argument("--shrec_min_z", type=int, default=150, help="Minimum z to start taking z slices "
                                                                      "from for the shrec dataset")
     parser.add_argument("--shrec_max_z", type=int, default=360, help="Maximum z to start taking z slices "
@@ -249,10 +252,10 @@ def main():
         for epoch in range(args.epochs):
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
-            for batch_index, (micrographs, index, orientation) in enumerate(train_dataloader):
+            for batch_index, (micrographs, index, orientation, model_number) in enumerate(train_dataloader):
                 batch_counter += 1
 
-                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index, orientation=orientation)
+                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index, orientation=orientation, model_number=model_number)
 
                 if plotted < 20:  # TODO: move this into seperate function
                     save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*args.vit_input_size,

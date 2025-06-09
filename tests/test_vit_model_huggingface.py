@@ -33,7 +33,7 @@ class VitModelHuggingFaceTests(unittest.TestCase):
         self.dataset = DummyDataset(dataset_size=self.args.dataset_size, dataset_path=self.args.dataset_path)
 
     def test_shapes(self):
-        micrograph, _ = self.dataset.__getitem__(0)
+        micrograph, _, _, _ = self.dataset.__getitem__(0)
         micrograph = micrograph.unsqueeze(0)  # get it to batch x channel x h x w
         outputs = get_encoded_image(micrograph, self.vit_model, self.vit_image_processor)
         print(f"Output last hidden state shape: {outputs['last_hidden_state'].shape}")
@@ -42,7 +42,7 @@ class VitModelHuggingFaceTests(unittest.TestCase):
               f"{outputs['hidden_states'][0].shape} ")
 
     def test_vit_image_processor(self):
-        micrograph, _ = self.dataset.__getitem__(0)
+        micrograph, _, _, _ = self.dataset.__getitem__(0)
         micrograph = micrograph.unsqueeze(0)  # get it to batch x channel x h x w
         processed_micrograph = self.vit_image_processor(images=micrograph, return_tensors='pt', do_rescale=False)
         print(f"Processed_micrograph shape: {processed_micrograph['pixel_values'].shape}")

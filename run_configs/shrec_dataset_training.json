@@ -1,34 +1,34 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "particle_1U6G_fbp_noise_20db",
+    "result_dir_appended_name": "TESTING_MIUMAU",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
     "particle_width": 20,
     "particle_height": 20,
     "particle_depth": 20,
-    "add_noise": true,
-    "noise": 20,
+    "add_noise": false,
+    "noise": 0,
     "gaussians_3d": true,
-    "use_fbp": true,
+    "use_fbp": false,
     "fbp_num_projections": 60,
 
     "device": "cuda",
     "epochs": 200,
     "batch_size": 16,
     "learning_rate": 0.001,
-    "checkpoint_interval": 3600,
+    "checkpoint_interval": 60,
     "loss_log_file": "loss_log.txt",
 
     "train_eval_split": 1,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
 
-    "shrec_sampling_points": 16,
+    "shrec_sampling_points": 3,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": 1,
-    "shrec_min_z": 160,
-    "shrec_max_z": 348,
+    "shrec_model_number": [0, 1],
+    "shrec_min_z": 170,
+    "shrec_max_z": 200,
     "shrec_specific_particle": "1U6G"
 }

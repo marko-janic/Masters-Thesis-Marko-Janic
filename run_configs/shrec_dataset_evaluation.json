@@ -1,8 +1,8 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-03_22-12-39_particle_1U6G_fbp_no_noise",
-    "existing_evaluation_folder": "evaluation_2025-06-04_14-01-31",
+    "existing_result_folder": "experiment_2025-06-09_15-24-41_TESTING_MIUMAU",
+    "existing_evaluation_folder": "",
 
     "batch_size": 1,
 
@@ -14,25 +14,25 @@
     "add_noise": false,
     "noise": 0,
     "gaussians_3d": true,
-    "use_fbp": true,
+    "use_fbp": false,
     "fbp_num_projections": 60,
 
     "volume_evaluation": true,
-    "missing_pred_threshold": 30,
-    "prediction_threshold": 0.7,
+    "missing_pred_threshold": 10,
+    "prediction_threshold": 0.5,
     "neighborhood_size": 10,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,
 
-    "train_eval_split": 0.9,
+    "train_eval_split": 0.95,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": 1,
+    "shrec_model_number": [1, 3],
     "shrec_min_z": 160,
-    "shrec_max_z": 348,
+    "shrec_max_z": 200,
     "shrec_specific_particle": "1U6G"
 }

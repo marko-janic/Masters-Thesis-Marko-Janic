@@ -37,7 +37,7 @@ def get_dataset(dataset_name, args):
         raise Exception(f"The dataset {dataset_name}, is not supported.")
 
 
-def get_targets(args, dataset, index, orientation):
+def get_targets(args, dataset, index, orientation, model_number):
     """
     Gives you back targets depending on your dataset
     :param args: Needs (See the args for docs):
@@ -64,7 +64,7 @@ def get_targets(args, dataset, index, orientation):
         for i in range(len(index)):
             selected_particles = get_particle_locations_from_coordinates(coordinates_tl=index[i],
                                                                          sub_micrograph_size=dataset.sub_micrograph_size,
-                                                                         particle_locations=dataset.particle_locations,
+                                                                         particle_locations=dataset.particle_locations[model_number[i].item()],
                                                                          z_slice_size=dataset.z_slice_size,
                                                                          particle_width=dataset.particle_width,
                                                                          particle_height=dataset.particle_height,
@@ -78,7 +78,8 @@ def get_targets(args, dataset, index, orientation):
 
         if args.gaussians_3d:
             target_heatmaps = dataset.get_target_heatmaps_from_3d_gaussians(index, batch_size=args.batch_size,
-                                                                            orientations=orientation)
+                                                                            orientations=orientation,
+                                                                            model_numbers=model_number)
         else:
             target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
                                                            device=args.device)

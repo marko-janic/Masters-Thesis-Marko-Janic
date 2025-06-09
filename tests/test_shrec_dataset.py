@@ -25,7 +25,7 @@ def get_args():
     parser.add_argument("--min_z", type=int, default=200)
     parser.add_argument("--max_z", type=int, default=210)
     parser.add_argument("--example_visualizations", type=int, default=20)
-    parser.add_argument("--model_number", type=int, default=3)
+    parser.add_argument("--model_number", type=int, default=[3])
     parser.add_argument("--particle_width", type=int, default=20)
     parser.add_argument("--particle_height", type=int, default=20)
     parser.add_argument("--particle_depth", type=int, default=20)
@@ -55,18 +55,27 @@ class ShrecDatasetTests(unittest.TestCase):
                                     fbp_num_projections=self.args.fbp_num_projections,
                                     fbp_min_angle=self.args.fbp_min_angle, fbp_max_angle=self.args.fbp_max_angle,
                                     particle_depth=self.args.particle_depth,
-                                    shrec_specific_particle=self.args.shrec_specific_particle, model_number=self.args.model_number)
+                                    shrec_specific_particle=self.args.shrec_specific_particle,
+                                    model_number=self.args.model_number)
 
     def test_orientations(self):
-        micrograph_0, idx_0, orientation_0 = self.dataset.__getitem__(0)
-        micrograph_1, idx_1, orientation_1 = self.dataset.__getitem__(1)
-        micrograph_2, idx_2, orientation_2 = self.dataset.__getitem__(2)
-        micrograph_3, idx_3, orientation_3 = self.dataset.__getitem__(3)
+        micrograph_0, idx_0, orientation_0, model_number_0 = self.dataset.__getitem__(0)
+        micrograph_1, idx_1, orientation_1, model_number_1 = self.dataset.__getitem__(1)
+        micrograph_2, idx_2, orientation_2, model_number_2 = self.dataset.__getitem__(2)
+        micrograph_3, idx_3, orientation_3, model_number_3 = self.dataset.__getitem__(3)
 
-        heatmap_0 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_0.unsqueeze(0), 1, [orientation_0])
-        heatmap_1 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_1.unsqueeze(0), 1, [orientation_1])
-        heatmap_2 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_2.unsqueeze(0), 1, [orientation_2])
-        heatmap_3 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_3.unsqueeze(0), 1, [orientation_3])
+        heatmap_0 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_0.unsqueeze(0), 1,
+                                                                       [orientation_0],
+                                                                       model_numbers=[model_number_0])
+        heatmap_1 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_1.unsqueeze(0), 1,
+                                                                       [orientation_1],
+                                                                       model_numbers=[model_number_1])
+        heatmap_2 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_2.unsqueeze(0), 1,
+                                                                       [orientation_2],
+                                                                       model_numbers=[model_number_2])
+        heatmap_3 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_3.unsqueeze(0), 1,
+                                                                       [orientation_3],
+                                                                       model_numbers=[model_number_3])
         
         plt.imshow(micrograph_0.permute(1, 2, 0).cpu().numpy())
         plt.title(f"Orientation 0: {orientation_0}")
@@ -103,7 +112,7 @@ class ShrecDatasetTests(unittest.TestCase):
         plt.close()
 
     def test_3d_volume_local_maxima(self):
-        heatmaps_volume = self.dataset.heatmaps_volume.cpu().numpy()
+        heatmaps_volume = self.dataset.heatmaps_volume[self.args.model_number[0]].cpu().numpy()
         coordinates = torch.from_numpy(peak_local_max(heatmaps_volume, min_distance=6, threshold_abs=0.9))
         viewer = napari.Viewer()
         viewer.add_image(heatmaps_volume, name='Heatmaps Volume', colormap='magenta')
@@ -111,10 +120,10 @@ class ShrecDatasetTests(unittest.TestCase):
         napari.run()
 
     def test_volume(self):
-        grandmodel = self.dataset.grandmodel.cpu().numpy()
-        heatmaps = self.dataset.heatmaps_volume.cpu().numpy()
+        grandmodel = self.dataset.grandmodel[0].cpu().numpy()
+        heatmaps = self.dataset.heatmaps_volume[0].cpu().numpy()
         if self.dataset.use_fbp:
-            fbp_volume = self.dataset.grandmodel_fbp.cpu().numpy()
+            fbp_volume = self.dataset.grandmodel_fbp[0].cpu().numpy()
 
         viewer = napari.Viewer()
         viewer.add_image(grandmodel, name='Grandmodel Volume', colormap='gray')
@@ -124,17 +133,18 @@ class ShrecDatasetTests(unittest.TestCase):
         napari.run()
 
     def test_shapes(self):
-        sub_micrograph, coordinate_tl = self.dataset.__getitem__(0)
+        # TODO: fix these tests, they don't work right now
+        sub_micrograph, coordinate_tl, _, _ = self.dataset.__getitem__(0)
         micrograph_shape = self.dataset.micrographs[0].shape
         dataset_length = self.dataset.__len__()
 
         self.assertEqual(micrograph_shape, (512, 512))
         self.assertEqual(sub_micrograph.shape, (3, 224, 224))
         self.assertEqual((coordinate_tl[0], coordinate_tl[1]), (0, 0))
-        self.assertEqual(dataset_length, (self.args.sampling_points**2) * (self.dataset.grandmodel.shape[0] // self.dataset.z_slice_size))
+        self.assertEqual(dataset_length, (self.args.sampling_points**2) * (self.dataset.grandmodel[0].shape[0] // self.dataset.z_slice_size))
 
     def test_backprojections_visualizations(self):
-        with mrc.open(os.path.join(self.args.dataset_path, f"model_{self.args.model_number}", "reconstruction.mrc"),
+        with mrc.open(os.path.join(self.args.dataset_path, f"model_{self.args.model_number[0]}", "reconstruction.mrc"),
                       permissive=True) as f:
             print(f.data.shape)
 
@@ -149,13 +159,14 @@ class ShrecDatasetTests(unittest.TestCase):
             plt.close()
 
     def test_example_visualizations_with_particles(self):
+        # TODO: fix this test it doesn't work right now
         folder = os.path.join(self.args.result_dir, "dataset_examples_with_particles")
         create_folder_if_missing(folder)
 
         print("Dataset length: ", self.dataset.__len__())
 
         for i in range(15, 25):
-            sub_micrograph, coordinate_tl = self.dataset.__getitem__(i)
+            sub_micrograph, coordinate_tl, _, _ = self.dataset.__getitem__(i)
             selected_particles = get_particle_locations_from_coordinates(coordinates_tl=coordinate_tl,
                                                                          sub_micrograph_size=self.dataset.sub_micrograph_size,
                                                                          particle_locations=self.dataset.particle_locations,
