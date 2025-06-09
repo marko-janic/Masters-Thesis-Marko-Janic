@@ -7,6 +7,7 @@ import torch
 
 import numpy as np
 from skimage.feature import peak_local_max
+from skimage.transform import resize
 from scipy.optimize import linear_sum_assignment
 from tqdm import tqdm
 
@@ -215,11 +216,11 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
     with (torch.no_grad()):
         # TODO: hopefully we can remove the first part of this if (an abomination) and only keep volume evaluation
         if not args.volume_evaluation:
-            for micrographs, index in tqdm(test_dataloader, desc="Evaluating"):
+            for micrographs, index, orientation in tqdm(test_dataloader, desc="Evaluating"):
                 model.eval()
                 criterion.eval()
 
-                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index)
+                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index, orientation=orientation)
 
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
                 # the 1: is because we don't need the class token
@@ -343,13 +344,14 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                                           threshold_abs=args.prediction_threshold))
             coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are smaller
 
-            #target_heatmap_volume = dataset.heatmaps_volume
-            #viewer = napari.Viewer()
-            #viewer.add_points(coordinates, size=5, face_color='red')
-            #viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
-            #viewer.add_image(output_heatmaps_volume_numpy, name='Output Heatmaps Volume', colormap='magenta')
-            #viewer.add_image(dataset.grandmodel.cpu().numpy(), name='Grandmodel Volume', colormap='gray')
-            #napari.run()
+            target_heatmap_volume = dataset.heatmaps_volume
+            viewer = napari.Viewer()
+            viewer.add_points(coordinates, size=5, face_color='red')
+            viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
+            output_heatmaps_volume_numpy = resize(output_heatmaps_volume_numpy, (512, 512, 512), order=1, preserve_range=True, anti_aliasing=True)
+            viewer.add_image(output_heatmaps_volume_numpy, name='Output Heatmaps Volume', colormap='magenta')
+            viewer.add_image(dataset.grandmodel.cpu().numpy(), name='Grandmodel Volume', colormap='gray')
+            napari.run()
 
             # We take order z, y, x because that's how peak_local_max returns them as well
             if args.shrec_specific_particle is None or args.shrec_specific_particle == "":

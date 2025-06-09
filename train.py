@@ -37,7 +37,7 @@ def get_dataset(dataset_name, args):
         raise Exception(f"The dataset {dataset_name}, is not supported.")
 
 
-def get_targets(args, dataset, index):
+def get_targets(args, dataset, index, orientation):
     """
     Gives you back targets depending on your dataset
     :param args: Needs (See the args for docs):
@@ -49,6 +49,7 @@ def get_targets(args, dataset, index):
         For dummy: just an index to use to call get_targets_from_target_indexes
         For shrec: torch.Tensor[batch_size, 3] representing the top left coordinates of all the micrographs in the
             batch. Again really just used to call its function get_target_heatmaps_from_3d_gaussians
+    :param orientation: List of orientations of sub micrographs
     :return: Tuple(torch.Tensor[batch_size, num_predictions, heatmap_size, heatmap_size], list).
     The list is of length batch_size with dicts which under the "boxes" key have a torch.Tensor[4], representing
     particle locations.
@@ -68,14 +69,16 @@ def get_targets(args, dataset, index):
                                                                          particle_width=dataset.particle_width,
                                                                          particle_height=dataset.particle_height,
                                                                          particle_depth=dataset.particle_depth,
-                                                                         shrec_specific_particle=args.shrec_specific_particle)
+                                                                         shrec_specific_particle=args.shrec_specific_particle,
+                                                                         orientation=orientation[i])
             # We flip it here because of the coordinates being weird
             selected_particles["boxes"][:, 1] = dataset.sub_micrograph_size - selected_particles["boxes"][:, 1]
             selected_particles["boxes"] /= 224
             targets.append(selected_particles)
 
         if args.gaussians_3d:
-            target_heatmaps = dataset.get_target_heatmaps_from_3d_gaussians(index, batch_size=args.batch_size)
+            target_heatmaps = dataset.get_target_heatmaps_from_3d_gaussians(index, batch_size=args.batch_size,
+                                                                            orientations=orientation)
         else:
             target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
                                                            device=args.device)

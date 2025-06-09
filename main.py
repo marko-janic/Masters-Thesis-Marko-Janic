@@ -4,6 +4,7 @@ import os
 import datetime
 import time
 import json
+import random
 
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -248,17 +249,17 @@ def main():
         for epoch in range(args.epochs):
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
-            for batch_index, (micrographs, index) in enumerate(train_dataloader):
+            for batch_index, (micrographs, index, orientation) in enumerate(train_dataloader):
                 batch_counter += 1
 
-                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index)
+                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index, orientation=orientation)
 
-                if plotted < 5:  # TODO: move this into seperate function
+                if plotted < 20:  # TODO: move this into seperate function
                     save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*args.vit_input_size,
                                                     "output_box",
                                                     {},
                                                     os.path.join(args.result_dir, 'training_examples'),
-                                                    f"train_test_example_{plotted}")
+                                                    f"train_test_example_{plotted}_orientation_{orientation[0]}")
 
                     compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
                                                        particle_locations=targets[0]['boxes'].cpu()*args.vit_input_size,

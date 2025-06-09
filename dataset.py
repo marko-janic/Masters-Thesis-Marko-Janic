@@ -243,7 +243,7 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         sub micrograph determined by coordinate_tl. The coordinates are scaled to be 0 if theyre on the top left point
         of the sub micrograph
     """
-    if orientation == "normal":
+    if orientation in ["normal", "vertical_flip", "horizontal_flip", "transposed"]:
         x_min = coordinates_tl[0].item()
         x_max = x_min + sub_micrograph_size
         y_min = coordinates_tl[1].item()
@@ -273,6 +273,16 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
 
         # Remove the "Z" column
         selected_particles = selected_particles.drop(columns=['Z'])
+
+        if orientation == "normal":
+            pass
+        elif orientation == "vertical_flip":
+            selected_particles['Y'] = sub_micrograph_size - selected_particles['Y'] - particle_height
+        elif orientation == "horizontal_flip":
+            selected_particles['X'] = sub_micrograph_size - selected_particles['X'] - particle_width
+        elif orientation == "transposed":
+            # Transpose means we swap X and Y
+            selected_particles['X'], selected_particles['Y'] = selected_particles['Y'], selected_particles['X']
 
         # Convert to dictionary with "boxes" key
         boxes = torch.tensor(selected_particles[['X', 'Y']].values, dtype=torch.float32)
@@ -339,19 +349,26 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z):
                     sub_micrograph = sub_micrograph.repeat(3, 1, 1)
 
                     if not torch.isnan(sub_micrograph).all():
-                        sub_micrographs_list.append((sub_micrograph, torch.tensor([start_x, start_y, start_z])))
+                        sub_micrographs_list.append((sub_micrograph, torch.tensor([start_x, start_y, start_z]), "normal"))
+                        # Horizontal flip
+                        sub_micrographs_list.append((torch.flip(sub_micrograph, dims=[2]), torch.tensor([start_x, start_y, start_z]), "horizontal_flip"))
+                        # Vertical flip
+                        sub_micrographs_list.append((torch.flip(sub_micrograph, dims=[1]), torch.tensor([start_x, start_y, start_z]), "vertical_flip"))
+                        # Permuted version
+                        sub_micrographs_list.append((sub_micrograph.permute(0, 2, 1), torch.tensor([start_x, start_y, start_z]), "transposed"))
                     else:
                         print("One nan tensor found")
 
     # The reason we did a list first is because of this:
     # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
-    sub_micrographs = pd.DataFrame(sub_micrographs_list, columns=["sub_micrograph", "top_left_coordinates"])
+    sub_micrographs = pd.DataFrame(sub_micrographs_list, columns=["sub_micrograph", "top_left_coordinates",
+                                                                  "orientation"])
 
     return sub_micrographs
 
 
-def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, particle_height, device, amplitude=1.0,
-                              volume_shape=(512, 512, 512), shrec_specific_particle=None):
+def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, particle_height, particle_depth, device,
+                              amplitude=1.0, volume_shape=(512, 512, 512), shrec_specific_particle=None):
     """
     Creates a 3D tensor with 3D Gaussians centered at each particle location.
     Only computes each Gaussian in a local window around its center.
@@ -360,6 +377,7 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     :param volume_shape: Shape of the output tensor (default: 512x512x512)
     :param particle_width: Standard deviation for X axis (in voxels) and Z axis
     :param particle_height: Standard deviation for Y axis (in voxels)
+    :param particle_depth: Determines STD for z axis
     :param device:
     :param amplitude: Peak value of each Gaussian
     :param shrec_specific_particle Only use this particle for the heatmaps
@@ -370,7 +388,7 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     # Magic numbers for sigmas :3
     sigma_x = particle_width / 3.5  # TODO: maybe add these as arguments?
     sigma_y = particle_height / 3.5
-    sigma_z = sigma_x  # Isotropic in Z
+    sigma_z = particle_depth / 3.5
 
     # Define window size (e.g., 3 sigma in each direction), we do this to save computation time for the gaussians
     wx = int(3 * sigma_x)
@@ -499,8 +517,9 @@ class ShrecDataset(Dataset):
         if self.gaussians_3d:
             self.heatmaps_volume = create_3d_gaussian_volume(particle_locations=self.particle_locations,
                                                              particle_width=self.particle_width,
-                                                             particle_height=self.particle_height, amplitude=1.0,
-                                                             device=self.device,
+                                                             particle_height=self.particle_height,
+                                                             particle_depth=self.particle_depth,
+                                                             amplitude=1.0, device=self.device,
                                                              shrec_specific_particle=self.shrec_specific_particle)
 
         if self.use_fbp:
@@ -511,13 +530,13 @@ class ShrecDataset(Dataset):
             self.grandmodel_fbp = reconstruct_fbp_volume(projections, angles, self.grandmodel.shape[0]).permute(2, 1, 0)
 
         self.micrographs = []
-        self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])
+        self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates", "orientation"])
 
         if self.gaussians_3d:
             self.heatmaps = []
-            self.sub_heatmaps = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates"])
+            self.sub_heatmaps = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates", "orientation"])
 
-        for i in range((max_z - min_z) // self.z_slice_size):
+        for i in tqdm(range((max_z - min_z) // self.z_slice_size), desc="Loading Dataset"):
             start_z = min_z + (i * self.z_slice_size)
             end_z = start_z + z_slice_size
 
@@ -547,7 +566,7 @@ class ShrecDataset(Dataset):
                 )
                 self.sub_heatmaps = pd.concat([self.sub_heatmaps, sub_heatmaps_df], ignore_index=True)
 
-    def get_target_heatmaps_from_3d_gaussians(self, tl_coordinates, batch_size):
+    def get_target_heatmaps_from_3d_gaussians(self, tl_coordinates, batch_size, orientations):
         """
         Given a batch of top-left coordinates, return the corresponding heatmaps as a tensor of shape
         [batch_size, 1, heatmap_size, heatmap_size].
@@ -563,9 +582,10 @@ class ShrecDataset(Dataset):
         heatmaps = []
         for i in range(batch_size):
             coord = tl_coordinates[i]
+            orientation = orientations[i]
             # Find the row in sub_heatmaps with matching top_left_coordinates
-            matches = self.sub_heatmaps['top_left_coordinates'].apply(
-                lambda x: torch.equal(x, coord)
+            matches = self.sub_heatmaps.apply(
+                lambda row: torch.equal(row['top_left_coordinates'], coord) and row['orientation'] == orientation, axis=1
             )
             idx = matches.idxmax() if matches.any() else None
             if idx is not None:
@@ -587,7 +607,8 @@ class ShrecDataset(Dataset):
         """
         sub_micrograph_entry = self.sub_micrographs.iloc[idx]
         return (sub_micrograph_entry['sub_micrograph'],
-                sub_micrograph_entry['top_left_coordinates'])
+                sub_micrograph_entry['top_left_coordinates'],
+                sub_micrograph_entry['orientation'])
 
 
 if __name__ == "__main__":
