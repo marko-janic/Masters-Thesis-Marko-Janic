@@ -83,6 +83,10 @@ def get_args():
                                                                               "embeddings that the vit model generates,"
                                                                               "this is based on the patch size of the"
                                                                               "vit model")
+    parser.add_argument("--model_deconv_filters", type=tuple, help="Tuple determining the 3 layer deconv"
+                                                                   "filter size for the model. For example"
+                                                                   "[256, 256, 256]")
+
     # Dataset general
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: shrec")
     parser.add_argument("--dataset_path", type=str)
@@ -125,23 +129,6 @@ def get_args():
     # TODO: Add support for multiple particles maybe?
     parser.add_argument("--shrec_specific_particle", type=str, default=None,
                         help="If specified, the dataset will only create 3d gaussians for the specified particle.")
-
-    # Outdated / Not used anymore
-    # Matcher for crytransformer loss
-    parser.add_argument('--set_cost_class', default=1, type=float,
-                        help="Class coefficient in the matching cost")
-    parser.add_argument('--set_cost_bbox', default=5, type=float,
-                        help="L1 box coefficient in the matching cost")
-    parser.add_argument('--set_cost_giou', default=2, type=float,
-                        help="giou box coefficient in the matching cost")
-    # Loss coefficients for cryo transformer loss
-    parser.add_argument('--mask_loss_coef', default=1, type=float)
-    parser.add_argument('--dice_loss_coef', default=1, type=float)
-    parser.add_argument('--bbox_loss_coef', default=5, type=float)
-    parser.add_argument('--giou_loss_coef', default=2, type=float)
-    parser.add_argument('--eos_coef', default=0.1, type=float,
-                        help="Relative classification weight of the no-object class")
-    parser.add_argument('--quartile_threshold', type=float, default=0.0, help='Quartile threshold')  # TODO: Probably not needed anymore
 
     args = parser.parse_args()
 
@@ -219,7 +206,8 @@ def main():
                                                             use_train_dataset_for_evaluation=
                                                             args.use_train_dataset_for_evaluation)
 
-    model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1)
+    model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1,
+                                     num_deconv_filters=tuple(args.model_deconv_filters))
 
     model.init_weights()
     model.to(args.device)
