@@ -117,24 +117,6 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         raise Exception(f'The orientation {orientation} is not a valid orientation')
 
 
-def get_coordinates_in_sub_micrograph(coordinates_in_original_image, coordinate_tl):
-    """
-    Scales the coordinates from the original micrograph to the sub micrograph.
-
-    :param coordinates_in_original_image: A tensor of coordinates in the original micrograph.
-    :param coordinate_tl: The top left coordinate of the sub micrograph.
-    :return: A tensor of coordinates in the sub micrograph.
-    """
-    x_min = coordinate_tl[0].item()
-    y_min = coordinate_tl[1].item()
-
-    scaled_coordinates = coordinates_in_original_image.clone()
-    scaled_coordinates[:, 0] -= x_min
-    scaled_coordinates[:, 1] -= y_min
-
-    return scaled_coordinates
-
-
 def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z, model_number):
     """
     Creates sub micrographs of the given micrograph by sliding a window of size crop_size x crop_size across the image
@@ -265,6 +247,12 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
 
 
 def generate_projections(vol, angles):
+    """
+    Given a volume and a set of angles this will simulate projections at the specified angles.
+    :param vol: torch.Tensor[D, H, W]
+    :param angles:
+    :return:
+    """
     # note angles in radians
     n1, n2, n3 = vol.shape
     pg = ts.parallel(angles=angles, shape=(n1, n2),)

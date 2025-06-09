@@ -14,7 +14,7 @@ from tqdm import tqdm
 # Local imports
 from postprocess import _get_max_preds
 from train import find_optimal_assignment_heatmaps
-from utils import create_folder_if_missing, transform_coords_to_pixel_coords
+from utils import create_folder_if_missing
 from plotting import compare_predictions_with_ground_truth, compare_heatmaps_with_ground_truth, compare_heatmaps
 from vit_model import get_encoded_image
 
@@ -214,7 +214,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
     example_counter = 0
 
     with (torch.no_grad()):
-        # TODO: hopefully we can remove the first part of this if (an abomination) and only keep volume evaluation
+        # TODO: This needs to be cleaned up some more
         if not args.volume_evaluation:
             for micrographs, target_heatmaps, target_coordinates in tqdm(test_dataloader, desc="Evaluating"):
                 model.eval()

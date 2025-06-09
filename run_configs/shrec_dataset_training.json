@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "TESTING_MIUMAU",
+    "result_dir_appended_name": "multiple_shrec_volumes_smaller_model_128_64_32",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
