@@ -287,7 +287,7 @@ def reconstruct_fbp_volume(projections, angles, n3):
 
 class ShrecDataset(Dataset):
     def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, particle_depth, noise,
-                 gaussians_3d, add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=None,
+                 add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=None,
                  dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
                  fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60,
                  shrec_specific_particle=None):
@@ -303,7 +303,6 @@ class ShrecDataset(Dataset):
         :param min_z: z slices start from here
         :param max_z: z slices end here
         :param add_noise: If noise should be added to the micrographs or not
-        :param gaussians_3d: whether to use 3d gaussians or not
         :param noise: The level of noise to add to the individual micrographs
         :param use_fbp: To use a simulated fbp reconstruction of the grandmodel
         :param:fbp_num_projections: Num of measurements to simulate for reconstructing the grandmodel using fbp
@@ -328,7 +327,6 @@ class ShrecDataset(Dataset):
         self.sampling_points = sampling_points
         self.noise = noise
         self.add_noise = add_noise
-        self.gaussians_3d = gaussians_3d
         self.device = device
         self.use_fbp = use_fbp
         self.fbp_min_angle = fbp_min_angle
@@ -349,13 +347,12 @@ class ShrecDataset(Dataset):
                           permissive=True) as f:
                 self.grandmodel[model_num] = torch.tensor(f.data, dtype=torch.float32)  # shape [512, 512, 512]
 
-        if self.gaussians_3d:
-            self.heatmaps_volume = {}
-            for model_num in self.model_number:
-                self.heatmaps_volume[model_num] = create_3d_gaussian_volume(
-                    particle_locations=self.particle_locations[model_num], particle_width=self.particle_width,
-                    particle_height=self.particle_height, particle_depth=self.particle_depth, amplitude=1.0,
-                    device=self.device, shrec_specific_particle=self.shrec_specific_particle)
+        self.heatmaps_volume = {}
+        for model_num in self.model_number:
+            self.heatmaps_volume[model_num] = create_3d_gaussian_volume(
+                particle_locations=self.particle_locations[model_num], particle_width=self.particle_width,
+                particle_height=self.particle_height, particle_depth=self.particle_depth, amplitude=1.0,
+                device=self.device, shrec_specific_particle=self.shrec_specific_particle)
 
         if self.use_fbp:
             self.grandmodel_fbp = {}
@@ -370,15 +367,13 @@ class ShrecDataset(Dataset):
         self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates", "orientation",
                                                      "model_number"])
 
-        if self.gaussians_3d:
-            self.heatmaps = {}
-            self.sub_heatmaps = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates", "orientation",
-                                                      "model_number"])
+        self.heatmaps = {}
+        self.sub_heatmaps = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates", "orientation",
+                                                  "model_number"])
 
         for model_num in self.model_number:
             self.micrographs[model_num] = []
-            if self.gaussians_3d:
-                self.heatmaps[model_num] = []
+            self.heatmaps[model_num] = []
 
             for i in tqdm(range((max_z - min_z) // self.z_slice_size), desc=f"Loading Dataset for volume {model_num}"):
                 start_z = min_z + (i * self.z_slice_size)
@@ -395,21 +390,20 @@ class ShrecDataset(Dataset):
                                                             start_z=start_z, model_number=model_num)
                 self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
 
-                if self.gaussians_3d:
-                    # Here we max not sum since we are trying to represent probabilities for the targets
-                    heatmap = self.heatmaps_volume[model_num][start_z:end_z].max(dim=0).values
-                    self.heatmaps[model_num].append((heatmap, start_z, end_z))
+                # Here we max not sum since we are trying to represent probabilities for the targets
+                heatmap = self.heatmaps_volume[model_num][start_z:end_z].max(dim=0).values
+                self.heatmaps[model_num].append((heatmap, start_z, end_z))
 
-                    sub_heatmaps_df = create_sub_micrographs(heatmap, self.sub_micrograph_size, self.sampling_points,
-                                                             start_z=start_z, model_number=model_num)
-                    # Resize each heatmap in the DataFrame to (112, 112), we do this weird squeezing because
-                    # F.interpolate needs batched input. We take [0:1] because create_sub_micrographs automatically
-                    # adds three channels
-                    sub_heatmaps_df["sub_micrograph"] = sub_heatmaps_df["sub_micrograph"].apply(
-                        lambda x: F.interpolate(x[0:1].unsqueeze(0), size=(112, 112), mode='bilinear',
-                                                align_corners=False).squeeze(0)
-                    )
-                    self.sub_heatmaps = pd.concat([self.sub_heatmaps, sub_heatmaps_df], ignore_index=True)
+                sub_heatmaps_df = create_sub_micrographs(heatmap, self.sub_micrograph_size, self.sampling_points,
+                                                         start_z=start_z, model_number=model_num)
+                # Resize each heatmap in the DataFrame to (112, 112), we do this weird squeezing because
+                # F.interpolate needs batched input. We take [0:1] because create_sub_micrographs automatically
+                # adds three channels
+                sub_heatmaps_df["sub_micrograph"] = sub_heatmaps_df["sub_micrograph"].apply(
+                    lambda x: F.interpolate(x[0:1].unsqueeze(0), size=(112, 112), mode='bilinear',
+                                            align_corners=False).squeeze(0)
+                )
+                self.sub_heatmaps = pd.concat([self.sub_heatmaps, sub_heatmaps_df], ignore_index=True)
 
     def get_target_heatmaps_from_3d_gaussians(self, tl_coordinates, batch_size, orientations, model_numbers):
         """

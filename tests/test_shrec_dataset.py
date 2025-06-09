@@ -31,7 +31,6 @@ def get_args():
     parser.add_argument("--particle_depth", type=int, default=20)
     parser.add_argument("--noise", type=int, default=10)
     parser.add_argument("--add_noise", type=bool, default=False)
-    parser.add_argument("--gaussians_3d", type=bool, default=True)
     parser.add_argument("--use_fbp", type=bool, default=False)
     parser.add_argument("--fbp_num_projections", type=int, default=60)
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
@@ -51,8 +50,7 @@ class ShrecDatasetTests(unittest.TestCase):
                                     z_slice_size=self.args.z_slice_size, particle_width=self.args.particle_width,
                                     particle_height=self.args.particle_height, noise=self.args.noise,
                                     add_noise=self.args.add_noise, min_z=self.args.min_z, max_z=self.args.max_z,
-                                    gaussians_3d=self.args.gaussians_3d, use_fbp=self.args.use_fbp,
-                                    fbp_num_projections=self.args.fbp_num_projections,
+                                    use_fbp=self.args.use_fbp, fbp_num_projections=self.args.fbp_num_projections,
                                     fbp_min_angle=self.args.fbp_min_angle, fbp_max_angle=self.args.fbp_max_angle,
                                     particle_depth=self.args.particle_depth,
                                     shrec_specific_particle=self.args.shrec_specific_particle,
@@ -122,13 +120,12 @@ class ShrecDatasetTests(unittest.TestCase):
     def test_volume(self):
         grandmodel = self.dataset.grandmodel[0].cpu().numpy()
         heatmaps = self.dataset.heatmaps_volume[0].cpu().numpy()
-        if self.dataset.use_fbp:
-            fbp_volume = self.dataset.grandmodel_fbp[0].cpu().numpy()
 
         viewer = napari.Viewer()
         viewer.add_image(grandmodel, name='Grandmodel Volume', colormap='gray')
         viewer.add_image(heatmaps, name='Heatmaps Volume', colormap='magenta')
         if self.dataset.use_fbp:
+            fbp_volume = self.dataset.grandmodel_fbp[0].cpu().numpy()
             viewer.add_image(fbp_volume, name='FBP Reconstructed voume', colormap='gray')
         napari.run()
 

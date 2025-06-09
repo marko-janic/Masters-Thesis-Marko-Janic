@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "shrec_multiple_volumes_particle_1U6G",
+    "result_dir_appended_name": "TESTING_MIUMAU",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "num_particles": 20,
@@ -10,7 +10,6 @@
     "particle_depth": 20,
     "add_noise": false,
     "noise": 0,
-    "gaussians_3d": true,
     "use_fbp": false,
     "fbp_num_projections": 60,
 

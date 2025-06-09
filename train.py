@@ -16,7 +16,6 @@ def get_dataset(dataset_name, args):
     :param args: Required args are:
         noise,
         add_noise,
-        gaussians_3d,
         device,
         use_fbp,
     :return:
@@ -26,7 +25,7 @@ def get_dataset(dataset_name, args):
                             model_number=args.shrec_model_number, min_z=args.shrec_min_z, max_z=args.shrec_max_z,
                             particle_height=args.particle_height, particle_width=args.particle_width,
                             particle_depth=args.particle_depth, noise=args.noise,
-                            add_noise=args.add_noise, gaussians_3d=args.gaussians_3d, device=args.device,
+                            add_noise=args.add_noise, device=args.device,
                             use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle, fbp_max_angle=args.fbp_max_angle,
                             fbp_num_projections=args.fbp_num_projections,
                             shrec_specific_particle=args.shrec_specific_particle)
@@ -67,13 +66,9 @@ def get_targets(args, dataset, index, orientation, model_number):
             selected_particles["boxes"] /= 224
             targets.append(selected_particles)
 
-        if args.gaussians_3d:
-            target_heatmaps = dataset.get_target_heatmaps_from_3d_gaussians(index, batch_size=args.batch_size,
-                                                                            orientations=orientation,
-                                                                            model_numbers=model_number)
-        else:
-            target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                           device=args.device)
+        target_heatmaps = dataset.get_target_heatmaps_from_3d_gaussians(index, batch_size=args.batch_size,
+                                                                        orientations=orientation,
+                                                                        model_numbers=model_number)
 
         return target_heatmaps, targets
     else:
