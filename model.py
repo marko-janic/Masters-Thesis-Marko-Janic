@@ -55,7 +55,7 @@ class TopdownHeatmapSimpleHead(nn.Module):
                  in_channels,
                  out_channels,
                  num_deconv_layers=3,
-                 num_deconv_filters=(128, 64, 32),
+                 num_deconv_filters=(64, 32, 16),
                  num_deconv_kernels=(4, 4, 4),
                  extra=None,
                  in_index=0,
