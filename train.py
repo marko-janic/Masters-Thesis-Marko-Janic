@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, Subset
 from scipy.optimize import linear_sum_assignment
 
 # Local imports
-from dataset import DummyDataset, ShrecDataset, get_particle_locations_from_coordinates
+from dataset import ShrecDataset, get_particle_locations_from_coordinates
 
 
 def get_dataset(dataset_name, args):
@@ -21,10 +21,7 @@ def get_dataset(dataset_name, args):
         use_fbp,
     :return:
     """
-    if dataset_name == "dummy":
-        return DummyDataset(dataset_size=args.dataset_size, dataset_path=args.dataset_path,
-                            particle_width=args.particle_width, particle_height=args.particle_height)
-    elif dataset_name == "shrec":
+    if dataset_name == "shrec":
         return ShrecDataset(sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
                             model_number=args.shrec_model_number, min_z=args.shrec_min_z, max_z=args.shrec_max_z,
                             particle_height=args.particle_height, particle_width=args.particle_width,
@@ -46,7 +43,6 @@ def get_targets(args, dataset, index, orientation, model_number):
         num_particles,
     :param dataset: torch dataset class
     :param index: Depends on the dataset:
-        For dummy: just an index to use to call get_targets_from_target_indexes
         For shrec: torch.Tensor[batch_size, 3] representing the top left coordinates of all the micrographs in the
             batch. Again really just used to call its function get_target_heatmaps_from_3d_gaussians
     :param orientation: List of orientations of sub micrographs
@@ -54,12 +50,7 @@ def get_targets(args, dataset, index, orientation, model_number):
     The list is of length batch_size with dicts which under the "boxes" key have a torch.Tensor[4], representing
     particle locations.
     """
-    if args.dataset == "dummy":
-        targets = dataset.get_targets_from_target_indexes(index, args.device)
-        target_heatmaps = create_heatmaps_from_targets(targets, num_predictions=args.num_particles,
-                                                       device=args.device)
-        return target_heatmaps, targets
-    elif args.dataset == "shrec":
+    if args.dataset == "shrec":
         targets = []
         for i in range(len(index)):
             selected_particles = get_particle_locations_from_coordinates(coordinates_tl=index[i],

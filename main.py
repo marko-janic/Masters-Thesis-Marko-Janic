@@ -84,7 +84,7 @@ def get_args():
                                                                               "this is based on the patch size of the"
                                                                               "vit model")
     # Dataset general
-    parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: dummy, shrec")
+    parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: shrec")
     parser.add_argument("--dataset_path", type=str)
     parser.add_argument("--vit_input_size", type=int, help="Size of image that is put through the vit",
                         default=224)
@@ -107,9 +107,6 @@ def get_args():
                         help="Minimum angle of fbp simulation given in radians")
     parser.add_argument("--fbp_max_angle", type=float, default=torch.pi/3,
                         help="Maximum angle of fbp simulation given in radians")
-
-    # Dummy Dataset
-    parser.add_argument("--dataset_size", type=int)
 
     # Shrec Dataset
     parser.add_argument("--shrec_sampling_points", type=int,
