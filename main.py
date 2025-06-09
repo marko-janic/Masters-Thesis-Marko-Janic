@@ -15,7 +15,7 @@ from tqdm import tqdm
 from model import TopdownHeatmapSimpleHead
 from utils import create_folder_if_missing
 from evaluate import evaluate
-from train import prepare_dataloaders, find_optimal_assignment_heatmaps, get_dataset, get_targets
+from train import prepare_dataloaders, find_optimal_assignment_heatmaps, get_dataset
 from plotting import save_image_with_bounding_object, plot_loss_log, compare_heatmaps_with_ground_truth
 from vit_model import get_vit_model, get_encoded_image
 
@@ -243,24 +243,24 @@ def main():
         for epoch in range(args.epochs):
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
 
-            for batch_index, (micrographs, index, orientation, model_number) in enumerate(train_dataloader):
+            for batch_index, (micrographs, target_heatmaps, target_coordinates_list) in enumerate(train_dataloader):
                 batch_counter += 1
 
-                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index, orientation=orientation, model_number=model_number)
-
                 if plotted < 20:  # TODO: move this into seperate function
-                    save_image_with_bounding_object(micrographs[0].cpu(), targets[0]['boxes'].cpu()*args.vit_input_size,
+                    save_image_with_bounding_object(micrographs[0].cpu(),
+                                                    target_coordinates_list[0].cpu()*args.vit_input_size,
                                                     "output_box",
                                                     {},
                                                     os.path.join(args.result_dir, 'training_examples'),
-                                                    f"train_test_example_{plotted}_orientation_{orientation[0]}")
+                                                    f"train_test_example_{plotted}")
 
-                    compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
-                                                       particle_locations=targets[0]['boxes'].cpu()*args.vit_input_size,
-                                                       heatmaps=target_heatmaps[0].cpu(),
-                                                       heatmaps_title="target heatmaps",
-                                                       result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",
-                                                       result_dir=os.path.join(args.result_dir, 'training_examples'))
+                    compare_heatmaps_with_ground_truth(
+                        micrograph=micrographs[0].cpu(),
+                        particle_locations=target_coordinates_list[0].cpu()*args.vit_input_size,
+                        heatmaps=target_heatmaps[0].cpu(),
+                        heatmaps_title="target heatmaps",
+                        result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",
+                        result_dir=os.path.join(args.result_dir, 'training_examples'))
 
                     vit_processed_micrographs = vit_image_processor(images=micrographs, return_tensors="pt",
                                                                     do_rescale=False)
@@ -272,7 +272,9 @@ def main():
                     if vit_example_input.max() == -1:  # In this case we got a fully black image
                         vit_example_input += 1
                     plt.imshow(vit_example_input)
-                    plt.title(f"Micrograph after running through vit processor, min={vit_processed_micrographs['pixel_values'][0].min()}, max={vit_processed_micrographs['pixel_values'][0].max()}")
+                    plt.title(f"Micrograph after running through vit processor, "
+                              f"min={vit_processed_micrographs['pixel_values'][0].min()}, "
+                              f"max={vit_processed_micrographs['pixel_values'][0].max()}")
                     plt.savefig(os.path.join(args.result_dir, 'training_examples',
                                              f"vit_processed_micrograph_{plotted}.png"))
                     plt.close()
@@ -289,12 +291,7 @@ def main():
                                                                                  14, 14)
                 outputs = model(latent_micrographs)
 
-                assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, mse_loss)
-                reordered_target_heatmaps = torch.zeros_like(target_heatmaps)
-                for batch_idx, (row_ind, col_ind) in enumerate(assignments):
-                    reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]
-
-                losses = mse_loss(outputs["heatmaps"], reordered_target_heatmaps)
+                losses = mse_loss(outputs["heatmaps"], target_heatmaps)
 
                 optimizer.zero_grad()
                 losses.backward()
@@ -317,8 +314,6 @@ def main():
                     torch.save(model.state_dict(), os.path.join(args.result_dir,
                                                                 f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
                     last_checkpoint_time = time.time()
-                    batch_counter = 0
-                    running_loss = 0.0
 
             epoch_bar.close()
 

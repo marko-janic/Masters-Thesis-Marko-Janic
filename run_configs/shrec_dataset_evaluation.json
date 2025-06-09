@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-09_15-24-41_TESTING_MIUMAU",
+    "existing_result_folder": "experiment_2025-06-09_15-54-24_TESTING_MIUMAU",
     "existing_evaluation_folder": "",
 
     "batch_size": 1,
@@ -18,13 +18,13 @@
 
     "volume_evaluation": true,
     "missing_pred_threshold": 10,
-    "prediction_threshold": 0.5,
+    "prediction_threshold": 0.6,
     "neighborhood_size": 10,
 
     "device": "cpu",
     "use_train_dataset_for_evaluation": false,
 
-    "train_eval_split": 0.95,
+    "train_eval_split": 0.9,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
 

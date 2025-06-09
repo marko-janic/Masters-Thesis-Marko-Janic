@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 # Local imports
 from postprocess import _get_max_preds
-from train import find_optimal_assignment_heatmaps, get_targets
+from train import find_optimal_assignment_heatmaps
 from utils import create_folder_if_missing, transform_coords_to_pixel_coords
 from plotting import compare_predictions_with_ground_truth, compare_heatmaps_with_ground_truth, compare_heatmaps
 from vit_model import get_encoded_image
@@ -216,11 +216,9 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
     with (torch.no_grad()):
         # TODO: hopefully we can remove the first part of this if (an abomination) and only keep volume evaluation
         if not args.volume_evaluation:
-            for micrographs, index, orientation, model_number in tqdm(test_dataloader, desc="Evaluating"):
+            for micrographs, target_heatmaps, target_coordinates in tqdm(test_dataloader, desc="Evaluating"):
                 model.eval()
                 criterion.eval()
-
-                target_heatmaps, targets = get_targets(args=args, dataset=dataset, index=index, orientation=orientation, model_number=model_number)
 
                 encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
                 # the 1: is because we don't need the class token
@@ -235,12 +233,12 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
                 # We use this to compute the average pixels off so to speak, we set it to -1 to indicate no prediction
                 padded_target_boxes = torch.full((1, args.num_particles, 2), -1.0, dtype=torch.float32)
-                for i in range(len(targets)):
-                    indices = len(targets[i]["boxes"])
+                for i in range(len(target_coordinates)):
+                    indices = len(target_coordinates[i])
                     if indices > args.num_particles:
                         missed_predictions += + indices - args.num_particles
                         indices = args.num_particles
-                    padded_target_boxes[i, :indices, :] = targets[i]["boxes"][:indices, :2]
+                    padded_target_boxes[i, :indices, :] = target_coordinates[i][:indices, :2]
                 assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, criterion)
                 # We put -1 to signify there is no prediction here
                 reordered_padded_target_boxes = torch.full_like(padded_target_boxes, -1.0, dtype=torch.float32)
@@ -258,13 +256,15 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 predictions *= 2  # The heatmaps are size 112 x 112 and the actual coordinates are 224 x 224
                 predictions[:, 0] = args.vit_input_size - predictions[:, 0]
                 predictions = predictions[:, [1, 0]]
-                target_coordinates = targets[0]['boxes'][:, :2]*args.vit_input_size
+
+                for i in range(len(target_coordinates)):
+                    target_coordinates[i][:] = target_coordinates[i][:]*args.vit_input_size
 
                 num_predictions = predictions.shape[0]
-                num_targets = target_coordinates.shape[0]
+                num_targets = target_coordinates[0].shape[0]
 
                 # Compute pairwise distances (num_predictions, num_targets), p=2 for euclidian distance
-                dists = torch.cdist(predictions.float(), target_coordinates.float(), p=2).cpu().numpy()
+                dists = torch.cdist(predictions.float(), target_coordinates[0][:, :2].float(), p=2).cpu().numpy()
                 # Hungarian algorithm for optimal assignment
                 row_ind, col_ind = linear_sum_assignment(dists)
                 # Only consider matches where both indices are valid
@@ -286,11 +286,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 running_pixel_loss += avg_pixels_off
 
                 if example_counter < example_predictions:
-                    ground_truth = transform_coords_to_pixel_coords(args.vit_input_size, args.vit_input_size,
-                                                                    targets[0]['boxes'][:, :4].unsqueeze(0))
-
                     compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
-                                                       particle_locations=ground_truth[0],
+                                                       particle_locations=target_coordinates[0],
                                                        heatmaps=outputs["heatmaps"][0],
                                                        heatmaps_title="Model output",
                                                        result_folder_name=f"model_to_ground_truth_heatmaps_comparison_"
@@ -304,7 +301,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
                     compare_predictions_with_ground_truth(
                         image_tensor=micrographs[0].cpu(),
-                        ground_truth=ground_truth[0],
+                        ground_truth=target_coordinates[0],
                         predictions=pred_coords[0],
                         object_type="output_box",
                         object_parameters={"box_width": args.particle_width, "box_height": args.particle_height},
@@ -333,7 +330,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                                                   device=args.device, latent_dim=args.latent_dim,
                                                                   model=model, vit_input_size=args.vit_input_size,
                                                                   use_fbp=args.use_fbp, z_eval_max=args.shrec_max_z,
-                                                                  z_eval_min=args.shrec_min_z, model_number=args.shrec_model_number[0])
+                                                                  z_eval_min=args.shrec_min_z,
+                                                                  model_number=args.shrec_model_number[0])
                 output_heatmaps_volume_numpy = output_heatmaps_volume.cpu().numpy()
                 np.save(os.path.join(result_dir, f"output_heatmaps_volume.npy"), output_heatmaps_volume_numpy)
             else:

@@ -51,8 +51,9 @@ def add_noise_to_projections(projections: torch.Tensor, noise_db: float) -> torc
     return noisy_signal
 
 
-def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_width, particle_height, particle_locations, z_slice_size,
-                                            orientation="normal", particle_depth=0, shrec_specific_particle=None):
+def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_width, particle_height,
+                                            particle_locations, z_slice_size, orientation="normal", particle_depth=0,
+                                            shrec_specific_particle=None):
     """
     Given coordinates, this function determines the location of all relevant particles in the sub micrograph
 
@@ -111,7 +112,7 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         particle_sizes = torch.tensor([particle_width, particle_height]).repeat(len(boxes), 1)
         boxes = torch.cat((boxes, particle_sizes), dim=1)
 
-        return {"boxes": boxes}
+        return boxes
     else:
         raise Exception(f'The orientation {orientation} is not a valid orientation')
 
@@ -405,41 +406,6 @@ class ShrecDataset(Dataset):
                 )
                 self.sub_heatmaps = pd.concat([self.sub_heatmaps, sub_heatmaps_df], ignore_index=True)
 
-    def get_target_heatmaps_from_3d_gaussians(self, tl_coordinates, batch_size, orientations, model_numbers):
-        """
-        Given a batch of top-left coordinates, return the corresponding heatmaps as a tensor of shape
-        [batch_size, 1, heatmap_size, heatmap_size].
-        :param tl_coordinates: Tensor of shape [batch_size, 3] (x, y, z)
-        :param batch_size: Number of samples in the batch
-        :return: torch.Tensor of shape [batch_size, 1, 3, heatmap_size, heatmap_size]
-        """
-        # Ensure input is a tensor
-        if not torch.is_tensor(tl_coordinates):
-            tl_coordinates = torch.tensor(tl_coordinates)
-
-        # Prepare output list
-        heatmaps = []
-        for i in range(batch_size):
-            coord = tl_coordinates[i]
-            orientation = orientations[i]
-            model_number = model_numbers[i]
-            # Convert tensors to tuples for comparison
-            coord_tuple = tuple(coord.tolist())
-            # Vectorized filtering
-            filtered = self.sub_heatmaps[
-                self.sub_heatmaps['top_left_coordinates'].apply(lambda x: tuple(x.tolist()) == coord_tuple) &
-                (self.sub_heatmaps['orientation'] == orientation) &
-                (self.sub_heatmaps['model_number'] == model_number)
-                ]
-            if not filtered.empty:
-                heatmap = filtered.iloc[0]['sub_micrograph']
-                heatmaps.append(heatmap)
-            else:
-                raise Exception("The top left coordinates don't have equivalent target_heatmaps from the 3d gaussian"
-                                "volume. This should not happen :3, have fun debugging.")
-
-        return torch.stack(heatmaps, dim=0)
-
     def __len__(self):
         return len(self.sub_micrographs)
 
@@ -449,7 +415,22 @@ class ShrecDataset(Dataset):
         :param idx: The index to take from
         """
         sub_micrograph_entry = self.sub_micrographs.iloc[idx]
-        return (sub_micrograph_entry['sub_micrograph'],
-                sub_micrograph_entry['top_left_coordinates'],
-                sub_micrograph_entry['orientation'],
-                sub_micrograph_entry['model_number'])
+        sub_heatmaps_entry = self.sub_heatmaps.iloc[idx]
+
+        micrograph = sub_micrograph_entry['sub_micrograph']
+        heatmap = sub_heatmaps_entry['sub_micrograph']
+        coordinates_tl = sub_micrograph_entry['top_left_coordinates']
+        orientation = sub_micrograph_entry['orientation']
+        model_number = sub_micrograph_entry['model_number']
+        targets = get_particle_locations_from_coordinates(coordinates_tl=coordinates_tl, orientation=orientation,
+                                                          particle_depth=self.particle_depth,
+                                                          particle_width=self.particle_width,
+                                                          particle_height=self.particle_height,
+                                                          sub_micrograph_size=self.sub_micrograph_size,
+                                                          particle_locations=self.particle_locations[model_number],
+                                                          z_slice_size=self.z_slice_size,
+                                                          shrec_specific_particle=self.shrec_specific_particle)
+        targets[:, 1] = self.sub_micrograph_size - targets[:, 1]
+        targets /= self.sub_micrograph_size
+
+        return micrograph, heatmap, targets
