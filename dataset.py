@@ -217,9 +217,9 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     volume = torch.zeros(volume_shape, dtype=torch.float32, device=device)
 
     # Magic numbers for sigmas :3
-    sigma_x = particle_width / 3.5  # TODO: maybe add these as arguments?
-    sigma_y = particle_height / 3.5
-    sigma_z = particle_depth / 3.5
+    sigma_x = particle_width / 3  # TODO: maybe add these as arguments?
+    sigma_y = particle_height / 3
+    sigma_z = particle_depth / 3
 
     # Define window size (e.g., 3 sigma in each direction), we do this to save computation time for the gaussians
     wx = int(3 * sigma_x)

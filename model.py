@@ -294,7 +294,7 @@ class TopdownHeatmapSimpleHead(nn.Module):
             layers.append(nn.BatchNorm2d(planes))
             layers.append(nn.ReLU(inplace=True))
             # TODO: add argument to enable / disable this
-            layers.append(nn.Dropout2d(0.1))
+            #layers.append(nn.Dropout2d(0.1))
             self.in_channels = planes
 
         return nn.Sequential(*layers)

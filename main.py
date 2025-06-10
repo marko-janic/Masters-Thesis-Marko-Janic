@@ -22,10 +22,10 @@ from plotting import save_image_with_bounding_object, plot_loss_log, compare_hea
 from vit_model import get_vit_model, get_encoded_image
 
 
-# Set the seed for reproducibility
-seed = 42
-random.seed(seed)
-torch.manual_seed(seed)
+## Set the seed for reproducibility
+#seed = 42
+#random.seed(seed)
+#torch.manual_seed(seed)
 
 
 def get_args():
@@ -216,7 +216,7 @@ def main():
 
     model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1,
                                      num_deconv_filters=tuple(args.model_deconv_filters))
-
+    model.init_weights()
     model.to(args.device)
 
     mse_loss = torch.nn.MSELoss()
@@ -293,8 +293,8 @@ def main():
                 # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you don't
                 #  change the vit input size
                 latent_micrographs = latent_micrographs.permute(0, 2, 1)
-                latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0),
-                                                                latent_micrographs.size(1), 14, 14)
+                latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0), latent_micrographs.size(1),
+                                                                14, 14)
                 outputs = model(latent_micrographs)
 
                 losses = mse_loss(outputs["heatmaps"], target_heatmaps)

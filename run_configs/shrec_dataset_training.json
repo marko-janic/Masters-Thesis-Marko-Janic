@@ -1,22 +1,22 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "slightly_larger_model_dropout_0.1_adjusted_reshape_fixed_big_dataset_bug_smaller_particle_depth",
+    "result_dir_appended_name": "slightly_larger_model_fixed_big_dataset_bug_adjusted_z_range_slightly_larger_variances",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
     "particle_height": 20,
-    "particle_depth": 10,
+    "particle_depth": 20,
     "add_noise": false,
     "noise": 0,
     "use_fbp": false,
     "fbp_num_projections": 60,
 
     "device": "cuda",
-    "epochs": 200,
+    "epochs": 50,
     "batch_size": 16,
     "learning_rate": 0.001,
-    "checkpoint_interval": 1800,
+    "checkpoint_interval": 900,
     "loss_log_file": "loss_log.txt",
 
     "train_eval_split": 1,
@@ -25,10 +25,10 @@
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
 
-    "shrec_sampling_points": 3,
+    "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
     "shrec_model_number": [0, 1, 2, 3, 4],
-    "shrec_min_z": 160,
-    "shrec_max_z": 360,
+    "shrec_min_z": 180,
+    "shrec_max_z": 330,
     "shrec_specific_particle": "1U6G"
 }

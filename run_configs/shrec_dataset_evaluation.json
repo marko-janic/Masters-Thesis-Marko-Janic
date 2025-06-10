@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "",
+    "existing_result_folder": "experiment_2025-06-10_17-38-57_slightly_larger_model_dropout_0.1_adjusted_reshape_fixed_big_dataset_bug_smaller_particle_depth",
     "existing_evaluation_folder": "",
 
     "batch_size": 1,
@@ -15,15 +15,15 @@
     "use_fbp": false,
     "fbp_num_projections": 60,
 
-    "volume_evaluation": true,
+    "volume_evaluation": false,
     "missing_pred_threshold": 20,
     "prediction_threshold": 0.5,
     "neighborhood_size": 10,
 
     "device": "cpu",
-    "use_train_dataset_for_evaluation": false,
+    "use_train_dataset_for_evaluation": true,
 
-    "train_eval_split": 0.9,
+    "train_eval_split": 1,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
@@ -31,8 +31,8 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [1],
-    "shrec_min_z": 160,
-    "shrec_max_z": 161,
+    "shrec_model_number": [0],
+    "shrec_min_z": 190,
+    "shrec_max_z": 350,
     "shrec_specific_particle": "1U6G"
 }
