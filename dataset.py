@@ -74,8 +74,8 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
 
         # I chose 4 here because this function doesn't matter for training anymore, and it helps with actually
         # including the right particles
-        z_min = coordinates_tl[2].item() - particle_depth
-        z_max = z_min + z_slice_size + particle_depth
+        z_min = coordinates_tl[2].item() - (particle_depth * 0.5)
+        z_max = z_min + z_slice_size + (particle_depth * 0.5)
 
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         selected_particles = particle_locations[(particle_locations['X'] >= x_min) &
@@ -100,12 +100,15 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         if orientation == "normal":
             pass
         elif orientation == "vertical_flip":
-            selected_particles['Y'] = sub_micrograph_size - selected_particles['Y'] - particle_height
+            selected_particles['Y'] = sub_micrograph_size - selected_particles['Y']
         elif orientation == "horizontal_flip":
-            selected_particles['X'] = sub_micrograph_size - selected_particles['X'] - particle_width
+            selected_particles['X'] = sub_micrograph_size - selected_particles['X']
         elif orientation == "transposed":
             # Transpose means we swap X and Y
-            selected_particles['X'], selected_particles['Y'] = selected_particles['Y'], selected_particles['X']
+            x_df = selected_particles['X'].copy()
+            y_df = selected_particles['Y'].copy()
+            selected_particles['X'] = y_df
+            selected_particles['Y'] = x_df
 
         # Convert to dictionary with "boxes" key
         boxes = torch.tensor(selected_particles[['X', 'Y']].values, dtype=torch.float32)

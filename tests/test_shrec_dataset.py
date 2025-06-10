@@ -35,7 +35,7 @@ def get_args():
     parser.add_argument("--fbp_num_projections", type=int, default=60)
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
     parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
-    parser.add_argument("--shrec_specific_particle", type=str, default="1U6G")
+    parser.add_argument("--shrec_specific_particle", type=str, default="4CR2")
 
     args = parser.parse_args()
 
@@ -57,57 +57,61 @@ class ShrecDatasetTests(unittest.TestCase):
                                     model_number=self.args.model_number)
 
     def test_orientations(self):
-        micrograph_0, idx_0, orientation_0, model_number_0 = self.dataset.__getitem__(0)
-        micrograph_1, idx_1, orientation_1, model_number_1 = self.dataset.__getitem__(1)
-        micrograph_2, idx_2, orientation_2, model_number_2 = self.dataset.__getitem__(2)
-        micrograph_3, idx_3, orientation_3, model_number_3 = self.dataset.__getitem__(3)
-
-        heatmap_0 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_0.unsqueeze(0), 1,
-                                                                       [orientation_0],
-                                                                       model_numbers=[model_number_0])
-        heatmap_1 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_1.unsqueeze(0), 1,
-                                                                       [orientation_1],
-                                                                       model_numbers=[model_number_1])
-        heatmap_2 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_2.unsqueeze(0), 1,
-                                                                       [orientation_2],
-                                                                       model_numbers=[model_number_2])
-        heatmap_3 = self.dataset.get_target_heatmaps_from_3d_gaussians(idx_3.unsqueeze(0), 1,
-                                                                       [orientation_3],
-                                                                       model_numbers=[model_number_3])
+        micrograph_0, heatmap_0, targets_0 = self.dataset.__getitem__(0)
+        micrograph_1, heatmap_1, targets_1 = self.dataset.__getitem__(1)
+        micrograph_2, heatmap_2, targets_2 = self.dataset.__getitem__(2)
+        micrograph_3, heatmap_3, targets_3 = self.dataset.__getitem__(3)
         
         plt.imshow(micrograph_0.permute(1, 2, 0).cpu().numpy())
-        plt.title(f"Orientation 0: {orientation_0}")
+        plt.title(f"Orientation 0: normal")
         plt.savefig(os.path.join(self.args.result_dir, "micrograph_orientation_0.png"))
         plt.close()
         plt.imshow(micrograph_1.permute(1, 2, 0).cpu().numpy())
-        plt.title(f"Orientation 1: {orientation_1}")
+        plt.title(f"Orientation 1: horizontal flip")
         plt.savefig(os.path.join(self.args.result_dir, "micrograph_orientation_1.png"))
         plt.close()
         plt.imshow(micrograph_2.permute(1, 2, 0).cpu().numpy())
-        plt.title(f"Orientation 2: {orientation_2}")
+        plt.title(f"Orientation 2: vertical flip")
         plt.savefig(os.path.join(self.args.result_dir, "micrograph_orientation_2.png"))
         plt.close()
         plt.imshow(micrograph_3.permute(1, 2, 0).cpu().numpy())
-        plt.title(f"Orientation 3: {orientation_3}")
+        plt.title(f"Orientation 3: transposed")
         plt.savefig(os.path.join(self.args.result_dir, "micrograph_orientation_3.png"))
         plt.close()
 
-        plt.imshow(heatmap_0[0, 0].cpu().numpy())
-        plt.title(f"Orientation 0: {orientation_0}")
+        plt.imshow(heatmap_0[0].cpu().numpy())
+        plt.title(f"Orientation 0: normal")
         plt.savefig(os.path.join(self.args.result_dir, "heatmap_orientation_0.png"))
         plt.close()
-        plt.imshow(heatmap_1[0, 0].cpu().numpy())
-        plt.title(f"Orientation 1: {orientation_1}")
+        plt.imshow(heatmap_1[0].cpu().numpy())
+        plt.title(f"Orientation 1: horizontal flip")
         plt.savefig(os.path.join(self.args.result_dir, "heatmap_orientation_1.png"))
         plt.close()
-        plt.imshow(heatmap_2[0, 0].cpu().numpy())
-        plt.title(f"Orientation 2: {orientation_2}")
+        plt.imshow(heatmap_2[0].cpu().numpy())
+        plt.title(f"Orientation 2: vertical flip")
         plt.savefig(os.path.join(self.args.result_dir, "heatmap_orientation_2.png"))
         plt.close()
-        plt.imshow(heatmap_3[0, 0].cpu().numpy())
-        plt.title(f"Orientation 3: {orientation_3}")
+        plt.imshow(heatmap_3[0].cpu().numpy())
+        plt.title(f"Orientation 3: transposed")
         plt.savefig(os.path.join(self.args.result_dir, "heatmap_orientation_3.png"))
         plt.close()
+
+        save_image_with_bounding_object(micrograph_0, targets_0*224, "box",
+                                        {"box_width": 20, "box_height": 20},
+                                        result_dir=self.args.result_dir,
+                                        file_name=f"micrograph_{0}_with_bounding_boxes")
+        save_image_with_bounding_object(micrograph_1, targets_1*224, "box",
+                                        {"box_width": 20, "box_height": 20},
+                                        result_dir=self.args.result_dir,
+                                        file_name=f"micrograph_{1}_with_bounding_boxes")
+        save_image_with_bounding_object(micrograph_2, targets_2*224, "box",
+                                        {"box_width": 20, "box_height": 20},
+                                        result_dir=self.args.result_dir,
+                                        file_name=f"micrograph_{2}_with_bounding_boxes")
+        save_image_with_bounding_object(micrograph_3, targets_3*224, "box",
+                                        {"box_width": 20, "box_height": 20},
+                                        result_dir=self.args.result_dir,
+                                        file_name=f"micrograph_{3}_with_bounding_boxes")
 
     def test_3d_volume_local_maxima(self):
         heatmaps_volume = self.dataset.heatmaps_volume[self.args.model_number[0]].cpu().numpy()
@@ -118,8 +122,8 @@ class ShrecDatasetTests(unittest.TestCase):
         napari.run()
 
     def test_volume(self):
-        grandmodel = self.dataset.grandmodel[0].cpu().numpy()
-        heatmaps = self.dataset.heatmaps_volume[0].cpu().numpy()
+        grandmodel = self.dataset.grandmodel[self.args.model_number[0]].cpu().numpy()
+        heatmaps = self.dataset.heatmaps_volume[self.args.model_number[0]].cpu().numpy()
 
         viewer = napari.Viewer()
         viewer.add_image(grandmodel, name='Grandmodel Volume', colormap='gray')
