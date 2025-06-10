@@ -52,8 +52,8 @@ def add_noise_to_projections(projections: torch.Tensor, noise_db: float) -> torc
 
 
 def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size, particle_width, particle_height,
-                                            particle_locations, z_slice_size, orientation="normal", particle_depth=0,
-                                            shrec_specific_particle=None):
+                                            shrec_specific_particle, particle_depth, particle_locations, z_slice_size,
+                                            orientation="normal"):
     """
     Given coordinates, this function determines the location of all relevant particles in the sub micrograph
 
@@ -67,13 +67,13 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         of the sub micrograph
     """
     if orientation in ["normal", "vertical_flip", "horizontal_flip", "transposed"]:
-        x_min = coordinates_tl[0].item()
-        x_max = x_min + sub_micrograph_size
-        y_min = coordinates_tl[1].item()
-        y_max = y_min + sub_micrograph_size
+        x_min = coordinates_tl[0].item() - (particle_width * 0.5)
+        x_max = x_min + sub_micrograph_size + (particle_width * 0.5)
 
-        # I chose 4 here because this function doesn't matter for training anymore, and it helps with actually
-        # including the right particles
+        y_min = coordinates_tl[1].item() - (particle_height * 0.5)
+        y_max = y_min + sub_micrograph_size + (particle_height * 0.5)
+
+        # This is just to help with visualizing actual particles during training, only for debugging
         z_min = coordinates_tl[2].item() - (particle_depth * 0.5)
         z_max = z_min + z_slice_size + (particle_depth * 0.5)
 
@@ -120,7 +120,7 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         raise Exception(f'The orientation {orientation} is not a valid orientation')
 
 
-def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z, model_number):
+def create_sub_micrographs(micrograph, heatmap, crop_size, sampling_points, start_z, model_number, sub_heatmap_size):
     """
     Creates sub micrographs of the given micrograph by sliding a window of size crop_size x crop_size across the image
     from the top left to the bottom right. The total number of sub micrographs will be samping_points * sampling_points
@@ -135,50 +135,66 @@ def create_sub_micrographs(micrograph, crop_size, sampling_points, start_z, mode
     height, width = micrograph.shape
 
     assert sampling_points <= (width - crop_size), "Number of sampling points can't be larger than width - crop_size"
+    assert micrograph.shape == heatmap.shape, "Micrograph and heatmap must have the same shape"
 
     step_size_x = (width - crop_size) // (sampling_points - 1)
     step_size_y = (height - crop_size) // (sampling_points - 1)
 
     sub_micrographs_list = []
-    if micrograph.max() > micrograph.min():  # We don't want useless images
-        for i in range(sampling_points):  # horizontal steps
-            for j in range(sampling_points):  # vertical steps
-                start_x = i * step_size_x
-                start_y = j * step_size_y
-                end_y = start_y + crop_size
-                end_x = start_x + crop_size
+    for i in range(sampling_points):  # horizontal steps
+        for j in range(sampling_points):  # vertical steps
+            start_x = i * step_size_x
+            start_y = j * step_size_y
+            end_y = start_y + crop_size
+            end_x = start_x + crop_size
 
-                # Ensure we don't go out of bounds
-                if end_x <= width and end_y <= height:
-                    sub_micrograph = micrograph[start_y:end_y, start_x:end_x].unsqueeze(0)
-                    if sub_micrograph.max() > sub_micrograph.min():  # We don't need to normalize if everything is 0
-                        sub_micrograph = (sub_micrograph - sub_micrograph.min()) / (sub_micrograph.max() -
-                                                                                    sub_micrograph.min())
-                    sub_micrograph = sub_micrograph.repeat(3, 1, 1)
+            # Ensure we don't go out of bounds
+            if end_x <= width and end_y <= height:
+                sub_micrograph = micrograph[start_y:end_y, start_x:end_x].unsqueeze(0)
+                if sub_micrograph.max() > sub_micrograph.min():  # We don't need to normalize if everything is 0
+                    sub_micrograph = (sub_micrograph - sub_micrograph.min()) / (sub_micrograph.max() -
+                                                                                sub_micrograph.min())
+                sub_micrograph = sub_micrograph.repeat(3, 1, 1)
 
-                    if not torch.isnan(sub_micrograph).all():
-                        sub_micrographs_list.append((sub_micrograph, torch.tensor([start_x, start_y, start_z]),
-                                                     "normal", model_number))
-                        # Horizontal flip
-                        sub_micrographs_list.append((torch.flip(sub_micrograph, dims=[2]),
-                                                     torch.tensor([start_x, start_y, start_z]), "horizontal_flip",
-                                                     model_number))
-                        # Vertical flip
-                        sub_micrographs_list.append((torch.flip(sub_micrograph, dims=[1]),
-                                                     torch.tensor([start_x, start_y, start_z]), "vertical_flip",
-                                                     model_number))
-                        # Permuted version
-                        sub_micrographs_list.append((sub_micrograph.permute(0, 2, 1),
-                                                     torch.tensor([start_x, start_y, start_z]), "transposed",
-                                                     model_number))
-                    else:
-                        print("One nan tensor found")
+                sub_heatmap = heatmap[start_y:end_y, start_x:end_x].unsqueeze(0)
+                # Resize each heatmap in the DataFrame to (112, 112) since the model outputs heatmaps of that size
+                # We do this weird squeezing because F.interpolate needs batched input
+                # We take [0:1] because we want to preserve the channel dimension
+                sub_heatmap = F.interpolate(sub_heatmap[0:1].unsqueeze(0), size=(sub_heatmap_size, sub_heatmap_size),
+                                            mode='bilinear', align_corners=False).squeeze(0)
+
+                if not torch.isnan(sub_micrograph).all():
+                    # Normal
+                    sub_micrographs_list.append((
+                        sub_micrograph,
+                        sub_heatmap,
+                        torch.tensor([start_x, start_y, start_z]), "normal", model_number))
+
+                    # Horizontal flip
+                    sub_micrographs_list.append((
+                        torch.flip(sub_micrograph, dims=[2]),
+                        torch.flip(sub_heatmap, dims=[2]),
+                        torch.tensor([start_x, start_y, start_z]), "horizontal_flip", model_number))
+
+                    # Vertical flip
+                    sub_micrographs_list.append((
+                        torch.flip(sub_micrograph, dims=[1]),
+                        torch.flip(sub_heatmap, dims=[1]),
+                        torch.tensor([start_x, start_y, start_z]), "vertical_flip", model_number))
+
+                    # Transposed version
+                    sub_micrographs_list.append((
+                        sub_micrograph.permute(0, 2, 1),
+                        sub_heatmap.permute(0, 2, 1),
+                        torch.tensor([start_x, start_y, start_z]), "transposed", model_number))
+
+                else:
+                    raise Exception("One nan tensor found")
 
     # The reason we did a list first is because of this:
     # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
-    sub_micrographs = pd.DataFrame(sub_micrographs_list, columns=["sub_micrograph", "top_left_coordinates",
+    sub_micrographs = pd.DataFrame(sub_micrographs_list, columns=["sub_micrograph", "heatmap", "top_left_coordinates",
                                                                   "orientation", "model_number"])
-
     return sub_micrographs
 
 
@@ -279,7 +295,7 @@ def reconstruct_fbp_volume(projections, angles, n3):
 
 class ShrecDataset(Dataset):
     def __init__(self, sampling_points, z_slice_size, particle_width, particle_height, particle_depth, noise,
-                 add_noise=False, micrograph_size=512, sub_micrograph_size=224, model_number=None,
+                 add_noise, heatmap_size, micrograph_size=512, sub_micrograph_size=224, model_number=None,
                  dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
                  fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60,
                  shrec_specific_particle=None):
@@ -325,6 +341,7 @@ class ShrecDataset(Dataset):
         self.fbp_max_angle = fbp_max_angle
         self.fbp_num_projections = fbp_num_projections
         self.shrec_specific_particle = shrec_specific_particle
+        self.heatmap_size = heatmap_size
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = {}
@@ -353,15 +370,13 @@ class ShrecDataset(Dataset):
                 projections = generate_projections(self.grandmodel[model_num].permute(2, 1, 0), angles)
                 if self.add_noise:  # We add noise to the projections and then reconstruct to simulate how it would be
                     projections = add_noise_to_projections(projections, noise_db=self.noise)
-                self.grandmodel_fbp[model_num] = reconstruct_fbp_volume(projections, angles, self.grandmodel[model_num].shape[0]).permute(2, 1, 0)
+                self.grandmodel_fbp[model_num] = reconstruct_fbp_volume(
+                    projections, angles, self.grandmodel[model_num].shape[0]).permute(2, 1, 0)
 
         self.micrographs = {}
-        self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates", "orientation",
-                                                     "model_number"])
-
         self.heatmaps = {}
-        self.sub_heatmaps = pd.DataFrame(columns=["sub_micrograph", "top_left_coordinates", "orientation",
-                                                  "model_number"])
+        self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "heatmap", "top_left_coordinates", "orientation",
+                                                     "model_number"])
 
         for model_num in self.model_number:
             self.micrographs[model_num] = []
@@ -371,31 +386,25 @@ class ShrecDataset(Dataset):
                 start_z = min_z + (i * self.z_slice_size)
                 end_z = start_z + z_slice_size
 
+                # Here we get the z slices of the grandmodel volume and the heatmap volume
                 if not self.use_fbp:
                     # We know 0 is correct from testing, 0 is top view so to speak
                     micrograph = self.grandmodel[model_num][start_z:end_z].sum(dim=0)
                 else:
                     micrograph = self.grandmodel_fbp[model_num][start_z:end_z].sum(dim=0)
-
                 self.micrographs[model_num].append((micrograph, start_z, end_z))
-                sub_micrographs_df = create_sub_micrographs(micrograph, self.sub_micrograph_size, self.sampling_points,
-                                                            start_z=start_z, model_number=model_num)
-                self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
-
                 # Here we max not sum since we are trying to represent probabilities for the targets
                 heatmap = self.heatmaps_volume[model_num][start_z:end_z].max(dim=0).values
                 self.heatmaps[model_num].append((heatmap, start_z, end_z))
 
-                sub_heatmaps_df = create_sub_micrographs(heatmap, self.sub_micrograph_size, self.sampling_points,
-                                                         start_z=start_z, model_number=model_num)
-                # Resize each heatmap in the DataFrame to (112, 112), we do this weird squeezing because
-                # F.interpolate needs batched input. We take [0:1] because create_sub_micrographs automatically
-                # adds three channels
-                sub_heatmaps_df["sub_micrograph"] = sub_heatmaps_df["sub_micrograph"].apply(
-                    lambda x: F.interpolate(x[0:1].unsqueeze(0), size=(112, 112), mode='bilinear',
-                                            align_corners=False).squeeze(0)
-                )
-                self.sub_heatmaps = pd.concat([self.sub_heatmaps, sub_heatmaps_df], ignore_index=True)
+                # Here we create the sub micrographs and their corresponding heatmaps by using a sliding window across
+                # the z slice heatmap and micrograph
+                sub_micrographs_df = create_sub_micrographs(
+                    micrograph=micrograph, heatmap=heatmap, crop_size=self.sub_micrograph_size,
+                    sampling_points=self.sampling_points, start_z=start_z, model_number=model_num,
+                    sub_heatmap_size=self.heatmap_size)
+
+                self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
 
     def __len__(self):
         return len(self.sub_micrographs)
@@ -406,10 +415,9 @@ class ShrecDataset(Dataset):
         :param idx: The index to take from
         """
         sub_micrograph_entry = self.sub_micrographs.iloc[idx]
-        sub_heatmaps_entry = self.sub_heatmaps.iloc[idx]
 
         micrograph = sub_micrograph_entry['sub_micrograph']
-        heatmap = sub_heatmaps_entry['sub_micrograph']
+        heatmap = sub_micrograph_entry['heatmap']
         coordinates_tl = sub_micrograph_entry['top_left_coordinates']
         orientation = sub_micrograph_entry['orientation']
         model_number = sub_micrograph_entry['model_number']
@@ -422,6 +430,7 @@ class ShrecDataset(Dataset):
                                                           z_slice_size=self.z_slice_size,
                                                           shrec_specific_particle=self.shrec_specific_particle)
         targets[:, 1] = self.sub_micrograph_size - targets[:, 1]
+        # We normalize it between 0 and 1
         targets /= self.sub_micrograph_size
 
-        return micrograph, heatmap, targets
+        return micrograph, heatmap, targets, (coordinates_tl, orientation, model_number)

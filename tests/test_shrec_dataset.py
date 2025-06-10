@@ -22,20 +22,21 @@ def get_args():
     parser.add_argument("--dataset_path", type=str, default='../dataset/shrec21_full_dataset/')
     parser.add_argument("--sampling_points", type=int, default=4)
     parser.add_argument("--z_slice_size", type=int, default=1)
-    parser.add_argument("--min_z", type=int, default=200)
-    parser.add_argument("--max_z", type=int, default=210)
+    parser.add_argument("--min_z", type=int, default=160)
+    parser.add_argument("--max_z", type=int, default=360)
     parser.add_argument("--example_visualizations", type=int, default=20)
-    parser.add_argument("--model_number", type=int, default=[3])
+    parser.add_argument("--model_number", type=int, default=[0])
     parser.add_argument("--particle_width", type=int, default=20)
     parser.add_argument("--particle_height", type=int, default=20)
-    parser.add_argument("--particle_depth", type=int, default=20)
+    parser.add_argument("--particle_depth", type=int, default=10)
     parser.add_argument("--noise", type=int, default=10)
+    parser.add_argument("--heatmap_size", type=int, default=112)
     parser.add_argument("--add_noise", type=bool, default=False)
     parser.add_argument("--use_fbp", type=bool, default=False)
     parser.add_argument("--fbp_num_projections", type=int, default=60)
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
     parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
-    parser.add_argument("--shrec_specific_particle", type=str, default="4CR2")
+    parser.add_argument("--shrec_specific_particle", type=str, default="1U6G")
 
     args = parser.parse_args()
 
@@ -54,7 +55,7 @@ class ShrecDatasetTests(unittest.TestCase):
                                     fbp_min_angle=self.args.fbp_min_angle, fbp_max_angle=self.args.fbp_max_angle,
                                     particle_depth=self.args.particle_depth,
                                     shrec_specific_particle=self.args.shrec_specific_particle,
-                                    model_number=self.args.model_number)
+                                    model_number=self.args.model_number, heatmap_size=self.args.heatmap_size)
 
     def test_orientations(self):
         micrograph_0, heatmap_0, targets_0 = self.dataset.__getitem__(0)

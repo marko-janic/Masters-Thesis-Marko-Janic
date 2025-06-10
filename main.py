@@ -8,22 +8,24 @@ import random
 
 import torch.optim as optim
 import matplotlib.pyplot as plt
+import torch.nn.functional as F
 
 from tqdm import tqdm
 
+from dataset import ShrecDataset
 # Local imports
 from model import TopdownHeatmapSimpleHead
 from utils import create_folder_if_missing
 from evaluate import evaluate
-from train import prepare_dataloaders, find_optimal_assignment_heatmaps, get_dataset
+from train import prepare_dataloaders
 from plotting import save_image_with_bounding_object, plot_loss_log, compare_heatmaps_with_ground_truth
 from vit_model import get_vit_model, get_encoded_image
 
 
-## Set the seed for reproducibility
-#seed = 42
-#random.seed(seed)
-#torch.manual_seed(seed)
+# Set the seed for reproducibility
+seed = 42
+random.seed(seed)
+torch.manual_seed(seed)
 
 
 def get_args():
@@ -86,14 +88,15 @@ def get_args():
     parser.add_argument("--model_deconv_filters", type=tuple, help="Tuple determining the 3 layer deconv"
                                                                    "filter size for the model. For example"
                                                                    "[256, 256, 256]")
+    parser.add_argument("--heatmap_size", type=int, help="Size of the heatmaps that are fed into the model"
+                                                         "by default its just 112 which means that the heatmaps"
+                                                         "are of shape 112 x 112")
 
     # Dataset general
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: shrec")
     parser.add_argument("--dataset_path", type=str)
     parser.add_argument("--vit_input_size", type=int, help="Size of image that is put through the vit",
                         default=224)
-    # TODO: add checker for when num_particles is somehow less than the ground truth ones in the sub micrograph
-    parser.add_argument("--num_particles", type=int, help="Number of particles that the model outputs as predictions")
     parser.add_argument("--particle_width", type=int)
     parser.add_argument("--particle_height", type=int)
     parser.add_argument("--particle_depth", type=int, help="Only relevenat for shrec dataset and others"
@@ -194,8 +197,13 @@ def main():
     vit_model, vit_image_processor = get_vit_model()
 
     # Dataset
-    print("Creating Dataset...")
-    dataset = get_dataset(args.dataset, args)
+    dataset = ShrecDataset(sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
+                           model_number=args.shrec_model_number, min_z=args.shrec_min_z, max_z=args.shrec_max_z,
+                           particle_height=args.particle_height, particle_width=args.particle_width,
+                           particle_depth=args.particle_depth, noise=args.noise, add_noise=args.add_noise,
+                           device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
+                           fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
+                           shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size)
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader = prepare_dataloaders(dataset=dataset, train_eval_split=args.train_eval_split,
@@ -209,7 +217,6 @@ def main():
     model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1,
                                      num_deconv_filters=tuple(args.model_deconv_filters))
 
-    model.init_weights()
     model.to(args.device)
 
     mse_loss = torch.nn.MSELoss()
@@ -219,10 +226,6 @@ def main():
         model.train()
 
         last_checkpoint_time = time.time()
-        # This is different from batch_index as this only counts how many batches have been done since the last avg_loss
-        # calculation
-        batch_counter = 0
-        running_loss = 0.0
 
         # Save untrained checkpoint for debugging purposes
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
@@ -230,24 +233,38 @@ def main():
         plotted = 0
         for epoch in range(args.epochs):
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
+            # This is different from batch_index as this only counts how many batches have been done since the last
+            # avg_loss calculation
+            batch_counter = 0
+            running_loss = 0.0
 
-            for batch_index, (micrographs, target_heatmaps, target_coordinates_list) in enumerate(train_dataloader):
+            for batch_index, (micrographs, target_heatmaps, target_coordinates_list, debug_tuple) \
+                    in enumerate(train_dataloader):
                 batch_counter += 1
 
                 if plotted < 20:  # TODO: move this into seperate function
-                    save_image_with_bounding_object(micrographs[0].cpu(),
-                                                    target_coordinates_list[0].cpu()*args.vit_input_size,
-                                                    "output_box",
-                                                    {},
-                                                    os.path.join(args.result_dir, 'training_examples'),
-                                                    f"train_test_example_{plotted}")
+                    save_image_with_bounding_object(
+                        micrographs[0].cpu(), target_coordinates_list[0].cpu()*args.vit_input_size,
+                        "circle", {"circle_radius": 6}, os.path.join(args.result_dir, 'training_examples'),
+                        f"train_test_example_{plotted}_coords_xyz_{debug_tuple[0][0]}_"
+                        f"orientation_{debug_tuple[0][1]}_model_{debug_tuple[0][2]}")
+
+                    plt.close()
+                    plt.imshow(micrographs[0].cpu().permute(1, 2, 0))
+                    target_heatmap_resized = F.interpolate(target_heatmaps[0].unsqueeze(0), size=(224, 224),
+                                                           mode='bilinear', align_corners=False).squeeze(0)
+                    plt.imshow(target_heatmap_resized[0].cpu(), cmap='jet', alpha=0.25)
+                    plt.axis('off')
+                    plt.savefig(os.path.join(args.result_dir, 'training_examples',
+                                             f"overlayed_gt_heatmaps_{plotted}.png"))
+                    plt.close()
 
                     compare_heatmaps_with_ground_truth(
                         micrograph=micrographs[0].cpu(),
                         particle_locations=target_coordinates_list[0].cpu()*args.vit_input_size,
                         heatmaps=target_heatmaps[0].cpu(),
-                        heatmaps_title="target heatmaps",
-                        result_folder_name=f"ground_truth_vs_heatmaps_targets_{plotted}",
+                        heatmaps_title=f"target heatmap",
+                        result_file_name=f"ground_truth_vs_target_heatmap_{plotted}.png",
                         result_dir=os.path.join(args.result_dir, 'training_examples'))
 
                     vit_processed_micrographs = vit_image_processor(images=micrographs, return_tensors="pt",
@@ -275,8 +292,9 @@ def main():
                 # Right shape for model, we permute the hidden dimension to the second place
                 # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you don't
                 #  change the vit input size
-                latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(args.batch_size, args.latent_dim,
-                                                                                 14, 14)
+                latent_micrographs = latent_micrographs.permute(0, 2, 1)
+                latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0),
+                                                                latent_micrographs.size(1), 14, 14)
                 outputs = model(latent_micrographs)
 
                 losses = mse_loss(outputs["heatmaps"], target_heatmaps)
@@ -320,8 +338,9 @@ def main():
         else:
             raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
 
-        evaluate(args=args, criterion=mse_loss, vit_model=vit_model, vit_image_processor=vit_image_processor,
-                 model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8)
+        with torch.no_grad():
+            evaluate(args=args, criterion=mse_loss, vit_model=vit_model, vit_image_processor=vit_image_processor,
+                     model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8)
 
 
 if __name__ == "__main__":

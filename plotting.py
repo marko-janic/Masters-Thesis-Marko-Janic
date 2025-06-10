@@ -97,11 +97,11 @@ def compare_images(image1, image2, file_name, output_location, title1, title2):
 
 def draw_output_boxes(ax, particle_locations, image_height, image_width, box_color):
     for coords in particle_locations:
-        box_width = coords[2]
-        box_height = coords[3]
+        box_width = coords[2].item()
+        box_height = coords[3].item()
 
-        x = coords[0] - box_width / 2
-        y = coords[1] + box_height / 2  # Plus here because patches.Rectangle draws boxes assuming the origin is the bottom left
+        x = coords[0] - box_width
+        y = coords[1] + box_height  # Plus here because patches.Rectangle draws boxes assuming the origin is the bottom left
 
         # We do this weird image_height - y here because patches draws assuming the origin is in the bottom left corner
         box = patches.Rectangle((x, image_height - y), box_width, box_height, linewidth=1, edgecolor=box_color, facecolor='none')
@@ -110,8 +110,8 @@ def draw_output_boxes(ax, particle_locations, image_height, image_width, box_col
 
 def draw_bounding_boxes(ax, particle_locations, image_height, image_width, box_width, box_height, box_color):
     for coords in particle_locations:
-        x = coords[0] - box_width / 2
-        y = coords[1] + box_height / 2  # Box height here because box is drawn based on the top left corner
+        x = coords[0] - box_width
+        y = coords[1] + box_height  # Box height here because box is drawn based on the top left corner
 
         # We do this weird image_height - y here because patches draws assuming the origin is in the bottom left corner
         box = patches.Rectangle((x, image_height - y), box_width, box_height, linewidth=1, edgecolor=box_color, facecolor='none')
@@ -231,14 +231,14 @@ def compare_predictions_with_ground_truth(image_tensor, ground_truth, prediction
     plt.savefig(os.path.join(result_dir, file_name))
 
 
-def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps, heatmaps_title, result_folder_name,
-                                       result_dir):
-    create_folder_if_missing(os.path.join(result_dir, result_folder_name))
+def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps, heatmaps_title,
+                                       result_dir, result_file_name):
+    create_folder_if_missing(os.path.join(result_dir))
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
     ax1.set_title('Ground Truth')
 
-    draw_image_with_objects_on_ax(ax1, micrograph, particle_locations, "output_box", {},
+    draw_image_with_objects_on_ax(ax1, micrograph, particle_locations, "circle", {"circle_radius": 6},
                                   "r")
 
     for i in range(len(heatmaps)):
@@ -247,7 +247,7 @@ def compare_heatmaps_with_ground_truth(micrograph, particle_locations, heatmaps,
 
         cbar2 = fig.colorbar(im2, ax=ax2, orientation='vertical', shrink=0.5)
 
-        plt.savefig(os.path.join(result_dir, result_folder_name, f"heatmap_{i}_compared_to_ground_truth.png"))
+        plt.savefig(os.path.join(result_dir, result_file_name))
 
         cbar2.remove()
         ax2.cla()  # Clear before doing the next comparison

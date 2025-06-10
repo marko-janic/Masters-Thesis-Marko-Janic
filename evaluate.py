@@ -216,7 +216,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
     with (torch.no_grad()):
         # TODO: This needs to be cleaned up some more
         if not args.volume_evaluation:
-            for micrographs, target_heatmaps, target_coordinates in tqdm(test_dataloader, desc="Evaluating"):
+            for micrographs, target_heatmaps, target_coordinates, debug_tuple in tqdm(test_dataloader,
+                                                                                      desc="Evaluating"):
                 model.eval()
                 criterion.eval()
 
@@ -226,39 +227,22 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(1, args.latent_dim, 14, 14)
 
                 outputs = model(latent_micrographs)
+                losses = criterion(outputs["heatmaps"], target_heatmaps)
+                running_loss += losses.item()
 
                 missed_predictions = 0
                 extra_predictions = 0
                 avg_pixels_off = 0
 
-                # We use this to compute the average pixels off so to speak, we set it to -1 to indicate no prediction
-                padded_target_boxes = torch.full((1, args.num_particles, 2), -1.0, dtype=torch.float32)
-                for i in range(len(target_coordinates)):
-                    indices = len(target_coordinates[i])
-                    if indices > args.num_particles:
-                        missed_predictions += + indices - args.num_particles
-                        indices = args.num_particles
-                    padded_target_boxes[i, :indices, :] = target_coordinates[i][:indices, :2]
-                assignments = find_optimal_assignment_heatmaps(outputs["heatmaps"], target_heatmaps, criterion)
-                # We put -1 to signify there is no prediction here
-                reordered_padded_target_boxes = torch.full_like(padded_target_boxes, -1.0, dtype=torch.float32)
-                reordered_target_heatmaps = torch.zeros_like(target_heatmaps)
-                for batch_idx, (row_ind, col_ind) in enumerate(assignments):
-                    reordered_target_heatmaps[batch_idx] = target_heatmaps[batch_idx, col_ind]
-                    reordered_padded_target_boxes[batch_idx] = padded_target_boxes[batch_idx, col_ind]
-                reordered_padded_target_boxes = reordered_padded_target_boxes * args.vit_input_size  # back to pixel coords
-                losses = criterion(outputs["heatmaps"], reordered_target_heatmaps)
-                running_loss += losses.item()
-
-                heatmap_for_maxima = target_heatmaps[0, 0, :, :].cpu().numpy()
-                predictions = torch.from_numpy(peak_local_max(heatmap_for_maxima, min_distance=5,
-                                                              threshold_abs=args.prediction_threshold))
+                predictions = torch.from_numpy(peak_local_max(
+                    target_heatmaps[0, 0].cpu().numpy(), min_distance=args.neighborhood_size,
+                    threshold_abs=args.prediction_threshold))
                 predictions *= 2  # The heatmaps are size 112 x 112 and the actual coordinates are 224 x 224
                 predictions[:, 0] = args.vit_input_size - predictions[:, 0]
                 predictions = predictions[:, [1, 0]]
 
-                for i in range(len(target_coordinates)):
-                    target_coordinates[i][:] = target_coordinates[i][:]*args.vit_input_size
+                # Scale back coordinates to pixel values
+                target_coordinates[0][:] = target_coordinates[0][:]*args.vit_input_size
 
                 num_predictions = predictions.shape[0]
                 num_targets = target_coordinates[0].shape[0]
@@ -290,11 +274,11 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                                        particle_locations=target_coordinates[0],
                                                        heatmaps=outputs["heatmaps"][0],
                                                        heatmaps_title="Model output",
-                                                       result_folder_name=f"model_to_ground_truth_heatmaps_comparison_"
-                                                                          f"{example_counter}",
+                                                       result_file_name=f"model_to_ground_truth_heatmaps_comparison_"
+                                                                        f"{example_counter}",
                                                        result_dir=result_dir)
 
-                    compare_heatmaps(heatmaps_gt=reordered_target_heatmaps[0],
+                    compare_heatmaps(heatmaps_gt=target_heatmaps[0],
                                      heatmaps_pred=outputs["heatmaps"][0],
                                      result_folder_name=f"model_heatmaps_vs_target_heatmaps_{example_counter}",
                                      result_dir=result_dir)

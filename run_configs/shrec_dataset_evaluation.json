@@ -1,22 +1,21 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-05-27_16-14-07_fbp_no_noise",
+    "existing_result_folder": "",
     "existing_evaluation_folder": "",
 
     "batch_size": 1,
 
     "dataset_path": "dataset/shrec21_full_dataset/",
-    "num_particles": 20,
     "particle_width": 20,
     "particle_height": 20,
-    "particle_depth": 20,
+    "particle_depth": 10,
     "add_noise": false,
     "noise": 0,
-    "use_fbp": true,
+    "use_fbp": false,
     "fbp_num_projections": 60,
 
-    "volume_evaluation": false,
+    "volume_evaluation": true,
     "missing_pred_threshold": 20,
     "prediction_threshold": 0.5,
     "neighborhood_size": 10,
@@ -27,12 +26,13 @@
     "train_eval_split": 0.9,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
-    "model_deconv_filters": [256, 256, 256],
+    "heatmap_size": 112,
+    "model_deconv_filters": [256, 128, 64],
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
     "shrec_model_number": [1],
     "shrec_min_z": 160,
-    "shrec_max_z": 360,
-    "shrec_specific_particle": ""
+    "shrec_max_z": 161,
+    "shrec_specific_particle": "1U6G"
 }

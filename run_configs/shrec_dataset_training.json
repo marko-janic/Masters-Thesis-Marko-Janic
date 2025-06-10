@@ -1,13 +1,12 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "model_with_dropout2d_layers_prob_0_2",
+    "result_dir_appended_name": "TESTING_slightly_larger_model_dropout_0.1_adjusted_reshape_fixed_big_dataset_bug",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
-    "num_particles": 20,
     "particle_width": 20,
     "particle_height": 20,
-    "particle_depth": 20,
+    "particle_depth": 10,
     "add_noise": false,
     "noise": 0,
     "use_fbp": false,
@@ -23,12 +22,13 @@
     "train_eval_split": 1,
     "latent_dim": 768,
     "num_patch_embeddings": 196,
-    "model_deconv_filters": [128, 64, 32],
+    "heatmap_size": 112,
+    "model_deconv_filters": [256, 128, 64],
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1, 2, 3, 4],
-    "shrec_min_z": 170,
+    "shrec_model_number": [0],
+    "shrec_min_z": 160,
     "shrec_max_z": 360,
     "shrec_specific_particle": "1U6G"
 }
