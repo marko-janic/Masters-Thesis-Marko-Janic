@@ -236,7 +236,8 @@ def main():
                                                             args.use_train_dataset_for_evaluation)
 
     model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1,
-                                     num_deconv_filters=tuple(args.model_deconv_filters))
+                                     num_deconv_filters=tuple(args.model_deconv_filters),
+                                     dropout_prob=args.dropout_prob)
     model.init_weights()
     model.to(args.device)
 
