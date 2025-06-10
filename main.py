@@ -65,6 +65,10 @@ def get_args():
     parser.add_argument("--split_file_name", type=str, default="dataset_split_indices.json",
                         help="File with dataset split indices. Used to get the same train test split after program has"
                              "already been run")
+    parser.add_argument("--finetune_vit", type=bool, default=False,
+                        help="Determines whether to fintune a vit during training or not. If set to true while "
+                             "evaluating the program will try to load an already finetuned vit from the experiment "
+                             "folder")
 
     # Evaluation
     parser.add_argument('--prediction_threshold', type=float,
@@ -195,6 +199,21 @@ def main():
 
     # ViT model
     vit_model, vit_image_processor = get_vit_model()
+    vit_model.to(args.device)
+    if args.mode == "eval" and args.finetune_vit:
+        print("Loading finetuned ViT model")
+        vit_model.load_state_dict(torch.load(os.path.join(args.result_dir, 'vit_checkpoint_final.pth'),
+                                             map_location=args.device))
+
+    # Freeze all parameters (finetuning vit)
+    for param in vit_model.parameters():
+        param.requires_grad = False
+
+    # Unfreeze last 2 trasnformer blocks (finetuning vit)
+    if args.finetune_vit:
+        for block in vit_model.encoder.layer[-2:]:
+            for param in block.parameters():
+                param.requires_grad = True
 
     # Dataset
     dataset = ShrecDataset(sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
@@ -222,8 +241,16 @@ def main():
     mse_loss = torch.nn.MSELoss()
 
     if args.mode == "train":
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-        model.train()
+        if args.finetune_vit:
+            optimizer = optim.Adam(
+                list(model.parameters()) + list(vit_model.parameters()),
+                lr=args.learning_rate)
+            model.train()
+            vit_model.train()
+        else:
+            optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+            model.train()
+            vit_model.eval()
 
         last_checkpoint_time = time.time()
 
@@ -285,7 +312,7 @@ def main():
                     plt.close()
                     plotted += 1
 
-                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
+                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor, device=args.device)
 
                 # 1: here because we don't need the class token
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
@@ -317,14 +344,22 @@ def main():
                     with open(args.loss_log_path, 'a') as f:
                         f.write(f"{epoch},{batch_index},{avg_loss}\n")
                     # Save checkpoint
-                    torch.save(model.state_dict(), os.path.join(args.result_dir,
-                                                                f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
+                    torch.save(model.state_dict(), os.path.join(
+                        args.result_dir, f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
+
+                    if args.finetune_vit:
+                        torch.save(vit_model.state_dict(), os.path.join(
+                            args.result_dir, f"checkpoints/vit_checkpoint_epoch{epoch}_batch_{batch_index}.pth"))
+
                     last_checkpoint_time = time.time()
 
             epoch_bar.close()
 
         # Save final checkpoint
-        torch.save(model.state_dict(), os.path.join(args.result_dir, 'checkpoint_final.pth'))
+        torch.save(model.state_dict(), os.path.join(args.result_dir, f"checkpoint_final.pth"))
+        if args.finetune_vit:
+            torch.save(vit_model.state_dict(), os.path.join(args.result_dir, f"vit_checkpoint_final.pth"))
+
         # Plot the loss log after training
         plot_loss_log(args.loss_log_path, args.result_dir)
 

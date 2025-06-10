@@ -221,7 +221,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 model.eval()
                 criterion.eval()
 
-                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor)
+                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor, device=args.device)
                 # the 1: is because we don't need the class token
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
                 latent_micrographs = latent_micrographs.permute(0, 2, 1).reshape(1, args.latent_dim, 14, 14)

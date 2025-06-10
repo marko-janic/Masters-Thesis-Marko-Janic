@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-10_17-38-57_slightly_larger_model_dropout_0.1_adjusted_reshape_fixed_big_dataset_bug_smaller_particle_depth",
+    "existing_result_folder": "experiment_2025-06-10_22-01-59_TESTING_slightly_larger_model_fixed_big_dataset_bug_adjusted_z_range_slightly_larger_variances",
     "existing_evaluation_folder": "",
 
     "batch_size": 1,
@@ -28,10 +28,11 @@
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
+    "finetune_vit": true,
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0],
+    "shrec_model_number": [5],
     "shrec_min_z": 190,
     "shrec_max_z": 350,
     "shrec_specific_particle": "1U6G"

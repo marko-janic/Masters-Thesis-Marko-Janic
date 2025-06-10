@@ -6,21 +6,18 @@ import torch
 from transformers import ViTModel, ViTImageProcessor
 
 
-def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_image_processor: ViTImageProcessor):
+def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_image_processor: ViTImageProcessor,
+                      device):
     """
     :param image: torch tensor of shape batch x channels x height x width
     :param vit_model:
     :param vit_image_processor: See https://huggingface.co/docs/transformers/en/model_doc/vit
+    :param device: The device to use
     :return:
     """
 
-    for tensor in image:  # TODO: Remove these unecessary cheks
-        if torch.isnan(tensor).all():
-            print(f"This one is fucked, min: {tensor.min()}, max: {tensor.max()}, dtype: {tensor.dtype}")
-
-    with torch.no_grad():
-        inputs = vit_image_processor(images=image, return_tensors='pt', do_rescale=False)
-        outputs = vit_model(pixel_values=inputs['pixel_values'], output_hidden_states=True)
+    inputs = vit_image_processor(images=image, return_tensors='pt', do_rescale=False).to(device)
+    outputs = vit_model(pixel_values=inputs['pixel_values'], output_hidden_states=True)
 
     return outputs
 
