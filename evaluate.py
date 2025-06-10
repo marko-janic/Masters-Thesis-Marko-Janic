@@ -167,7 +167,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         "volume_evaluation",
         "existing_evaluation_folder",
         "split_file_name",
-        "missing_pred_threshold"
+        "missing_pred_threshold",
+        "use_train_dataset_for_evaluation"
     ]
     arguments_file_evaluation = os.path.join(result_dir, 'arguments.txt')
     arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')

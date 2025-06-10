@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-10_22-01-59_TESTING_slightly_larger_model_fixed_big_dataset_bug_adjusted_z_range_slightly_larger_variances",
+    "existing_result_folder": "experiment_2025-06-10_22-14-54_slightly_smaller_z_depth_finetuned_vit",
     "existing_evaluation_folder": "",
 
     "batch_size": 1,
@@ -9,7 +9,7 @@
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
     "particle_height": 20,
-    "particle_depth": 10,
+    "particle_depth": 15,
     "add_noise": false,
     "noise": 0,
     "use_fbp": false,
@@ -28,6 +28,7 @@
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
+    "dropout_prob": 0.1,
     "finetune_vit": true,
 
     "shrec_sampling_points": 4,

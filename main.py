@@ -92,6 +92,8 @@ def get_args():
     parser.add_argument("--model_deconv_filters", type=tuple, help="Tuple determining the 3 layer deconv"
                                                                    "filter size for the model. For example"
                                                                    "[256, 256, 256]")
+    parser.add_argument("--dropout_prob", type=float, help="Determines the dropout probability for"
+                                                           "Dropout layers in the model. For example 0.1")
     parser.add_argument("--heatmap_size", type=int, help="Size of the heatmaps that are fed into the model"
                                                          "by default its just 112 which means that the heatmaps"
                                                          "are of shape 112 x 112")
@@ -375,7 +377,7 @@ def main():
 
         with torch.no_grad():
             evaluate(args=args, criterion=mse_loss, vit_model=vit_model, vit_image_processor=vit_image_processor,
-                     model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=8)
+                     model=model, dataset=dataset, test_dataloader=test_dataloader, example_predictions=20)
 
 
 if __name__ == "__main__":

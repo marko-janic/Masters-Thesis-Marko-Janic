@@ -54,6 +54,7 @@ class TopdownHeatmapSimpleHead(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
+                 dropout_prob,
                  num_deconv_layers=3,
                  # TODO: add the deconv filters as arguments
                  num_deconv_filters=(128, 64, 32),
@@ -66,6 +67,8 @@ class TopdownHeatmapSimpleHead(nn.Module):
                  train_cfg=None,
                  test_cfg=None):
         super().__init__()
+
+        self.dropout_prob = dropout_prob
 
         self.in_channels = in_channels
         self.loss = None #build_loss(loss_keypoint)
@@ -293,8 +296,7 @@ class TopdownHeatmapSimpleHead(nn.Module):
                     bias=False))
             layers.append(nn.BatchNorm2d(planes))
             layers.append(nn.ReLU(inplace=True))
-            # TODO: add argument to enable / disable this
-            #layers.append(nn.Dropout2d(0.1))
+            layers.append(nn.Dropout2d(self.dropout_prob))
             self.in_channels = planes
 
         return nn.Sequential(*layers)
