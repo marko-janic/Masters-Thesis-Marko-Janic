@@ -6,6 +6,8 @@ import napari
 
 import matplotlib.pyplot as plt
 import mrcfile as mrc
+import numpy as np
+
 from skimage.feature import peak_local_max
 from tqdm import tqdm
 
@@ -23,12 +25,12 @@ def get_args():
     parser.add_argument("--sampling_points", type=int, default=4)
     parser.add_argument("--z_slice_size", type=int, default=1)
     parser.add_argument("--min_z", type=int, default=160)
-    parser.add_argument("--max_z", type=int, default=360)
+    parser.add_argument("--max_z", type=int, default=161)
     parser.add_argument("--example_visualizations", type=int, default=20)
-    parser.add_argument("--model_number", type=int, default=[0])
+    parser.add_argument("--model_number", type=int, default=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     parser.add_argument("--particle_width", type=int, default=20)
     parser.add_argument("--particle_height", type=int, default=20)
-    parser.add_argument("--particle_depth", type=int, default=10)
+    parser.add_argument("--particle_depth", type=int, default=15)
     parser.add_argument("--noise", type=int, default=10)
     parser.add_argument("--heatmap_size", type=int, default=112)
     parser.add_argument("--add_noise", type=bool, default=False)
@@ -36,7 +38,7 @@ def get_args():
     parser.add_argument("--fbp_num_projections", type=int, default=60)
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
     parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
-    parser.add_argument("--shrec_specific_particle", type=str, default="1U6G")
+    parser.add_argument("--shrec_specific_particle", type=str, default="3H84")
 
     args = parser.parse_args()
 
@@ -123,11 +125,23 @@ class ShrecDatasetTests(unittest.TestCase):
         napari.run()
 
     def test_volume(self):
-        grandmodel = self.dataset.grandmodel[self.args.model_number[0]].cpu().numpy()
         heatmaps = self.dataset.heatmaps_volume[self.args.model_number[0]].cpu().numpy()
 
         viewer = napari.Viewer()
-        viewer.add_image(grandmodel, name='Grandmodel Volume', colormap='gray')
+
+        for model_num in self.args.model_number:
+            grandmodel = self.dataset.grandmodel[self.args.model_number[model_num]].cpu().numpy()
+            min_val = np.min(grandmodel)
+            max_val = np.max(grandmodel)
+            normalized = (grandmodel - min_val) / (max_val - min_val)
+
+            viewer.add_image(normalized, name=f'{model_num}, min={min_val}, '
+                                              f'max={max_val}', colormap='gray')
+
+        for layer in viewer.layers:
+            if layer.__class__.__name__ == "Image":
+                layer.contrast_limits = [0, 1]
+
         viewer.add_image(heatmaps, name='Heatmaps Volume', colormap='magenta')
         if self.dataset.use_fbp:
             fbp_volume = self.dataset.grandmodel_fbp[0].cpu().numpy()

@@ -277,14 +277,14 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 if example_counter < example_predictions:
                     compare_heatmaps_with_ground_truth(micrograph=micrographs[0].cpu(),
                                                        particle_locations=target_coordinates[0],
-                                                       heatmaps=outputs["heatmaps"][0],
+                                                       heatmaps=outputs["heatmaps"][0].cpu(),
                                                        heatmaps_title="Model output",
                                                        result_file_name=f"model_to_ground_truth_heatmaps_comparison_"
                                                                         f"{example_counter}",
                                                        result_dir=result_dir)
 
-                    compare_heatmaps(heatmaps_gt=target_heatmaps[0],
-                                     heatmaps_pred=outputs["heatmaps"][0],
+                    compare_heatmaps(heatmaps_gt=target_heatmaps[0].cpu(),
+                                     heatmaps_pred=outputs["heatmaps"][0].cpu(),
                                      result_folder_name=f"model_heatmaps_vs_target_heatmaps_{example_counter}",
                                      result_dir=result_dir)
 

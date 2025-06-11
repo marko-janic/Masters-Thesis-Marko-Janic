@@ -29,6 +29,10 @@ from vit_model import get_vit_model, get_encoded_image
 
 
 def get_args():
+    """
+    This function specifies all adjustable arguments for this repository. This also includes a bit of sanity checking
+    as well as loading arguments specified from a .json file.
+    """
     parser = argparse.ArgumentParser()
 
     # Program Arguments
@@ -183,13 +187,9 @@ def get_args():
 
 def create_folders_and_initiate_files(args):
     """
-    Creates necessary folders and initializes files for logging.
+    Creates necessary folders and initializes files for logging and experiment results.
 
-    :param args: Requires the following arguments in args:
-        - result_dir: Directory to save results.
-        - existing_result_folder: Path to an existing result folder (used in evaluation mode).
-        - mode: Mode of operation
-        - loss_log_path: Path to the loss log file.
+    :param args: Requires the argument parser specified in main.py get_args()
     :return: None
     """
     create_folder_if_missing(args.result_dir)

@@ -20,11 +20,10 @@ The output of the vit model is 197 due to the embedded patches + class token. We
 ### Important arguments
 - particle_width
 - particle_height
+- particle_depth
 - mode
 - add_noise
 - noise
-- gaussians_3d: Will create a 3d volume with 3d gaussians around particle locations and then feed flat slices of that
-volume to the model instead of making 2d target heatmaps with 2d gaussians.
 - use_fbp
 
 ### Adding own Dataset
