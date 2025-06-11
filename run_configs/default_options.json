@@ -19,7 +19,7 @@
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
 
-    "train_eval_split": 0.9,
+    "train_eval_split": 1,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
