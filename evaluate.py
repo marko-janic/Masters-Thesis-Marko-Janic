@@ -392,26 +392,20 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             avg_extra_predictions = extra_predictions
             correct_predictions = len(matched_dists)
 
-            print(f"Total number of predictions: {num_preds}")
-            print(f"Total number of targets: {num_targets}")
-            print(f"Average evaluation loss: {avg_loss}")
-            print(f"Average pixel loss: {avg_pixel_loss}")
-            print(f"Missed predictions: {avg_missed_predictions}")
-            print(f"Extra predictions: {avg_extra_predictions}")
-            print(f"Correct predictions: {correct_predictions}")
-            print(f"prediction_threshold: {args.prediction_threshold}")
-            print(f"neighborhood_size: {args.neighborhood_size}")
-            print(f"missing_pred_threshold: {args.missing_pred_threshold}")
+            output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                      f"\nTotal number of predictions: {num_preds}"
+                      f"\nTotal number of targets: {num_targets}"
+                      f"\nAverage evaluation loss: {avg_loss}"
+                      f"\nAverage pixel loss: {avg_pixel_loss}"
+                      f"\nMissed predictions: {avg_missed_predictions}"
+                      f"\nExtra predictions: {avg_extra_predictions}"
+                      f"\nCorrect predictions: {correct_predictions}"
+                      f"\nprediction_threshold: {args.prediction_threshold}"
+                      f"\nneighborhood_size: {args.neighborhood_size}"
+                      f"\nmissing_pred_threshold: {args.missing_pred_threshold}")
+            print(output)
 
             # Logging the running loss to a txt file
             log_file_path = os.path.join(result_dir, "evaluation_log.txt")
             with open(log_file_path, "a") as log_file:
-                log_file.write(f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                log_file.write(f"Total number of predictions: {num_preds}")
-                log_file.write(f"Average evaluation loss: {avg_loss}\n")
-                log_file.write(f"Average pixel loss: {avg_pixel_loss}\n")
-                log_file.write(f"Average number of missed predictions: {avg_missed_predictions}\n")
-                log_file.write(f"Average number of extra predictions: {avg_extra_predictions}\n")
-                log_file.write(f"prediction_threshold: {args.prediction_threshold}\n")
-                log_file.write(f"neighborhood_size: {args.neighborhood_size}\n")
-                log_file.write(f"missing_pred_threshold: {args.missing_pred_threshold}\n")
+                log_file.write(output)
