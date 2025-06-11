@@ -4,7 +4,7 @@
 #SBATCH --job-name=slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.5     #Name of your job
 #SBATCH --time=1-00:00:00    #Maximum allocated time
 #SBATCH --qos=gpu1day      #Selected queue to allocate your job (the gpu before 6hours is important, see comment: https://wiki.biozentrum.unibas.ch/display/scicore/9.+Requesting+GPUs)
-#SBATCH --partition=a100
+#SBATCH --partition=titan
 #SBATCH --gres=gpu:1          #--gres=gpu:2 for two GPU, etc
 #SBATCH --output=job_results/slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.5.o%j   #Path and name to the file for the STDOUT
 #SBATCH --error=job_results/slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.5.e%j    #Path and name to the file for the STDERR
