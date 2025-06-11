@@ -6,7 +6,7 @@
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
     "particle_height": 20,
-    "particle_depth": 20,
+    "particle_depth": 15,
     "add_noise": false,
     "noise": 0,
     "use_fbp": false,
