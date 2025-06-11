@@ -56,7 +56,7 @@ def generate_heatmaps_volume(dataset, vit_model, vit_image_processor, device, la
     if z_eval_max > z_max:
         raise Exception(f"z_eval_max ({z_eval_max}) can't be larger than the volume z ({z_max})")
 
-    output_heatmap_volume = torch.zeros((z_max, 256, 256))  # TODO: replace this 256 with an argument
+    output_heatmap_volume = torch.zeros((z_max, 256, 256)).to(device)  # TODO: replace this 256 with an argument
 
     for z in tqdm(range(z_eval_min, z_eval_max), desc="Generating heatmaps volume"):
         z_slice = volume[z]
@@ -91,7 +91,7 @@ def generate_heatmaps_volume(dataset, vit_model, vit_image_processor, device, la
                 #plt.savefig(f"sub_micrograph_{y_start}_{y_end}_{x_start}_{x_end}.png")
                 #plt.close()
 
-                encoded_image = get_encoded_image(sub_micrograph, vit_model, vit_image_processor)
+                encoded_image = get_encoded_image(sub_micrograph, vit_model, vit_image_processor, device=device)
 
                 # the 1: is because we don't need the class token
                 latent_micrographs = encoded_image['last_hidden_state'].to(device)[:, 1:, :]
@@ -134,7 +134,10 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
     """
     if args.existing_evaluation_folder == "" or args.existing_evaluation_folder is None:
         result_dir = os.path.join(args.result_dir,
-                                  f'evaluation_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}')
+                                  f'evaluation_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_'
+                                  f'model{args.shrec_model_number[0]}')
+        if args.volume_evaluation:
+            result_dir += "_volume_evaluation"
         create_folder_if_missing(result_dir)
         with open(os.path.join(result_dir, 'arguments.txt'), 'a') as f:
             for arg in vars(args):
@@ -168,7 +171,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         "existing_evaluation_folder",
         "split_file_name",
         "missing_pred_threshold",
-        "use_train_dataset_for_evaluation"
+        "use_train_dataset_for_evaluation",
+        "train_eval_split"
     ]
     arguments_file_evaluation = os.path.join(result_dir, 'arguments.txt')
     arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')
