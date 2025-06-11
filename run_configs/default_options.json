@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "",
+    "result_dir_appended_name": "DEFAULT_OPTIONS",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
