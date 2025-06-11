@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.2",
+    "result_dir_appended_name": "slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.5",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
@@ -24,7 +24,7 @@
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
-    "dropout_prob": 0.2,
+    "dropout_prob": 0.5,
     "finetune_vit": true,
 
     "shrec_sampling_points": 4,
