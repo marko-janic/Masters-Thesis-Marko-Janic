@@ -253,6 +253,8 @@ def main():
                                      dropout_prob=args.dropout_prob)
     model.init_weights()
     model.to(args.device)
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Number of trainable parameters: {num_params}")
 
     mse_loss = torch.nn.MSELoss()
 
