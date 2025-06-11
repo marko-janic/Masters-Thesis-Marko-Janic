@@ -97,6 +97,9 @@ def get_args():
     parser.add_argument("--heatmap_size", type=int, help="Size of the heatmaps that are fed into the model"
                                                          "by default its just 112 which means that the heatmaps"
                                                          "are of shape 112 x 112")
+    parser.add_argument("--vit_model", type=str,
+                        help="Which of the different vit models from googles pretrained models to use."
+                             "Available models are: google/vit-base-patch16-224-in21k, ")
 
     # Dataset general
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: shrec")
@@ -165,6 +168,16 @@ def get_args():
         raise Exception("You specified an existing evaluation folder but not an experiment folder, please specify the "
                         "experiment folder in which the existing evaluation folder exists.")
 
+    if args.vit_model not in [
+        'google/vit-base-patch16-224-in21k',
+        'google/vit-large-patch16-224-in21k'
+    ]:
+        raise Exception(f"The specified ViT model {args.vit_model} is not supported.")
+    if args.vit_model == 'google/vit-base-patch16-224-in21k' and args.latent_dim != 768:
+        raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 768, you specified {args.latent_dim}")
+    if args.vit_model == 'google/vit-large-patch16-224-in21k' and args.latent_dim != 1024:
+        raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 1024, you specified {args.latent_dim}")
+
     return args
 
 
@@ -200,7 +213,7 @@ def main():
     create_folders_and_initiate_files(args)
 
     # ViT model
-    vit_model, vit_image_processor = get_vit_model()
+    vit_model, vit_image_processor = get_vit_model(args.vit_model)
     vit_model.to(args.device)
     if args.mode == "eval" and args.finetune_vit:
         print("Loading finetuned ViT model")

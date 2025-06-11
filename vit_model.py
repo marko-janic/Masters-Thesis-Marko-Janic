@@ -22,13 +22,15 @@ def get_encoded_image(image: torch.Tensor, vit_model: ViTModel, vit_image_proces
     return outputs
 
 
-def get_vit_model():
+def get_vit_model(model_name: str):
     """
     Gives you the vit model as well as a feature extractor for preprocessing
     Refer to https://colab.research.google.com/drive/12OmNW5dZsARio0Tzu11ParHxblOoez7u?usp=sharing#scrollTo=QLefByP4_CsW
+    :param model_name: Which model to use
     :return:
     """
-    vit_image_processor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224-in21k')
-    vit_model = ViTModel.from_pretrained('google/vit-base-patch16-224-in21k')
+    print(f"Loading ViT model: {model_name}")
+    vit_image_processor = ViTImageProcessor.from_pretrained(model_name)
+    vit_model = ViTModel.from_pretrained(model_name)
 
     return vit_model, vit_image_processor

@@ -20,13 +20,13 @@
     "loss_log_file": "loss_log.txt",
 
     "train_eval_split": 0.9,
-    "latent_dim": 768,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
     "dropout_prob": 0.1,
     "finetune_vit": false,
-    "vit_model": "google/vit-large-patch16-224-in21k",
+    "vit_model": "google/vit-base-patch16-224-in21k",
+    "latent_dim": 768,
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,

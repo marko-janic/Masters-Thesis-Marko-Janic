@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.5",
+    "result_dir_appended_name": "larger_vit_model",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
@@ -19,17 +19,18 @@
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
 
-    "train_eval_split": 1,
-    "latent_dim": 768,
+    "train_eval_split": 0.9,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
-    "dropout_prob": 0.5,
-    "finetune_vit": true,
+    "dropout_prob": 0.1,
+    "finetune_vit": false,
+    "vit_model": "google/vit-large-patch16-224-in21k",
+    "latent_dim": 1024,
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1, 2, 3, 4],
+    "shrec_model_number": [0],
     "shrec_min_z": 170,
     "shrec_max_z": 340,
     "shrec_specific_particle": "1U6G"
