@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "different_particle",
+    "result_dir_appended_name": "bigger_model",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
@@ -22,7 +22,7 @@
     "train_eval_split": 1,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
-    "model_deconv_filters": [16, 8, 4],
+    "model_deconv_filters": [32, 16, 8],
     "dropout_prob": 0.1,
     "finetune_vit": false,
     "vit_model": "google/vit-base-patch16-224-in21k",
@@ -33,5 +33,5 @@
     "shrec_model_number": [0, 1, 2, 3, 4],
     "shrec_min_z": 170,
     "shrec_max_z": 340,
-    "shrec_specific_particle": "4CR2"
+    "shrec_specific_particle": "1U6G"
 }
