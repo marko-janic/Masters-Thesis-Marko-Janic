@@ -1,7 +1,7 @@
 {
     "dataset": "shrec",
     "mode": "train",
-    "result_dir_appended_name": "slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.1",
+    "result_dir_appended_name": "slightly_smaller_z_depth_finetuned_vit_dropout_prob_0.2",
 
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 20,
@@ -16,7 +16,7 @@
     "epochs": 100,
     "batch_size": 16,
     "learning_rate": 0.001,
-    "checkpoint_interval": 1800,
+    "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
 
     "train_eval_split": 1,
@@ -24,13 +24,13 @@
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
     "model_deconv_filters": [256, 128, 64],
-    "dropout_prob": 0.1,
+    "dropout_prob": 0.2,
     "finetune_vit": true,
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
     "shrec_model_number": [0, 1, 2, 3, 4],
-    "shrec_min_z": 180,
-    "shrec_max_z": 330,
+    "shrec_min_z": 170,
+    "shrec_max_z": 340,
     "shrec_specific_particle": "1U6G"
 }
