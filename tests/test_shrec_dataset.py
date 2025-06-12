@@ -27,10 +27,10 @@ def get_args():
     parser.add_argument("--min_z", type=int, default=160)
     parser.add_argument("--max_z", type=int, default=161)
     parser.add_argument("--example_visualizations", type=int, default=20)
-    parser.add_argument("--model_number", type=int, default=[0])
-    parser.add_argument("--particle_width", type=int, default=20)
-    parser.add_argument("--particle_height", type=int, default=20)
-    parser.add_argument("--particle_depth", type=int, default=15)
+    parser.add_argument("--model_number", type=int, default=[6])
+    parser.add_argument("--particle_width", type=int, default=15)
+    parser.add_argument("--particle_height", type=int, default=15)
+    parser.add_argument("--particle_depth", type=int, default=10)
     parser.add_argument("--noise", type=int, default=10)
     parser.add_argument("--heatmap_size", type=int, default=112)
     parser.add_argument("--add_noise", type=bool, default=False)
@@ -38,7 +38,7 @@ def get_args():
     parser.add_argument("--fbp_num_projections", type=int, default=60)
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
     parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
-    parser.add_argument("--shrec_specific_particle", type=str, default="4CR2")
+    parser.add_argument("--shrec_specific_particle", type=str, default="")
 
     args = parser.parse_args()
 
@@ -130,7 +130,7 @@ class ShrecDatasetTests(unittest.TestCase):
         viewer = napari.Viewer()
 
         for model_num in self.args.model_number:
-            grandmodel = self.dataset.grandmodel[self.args.model_number[model_num]].cpu().numpy()
+            grandmodel = self.dataset.grandmodel[model_num].cpu().numpy()
             min_val = np.min(grandmodel)
             max_val = np.max(grandmodel)
             normalized = (grandmodel - min_val) / (max_val - min_val)

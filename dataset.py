@@ -84,7 +84,8 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
                                                 (particle_locations['Y'] <= y_max) &
                                                 (particle_locations['Z'] >= z_min) &
                                                 (particle_locations['Z'] <= z_max) &
-                                                (particle_locations['class'] != "4V94")].copy()  # Copy to avoid SettingWithCopyWarning
+                                                (particle_locations['class'] != "4V94") &
+                                                (particle_locations['class'] != "vesicle")].copy()  # Copy to avoid SettingWithCopyWarning
 
         # Conditional filter for shrec_specific_particle
         if shrec_specific_particle is not None and shrec_specific_particle != "":
@@ -229,7 +230,8 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     for _, row in particle_locations.iterrows():
         class_name = str(row['class'])
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
-        if class_name == "4V94":
+        # Vesicle also seems to just be invisible?
+        if class_name == "4V94" or class_name == "vesicle":
             continue
 
         if shrec_specific_particle is None or shrec_specific_particle == "":

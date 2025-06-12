@@ -10,6 +10,22 @@ evaluation of the different approaches will be done by following the formalism d
 reconstructing a single averaged particles from the estimation of the previous methods.
 
 ## Development
+### Particles
+- 4V94:     This particle is the bugged one and won't be included
+- 4CR2:     Looks Fine, slightly bigger than 15 15 10
+- 1QVR:     Looks Fine, slightly bigger than 15 15 10
+- 1BXN:     Looks fine, Fits fine with 15 15 10
+- 3CF3:     Looks like a flower, fine with 15 15 10
+- 1U6G:     Looks fine with 15 15 10
+- 3D2F:     Looks fine, particle is slightly smaller than 15 15 10
+- 2CG9:     Looks fine, maybe slightly smaller than 15 15 10
+- 3H84:     Looks fine and, like an "S", fits fine with 15 15 10
+- 3GL1:     Looks fine, Slightly smaller than 15 15 10
+- 1S3X:     Looks fine, a bit smaller than 15 15 10
+- 5MRC:     Is a lot bigger than 15 15 10 --> Increase the particle width slightly when creating heatmap?
+- vesicle:  Doesn't actually exist?
+- fiducial: Looks fine, some are slightly smaller thant 15 15 10
+
 ### Description of pipeline
 Input of size batch_size x 3 x 224 x 224 -> vit model preprocessor -> vit model -> output of size batch_size x 197 x 768
 -> Resize to batch_size x 768 x 14 x 14 -> model -> output of size batch_size x num_predictions x 112 x 112 -> 
