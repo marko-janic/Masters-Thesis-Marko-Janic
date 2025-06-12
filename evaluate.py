@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 # Local imports
 from postprocess import _get_max_preds
-from train import find_optimal_assignment_heatmaps
 from utils import create_folder_if_missing
 from plotting import compare_predictions_with_ground_truth, compare_heatmaps_with_ground_truth, compare_heatmaps
 from vit_model import get_encoded_image
@@ -343,7 +342,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
             # We take order z, y, x because that's how peak_local_max returns them as well
             if args.shrec_specific_particle is None or args.shrec_specific_particle == "":
-                target_coordinates = torch.tensor(dataset.particle_locations[['Z', 'Y', 'X']].values)
+                target_coordinates = dataset.get_particle_locations_of_first_model_number()
             else:
                 filtered_particle_locations = dataset.particle_locations[args.shrec_model_number[0]][
                     dataset.particle_locations[args.shrec_model_number[0]]['class'] == args.shrec_specific_particle]

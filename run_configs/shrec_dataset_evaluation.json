@@ -1,8 +1,8 @@
 {
     "mode": "eval",
-    "existing_result_folder": "",
+    "existing_result_folder": "experiment_2025-06-12_20-22-26_TESTING_default",
     "existing_evaluation_folder": "",
-    "volume_evaluation": true,
+    "volume_evaluation": false,
     "missing_pred_threshold": 20,
     "prediction_threshold": 0.6,
     "neighborhood_size": 10,
@@ -18,6 +18,7 @@
     "noise": 0,
     "use_fbp": false,
     "fbp_num_projections": 60,
+    "random_sub_micrographs": true,
 
     "device": "cuda",
     "train_eval_split": 1,
@@ -31,8 +32,8 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1, 2, 3, 4],
+    "shrec_model_number": [0],
     "shrec_min_z": 170,
-    "shrec_max_z": 340,
+    "shrec_max_z": 171,
     "shrec_specific_particle": ""
 }

@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "default",
+    "result_dir_appended_name": "random_sub_micrographs",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -16,6 +16,7 @@
     "noise": 0,
     "use_fbp": false,
     "fbp_num_projections": 60,
+    "random_sub_micrographs": true,
 
     "device": "cuda",
     "train_eval_split": 1,
@@ -29,7 +30,7 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1, 2, 3, 4],
+    "shrec_model_number": [0],
     "shrec_min_z": 170,
     "shrec_max_z": 340,
     "shrec_specific_particle": ""

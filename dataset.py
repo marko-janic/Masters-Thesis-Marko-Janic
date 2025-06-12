@@ -121,7 +121,8 @@ def get_particle_locations_from_coordinates(coordinates_tl, sub_micrograph_size,
         raise Exception(f'The orientation {orientation} is not a valid orientation')
 
 
-def create_sub_micrographs(micrograph, heatmap, crop_size, sampling_points, start_z, model_number, sub_heatmap_size):
+def create_sub_micrographs(micrograph, heatmap, crop_size, sampling_points, start_z, model_number, sub_heatmap_size,
+                           random_sub_micrographs):
     """
     Creates sub micrographs of the given micrograph by sliding a window of size crop_size x crop_size across the image
     from the top left to the bottom right. The total number of sub micrographs will be samping_points * sampling_points
@@ -144,10 +145,16 @@ def create_sub_micrographs(micrograph, heatmap, crop_size, sampling_points, star
     sub_micrographs_list = []
     for i in range(sampling_points):  # horizontal steps
         for j in range(sampling_points):  # vertical steps
-            start_x = i * step_size_x
-            start_y = j * step_size_y
-            end_y = start_y + crop_size
-            end_x = start_x + crop_size
+            if not random_sub_micrographs:
+                start_x = i * step_size_x
+                start_y = j * step_size_y
+                end_y = start_y + crop_size
+                end_x = start_x + crop_size
+            else:
+                start_x = torch.randint(0, width - crop_size, (1,)).item()
+                start_y = torch.randint(0, height - crop_size, (1,)).item()
+                end_y = start_y + crop_size
+                end_x = start_x + crop_size
 
             # Ensure we don't go out of bounds
             if end_x <= width and end_y <= height:
@@ -191,6 +198,8 @@ def create_sub_micrographs(micrograph, heatmap, crop_size, sampling_points, star
 
                 else:
                     raise Exception("One nan tensor found")
+            else:
+                raise Exception("Ending x or y is not within bounds of the micrograph")
 
     # The reason we did a list first is because of this:
     # https://stackoverflow.com/questions/75956209/error-dataframe-object-has-no-attribute-append
@@ -300,7 +309,7 @@ class ShrecDataset(Dataset):
                  add_noise, heatmap_size, micrograph_size=512, sub_micrograph_size=224, model_number=None,
                  dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
                  fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60,
-                 shrec_specific_particle=None):
+                 shrec_specific_particle=None, random_sub_micrographs=False):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -344,6 +353,7 @@ class ShrecDataset(Dataset):
         self.fbp_num_projections = fbp_num_projections
         self.shrec_specific_particle = shrec_specific_particle
         self.heatmap_size = heatmap_size
+        self.random_sub_micrographs = random_sub_micrographs
 
         columns = ['class', 'X', 'Y', 'Z', 'rotation_Z1', 'rotation_X', 'rotation_Z2']
         self.particle_locations = {}
@@ -404,9 +414,43 @@ class ShrecDataset(Dataset):
                 sub_micrographs_df = create_sub_micrographs(
                     micrograph=micrograph, heatmap=heatmap, crop_size=self.sub_micrograph_size,
                     sampling_points=self.sampling_points, start_z=start_z, model_number=model_num,
-                    sub_heatmap_size=self.heatmap_size)
+                    sub_heatmap_size=self.heatmap_size, random_sub_micrographs=self.random_sub_micrographs)
 
                 self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
+
+    def get_particle_locations_of_first_model_number(self):
+        # Get the first model number
+        first_model_num = self.model_number[0]
+        df = self.particle_locations[first_model_num]
+        # Filter out "vesicle" and "4V94"
+        filtered = df[(df['class'] != "vesicle") & (df['class'] != "4V94")]
+        # Return as list of [x, y, z]
+        locations = torch.tensor(filtered[['X', 'Y', 'Z']].values)
+        return locations
+
+    def update_sub_micrographs(self):
+        """
+        Recomputes all sub micrographs, only use it if random_sub_micrographs is True
+        :return:
+        """
+        if self.random_sub_micrographs:
+            self.sub_micrographs = pd.DataFrame(columns=["sub_micrograph", "heatmap", "top_left_coordinates",
+                                                         "orientation", "model_number"])
+            for model_num in tqdm(self.model_number, desc="Recomputing sub micrographs"):
+                for i in range(len(self.micrographs[model_num])):
+                    start_z = self.micrographs[model_num][i][1]
+                    micrograph = self.micrographs[model_num][i][0]
+                    heatmap = self.heatmaps[model_num][i][0]
+
+                    sub_micrographs_df = create_sub_micrographs(
+                        micrograph=micrograph, heatmap=heatmap, crop_size=self.sub_micrograph_size,
+                        sampling_points=self.sampling_points, start_z=start_z, model_number=model_num,
+                        sub_heatmap_size=self.heatmap_size, random_sub_micrographs=self.random_sub_micrographs)
+
+                    self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
+        else:
+            raise Exception("You are calling the update_sub_micrographs function even though random_sub_micrographs"
+                            "is set to False. This doesn't do anything.")
 
     def __len__(self):
         return len(self.sub_micrographs)

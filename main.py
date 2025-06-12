@@ -108,6 +108,9 @@ def get_args():
     # Dataset general
     parser.add_argument("--dataset", type=str, help="Which dataset to use for running the program: shrec")
     parser.add_argument("--dataset_path", type=str)
+    parser.add_argument("--random_sub_micrographs", type=bool,
+                        help="Randomly samples sub_heatmaps and sub micrographs instead of doing it with a "
+                             "sliding window")
     parser.add_argument("--vit_input_size", type=int, help="Size of image that is put through the vit",
                         default=224)
     parser.add_argument("--particle_width", type=int)
@@ -237,16 +240,11 @@ def main():
                            particle_depth=args.particle_depth, noise=args.noise, add_noise=args.add_noise,
                            device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
                            fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
-                           shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size)
+                           shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
+                           random_sub_micrographs=args.random_sub_micrographs)
 
     # We only need to create the split file if were training, otherwise we read from it
-    train_dataloader, test_dataloader = prepare_dataloaders(dataset=dataset, train_eval_split=args.train_eval_split,
-                                                            batch_size=args.batch_size,
-                                                            result_dir=args.result_dir,
-                                                            split_file_name=args.split_file_name,
-                                                            create_split_file=args.mode == "train",
-                                                            use_train_dataset_for_evaluation=
-                                                            args.use_train_dataset_for_evaluation)
+    train_dataloader, test_dataloader = prepare_dataloaders(dataset=dataset, batch_size=args.batch_size)
 
     model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1,
                                      num_deconv_filters=tuple(args.model_deconv_filters),
@@ -254,7 +252,8 @@ def main():
     model.init_weights()
     model.to(args.device)
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Number of trainable parameters: {num_params}")
+    print(f"\nNumber of trainable parameters: {num_params}")
+    print(f"Dataset size: {dataset.__len__()}")
 
     mse_loss = torch.nn.MSELoss()
 
@@ -287,7 +286,7 @@ def main():
                     in enumerate(train_dataloader):
                 batch_counter += 1
 
-                if plotted < 20:  # TODO: move this into seperate function
+                if plotted < 32:  # TODO: move this into seperate function
                     save_image_with_bounding_object(
                         micrographs[0].cpu(), target_coordinates_list[0].cpu()*args.vit_input_size,
                         "circle", {"circle_radius": 6}, os.path.join(args.result_dir, 'training_examples'),
@@ -370,6 +369,9 @@ def main():
                             args.result_dir, f"checkpoints/vit_checkpoint_epoch{epoch}_batch_{batch_index}.pth"))
 
                     last_checkpoint_time = time.time()
+
+            if args.random_sub_micrographs:
+                dataset.update_sub_micrographs()
 
             epoch_bar.close()
 
