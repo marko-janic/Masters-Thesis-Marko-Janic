@@ -73,6 +73,9 @@ def get_args():
                         help="Determines whether to fintune a vit during training or not. If set to true while "
                              "evaluating the program will try to load an already finetuned vit from the experiment "
                              "folder")
+    parser.add_argument("--shrec_validation_model_number", type=int, default=[9],
+                        help="Shrec model volume to use for validating while training. Validation happens after"
+                             "every epoch")
 
     # Evaluation
     parser.add_argument('--prediction_threshold', type=float,
@@ -165,6 +168,7 @@ def get_args():
         args.result_dir = os.path.join('experiments', args.existing_result_folder)
 
     args.loss_log_path = os.path.join(args.result_dir, args.loss_log_file)
+    args.validation_loss_log_path = os.path.join(args.result_dir, "validation_loss_log.txt")
 
     if args.mode == "eval":
         print("Running in evaluation mode")
@@ -209,6 +213,8 @@ def create_folders_and_initiate_files(args):
     if args.mode != "eval":
         with open(args.loss_log_path, 'w') as f:
             f.write("epoch,batch,average_loss\n")
+        with open(args.validation_loss_log_path, 'w') as f:
+            f.write("epoch,average_validation_loss\n")
 
 
 def main():
@@ -243,8 +249,19 @@ def main():
                            shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
                            random_sub_micrographs=args.random_sub_micrographs)
 
+    validation_dataset = ShrecDataset(
+        sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
+        model_number=args.shrec_validation_model_number,  # Important difference, we use the validation volumes
+        min_z=args.shrec_min_z, max_z=args.shrec_max_z, particle_height=args.particle_height,
+        particle_width=args.particle_width, particle_depth=args.particle_depth, noise=args.noise,
+        add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
+        fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
+        shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
+        random_sub_micrographs=False)  # We don't need randoms for the validation
+
     # We only need to create the split file if were training, otherwise we read from it
-    train_dataloader, test_dataloader = prepare_dataloaders(dataset=dataset, batch_size=args.batch_size)
+    train_dataloader, test_dataloader, validation_dataloader = prepare_dataloaders(
+        dataset=dataset, batch_size=args.batch_size, validation_dataset=validation_dataset)
 
     model = TopdownHeatmapSimpleHead(in_channels=args.latent_dim, out_channels=1,
                                      num_deconv_filters=tuple(args.model_deconv_filters),
@@ -253,7 +270,8 @@ def main():
     model.to(args.device)
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\nNumber of trainable parameters: {num_params}")
-    print(f"Dataset size: {dataset.__len__()}")
+    print(f"Training Dataset size: {dataset.__len__()}")
+    print(f"Validation Dataset size: {validation_dataset.__len__()}")
 
     mse_loss = torch.nn.MSELoss()
 
@@ -281,12 +299,15 @@ def main():
             # avg_loss calculation
             batch_counter = 0
             running_loss = 0.0
+            validation_batch_counter = 0
+            running_validation_loss = 0.0
 
+            # Training here
             for batch_index, (micrographs, target_heatmaps, target_coordinates_list, debug_tuple) \
                     in enumerate(train_dataloader):
                 batch_counter += 1
 
-                if plotted < 32:  # TODO: move this into seperate function
+                if plotted < 20:  # TODO: move this into seperate function
                     save_image_with_bounding_object(
                         micrographs[0].cpu(), target_coordinates_list[0].cpu()*args.vit_input_size,
                         "circle", {"circle_radius": 6}, os.path.join(args.result_dir, 'training_examples'),
@@ -334,8 +355,8 @@ def main():
                 # 1: here because we don't need the class token
                 latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
                 # Right shape for model, we permute the hidden dimension to the second place
-                # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you don't
-                #  change the vit input size
+                # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you
+                #  don't change the vit input size
                 latent_micrographs = latent_micrographs.permute(0, 2, 1)
                 latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0), latent_micrographs.size(1),
                                                                 14, 14)
@@ -370,10 +391,34 @@ def main():
 
                     last_checkpoint_time = time.time()
 
+            epoch_bar.close()
             if args.random_sub_micrographs:
                 dataset.update_sub_micrographs()
 
-            epoch_bar.close()
+            print("Running Validation")
+            # Validation here
+            for batch_index, (micrographs, target_heatmaps, target_coordinates_list, debug_tuple) \
+                    in enumerate(validation_dataloader):
+                validation_batch_counter += 1
+
+                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor, device=args.device)
+                # 1: here because we don't need the class token
+                latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
+                # Right shape for model, we permute the hidden dimension to the second place
+                # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you
+                #  don't change the vit input size
+                latent_micrographs = latent_micrographs.permute(0, 2, 1)
+                latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0), latent_micrographs.size(1),
+                                                                14, 14)
+                outputs = model(latent_micrographs)
+
+                validation_losses = mse_loss(outputs["heatmaps"], target_heatmaps)
+                running_validation_loss += validation_losses.item()
+
+            avg_validation_loss = running_validation_loss / validation_batch_counter
+            # Save running validation loss to log file
+            with open(args.validation_loss_log_path, 'a') as f:
+                f.write(f"{epoch},{avg_validation_loss}\n")
 
         # Save final checkpoint
         torch.save(model.state_dict(), os.path.join(args.result_dir, f"checkpoint_final.pth"))
@@ -381,11 +426,11 @@ def main():
             torch.save(vit_model.state_dict(), os.path.join(args.result_dir, f"vit_checkpoint_final.pth"))
 
         # Plot the loss log after training
-        plot_loss_log(args.loss_log_path, args.result_dir)
+        plot_loss_log(args.loss_log_path, args.validation_loss_log_path, args.result_dir)
 
     if args.mode == "eval":
         if not os.path.exists(os.path.join(args.result_dir, "losses_plot.png")):
-            plot_loss_log(args.loss_log_path, args.result_dir)
+            plot_loss_log(args.loss_log_path, args.validation_loss_log_path, args.result_dir)
 
         checkpoint_path = os.path.join(args.result_dir, 'checkpoint_final.pth')
         if os.path.exists(checkpoint_path):

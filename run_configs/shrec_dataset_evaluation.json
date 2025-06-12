@@ -1,8 +1,8 @@
 {
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-12_20-22-26_TESTING_default",
+    "existing_result_folder": "",
     "existing_evaluation_folder": "",
-    "volume_evaluation": false,
+    "volume_evaluation": true,
     "missing_pred_threshold": 20,
     "prediction_threshold": 0.6,
     "neighborhood_size": 10,
@@ -33,6 +33,7 @@
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
     "shrec_model_number": [0],
+    "shrec_validation_model_number": [9],
     "shrec_min_z": 170,
     "shrec_max_z": 171,
     "shrec_specific_particle": ""

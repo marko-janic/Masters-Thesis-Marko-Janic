@@ -9,9 +9,10 @@ from scipy.optimize import linear_sum_assignment
 from dataset import ShrecDataset, get_particle_locations_from_coordinates
 
 
-def prepare_dataloaders(dataset, batch_size):
+def prepare_dataloaders(dataset, validation_dataset, batch_size):
     """
     :param dataset: instance of torch dataset class
+    :param validation_dataset: instance of torch dataset class
     :param batch_size: number determining batch size
     :return: train_dataloader, test_dataloader
     """
@@ -29,5 +30,6 @@ def prepare_dataloaders(dataset, batch_size):
     # batch needs to be of size args.batch_size
     train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True, collate_fn=collate_fn)
     test_dataloader = DataLoader(dataset, batch_size=1, drop_last=True, collate_fn=collate_fn)
+    validation_dataloader = DataLoader(validation_dataset, batch_size=1, drop_last=True, collate_fn=collate_fn)
 
-    return train_dataloader, test_dataloader
+    return train_dataloader, test_dataloader, validation_dataloader

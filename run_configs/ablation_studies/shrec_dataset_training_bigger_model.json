@@ -31,6 +31,7 @@
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
     "shrec_model_number": [0, 1, 2, 3, 4],
+    "shrec_validation_model_number": [9],
     "shrec_min_z": 170,
     "shrec_max_z": 340,
     "shrec_specific_particle": ""

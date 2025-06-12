@@ -37,32 +37,44 @@ def save_image(image, plot_title, output_dir):
     plt.close()
 
 
-def plot_loss_log(loss_log_path, result_dir):
+def plot_loss_log(loss_log_path, validation_loss_log_path, result_dir):
     """
     Reads the loss log file and plots the losses as a semilogy plot.
 
     :param loss_log_path: Path to the loss log file. It needs to have columns "epoch", "batch", and "average_loss".
+    :param validation_loss_log_path: Path to validation loss log file. It needs to have columns "epoch", "batch", and
+    "average_validation_loss"
     :param result_dir: Directory to save the plot.
     """
     if os.path.exists(loss_log_path):
-        # Read the loss log file
-        loss_data = pd.read_csv(loss_log_path)
-        epochs = loss_data['epoch']
-        batches = loss_data['batch']
-        losses = loss_data['average_loss']
+        if os.path.exists(validation_loss_log_path):
+            loss_data = pd.read_csv(loss_log_path)
+            epochs = loss_data['epoch']
+            batches = loss_data['batch']
+            losses = loss_data['average_loss']
 
-        # Plot the losses
-        plt.figure()
-        plt.semilogy(epochs + batches / batches.max(), losses, label='Loss')  # Combine epoch and batch for x-axis
-        plt.xlabel('Epoch + Batch (normalized)')
-        plt.ylabel('Loss (log scale)')
-        plt.title('Training Loss')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig(os.path.join(result_dir, 'losses_plot.png'))
-        plt.close()
+            validation_loss_data = pd.read_csv(validation_loss_log_path)
+            # Use correct columns for validation loss
+            validation_epochs = validation_loss_data['epoch']
+            validation_losses = validation_loss_data['average_validation_loss']
+
+            # Plot the losses
+            plt.figure()
+            # Combine epoch and batch for x-axis, we add the +1 since the batches are counted with their literal index
+            x_train = epochs.to_numpy() + batches.to_numpy() / (batches.max() + 1)
+            plt.semilogy(x_train, losses, label='Training Loss')
+            plt.semilogy(validation_epochs, validation_losses, label='Validation Loss')
+            plt.xlabel('epoch + batch/batch_size')
+            plt.ylabel('loss (log scale)')
+            plt.title('Training and Validation Loss')
+            plt.legend()
+            plt.grid(True)
+            plt.savefig(os.path.join(result_dir, 'losses_plot.png'))
+            plt.close()
+        else:
+            raise Exception(f"Validation loss log file not found at {validation_loss_log_path}")
     else:
-        print(f"Loss log file not found at {loss_log_path}")
+        raise Exception(f"Loss log file not found at {loss_log_path}")
 
 
 def compare_images(image1, image2, file_name, output_location, title1, title2):
