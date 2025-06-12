@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "finetuned_vit",
+    "result_dir_appended_name": "bigger_vit",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
