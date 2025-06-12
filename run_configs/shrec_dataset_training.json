@@ -1,11 +1,11 @@
 {
     "mode": "train",
-    "epochs": 3,
+    "epochs": 50,
     "batch_size": 16,
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "TESTING_random_sub_micrographs",
+    "result_dir_appended_name": "testing_validation_loss",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -30,9 +30,9 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0],
+    "shrec_model_number": [0, 1, 2, 3, 4],
     "shrec_validation_model_number": [9],
-    "shrec_min_z": 200,
-    "shrec_max_z": 201,
+    "shrec_min_z": 170,
+    "shrec_max_z": 340,
     "shrec_specific_particle": ""
 }
