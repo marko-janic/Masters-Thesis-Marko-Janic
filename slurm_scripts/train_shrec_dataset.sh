@@ -17,5 +17,3 @@ source activate masters_thesis_marko_janic
 conda list
 
 python main.py --config run_configs/shrec_dataset_training.json
-
-# smaller than 16, 8, 4 model
