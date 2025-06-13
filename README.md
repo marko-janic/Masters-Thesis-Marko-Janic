@@ -85,7 +85,7 @@ Thank you very much!
 ## Link to thesis
 TODO
 
-## Citing
+## Citing (Thesis is not finished so this might change)
 ```
 @mastersthesis{janic2025,
     author       = {Marko Janic},
