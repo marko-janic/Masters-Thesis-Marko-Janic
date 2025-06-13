@@ -16,7 +16,7 @@
     "noise": 0,
     "use_fbp": false,
     "fbp_num_projections": 60,
-    "random_sub_micrographs": false,
+    "random_sub_micrographs": true,
 
     "device": "cuda",
     "train_eval_split": 1,

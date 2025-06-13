@@ -1,9 +1,9 @@
 #!/bin/bash
 #The previous line is mandatory
 
-#SBATCH --job-name=random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader_ADJUSTED_LOSS_LOGGING     #Name of your job
-#SBATCH --time=1-00:00:00    #Maximum allocated time
-#SBATCH --qos=gpu1day      #Selected queue to allocate your job (the gpu before 6hours is important, see comment: https://wiki.biozentrum.unibas.ch/display/scicore/9.+Requesting+GPUs)
+#SBATCH --job-name=model_size_[32, 16, 8]    #Name of your job
+#SBATCH --time=7-00:00:00    #Maximum allocated time
+#SBATCH --qos=gpu1week      #Selected queue to allocate your job (the gpu before 6hours is important, see comment: https://wiki.biozentrum.unibas.ch/display/scicore/9.+Requesting+GPUs)
 #SBATCH --partition=titan
 #SBATCH --gres=gpu:1          #--gres=gpu:2 for two GPU, etc
 #SBATCH --output=job_results/random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader_ADJUSTED_LOSS_LOGGING.o%j   #Path and name to the file for the STDOUT

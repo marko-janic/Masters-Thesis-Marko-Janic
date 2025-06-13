@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader_ADJUSTED_LOSS_LOGGING",
+    "result_dir_appended_name": "model_size_[32, 16, 8]",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -22,7 +22,7 @@
     "train_eval_split": 1,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
-    "model_deconv_filters": [16, 8, 4],
+    "model_deconv_filters": [32, 16, 8],
     "dropout_prob": 0.1,
     "finetune_vit": false,
     "vit_model": "google/vit-base-patch16-224-in21k",
