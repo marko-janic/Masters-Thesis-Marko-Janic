@@ -50,7 +50,6 @@ def plot_loss_log(loss_log_path, validation_loss_log_path, result_dir):
         if os.path.exists(validation_loss_log_path):
             loss_data = pd.read_csv(loss_log_path)
             epochs = loss_data['epoch']
-            batches = loss_data['batch']
             losses = loss_data['average_loss']
 
             validation_loss_data = pd.read_csv(validation_loss_log_path)
@@ -61,10 +60,9 @@ def plot_loss_log(loss_log_path, validation_loss_log_path, result_dir):
             # Plot the losses
             plt.figure()
             # Combine epoch and batch for x-axis, we add the +1 since the batches are counted with their literal index
-            x_train = epochs.to_numpy() + batches.to_numpy() / (batches.max() + 1)
-            plt.semilogy(x_train, losses, label='Training Loss')
+            plt.semilogy(epochs, losses, label='Training Loss')
             plt.semilogy(validation_epochs, validation_losses, label='Validation Loss')
-            plt.xlabel('epoch + batch/batch_size')
+            plt.xlabel('epochs')
             plt.ylabel('loss (log scale)')
             plt.title('Training and Validation Loss')
             plt.legend()

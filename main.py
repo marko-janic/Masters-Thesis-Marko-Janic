@@ -212,7 +212,7 @@ def create_folders_and_initiate_files(args):
     # Initialize loss log file
     if args.mode != "eval":
         with open(args.loss_log_path, 'w') as f:
-            f.write("epoch,batch,average_loss\n")
+            f.write("epoch,average_loss\n")
         with open(args.validation_loss_log_path, 'w') as f:
             f.write("epoch,average_validation_loss\n")
 
@@ -257,7 +257,7 @@ def main():
         add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
         fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
         shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-        random_sub_micrographs=False)  # We don't need randoms for the validation
+        random_sub_micrographs=False)#)  # TODO: should I set this to false in validation set?
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader, validation_dataloader = prepare_dataloaders(
@@ -307,7 +307,7 @@ def main():
                     in enumerate(train_dataloader):
                 batch_counter += 1
 
-                if plotted < 32:  # TODO: move this into seperate function
+                if plotted < 0:  # TODO: move this into seperate function
                     save_image_with_bounding_object(
                         micrographs[0].cpu(), target_coordinates_list[0].cpu()*args.vit_input_size,
                         "circle", {"circle_radius": 6}, os.path.join(args.result_dir, 'training_examples'),
@@ -372,15 +372,7 @@ def main():
                 epoch_bar.set_postfix(loss=losses.item())
                 epoch_bar.update(1)
 
-                avg_loss = running_loss / batch_counter
-                # Save running loss to log file
-                with open(args.loss_log_path, 'a') as f:
-                    f.write(f"{epoch},{batch_index},{avg_loss}\n")
-
                 if time.time() - last_checkpoint_time > args.checkpoint_interval:
-                    # Save running loss to log file
-                    with open(args.loss_log_path, 'a') as f:
-                        f.write(f"{epoch},{batch_index},{avg_loss}\n")
                     # Save checkpoint
                     torch.save(model.state_dict(), os.path.join(
                         args.result_dir, f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
@@ -390,6 +382,11 @@ def main():
                             args.result_dir, f"checkpoints/vit_checkpoint_epoch{epoch}_batch_{batch_index}.pth"))
 
                     last_checkpoint_time = time.time()
+
+            avg_loss = running_loss / batch_counter
+            # Save running loss to log file
+            with open(args.loss_log_path, 'a') as f:
+                f.write(f"{epoch}, {avg_loss}\n")
 
             epoch_bar.close()
             if args.random_sub_micrographs:

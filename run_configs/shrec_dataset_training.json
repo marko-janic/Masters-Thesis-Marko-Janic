@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader",
+    "result_dir_appended_name": "random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader_ADJUSTED_LOSS_LOGGING",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
