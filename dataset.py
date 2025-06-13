@@ -438,9 +438,7 @@ class ShrecDataset(Dataset):
         df = self.particle_locations[first_model_num]
         # Filter out "vesicle" and "4V94"
         filtered = df[(df['class'] != "vesicle") & (df['class'] != "4V94")]
-        # Return as list of [x, y, z]
-        locations = torch.tensor(filtered[['X', 'Y', 'Z']].values)
-        return locations
+        return filtered
 
     def update_sub_micrographs(self):
         """

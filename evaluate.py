@@ -171,7 +171,9 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         "split_file_name",
         "missing_pred_threshold",
         "use_train_dataset_for_evaluation",
-        "train_eval_split"
+        "train_eval_split",
+        "random_sub_micrographs",
+        "validation_loss_log_path"
     ]
     arguments_file_evaluation = os.path.join(result_dir, 'arguments.txt')
     arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')
@@ -337,16 +339,17 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             output_heatmaps_volume_numpy = resize(output_heatmaps_volume_numpy, (512, 512, 512), order=1,
                                                   preserve_range=True, anti_aliasing=True)
             viewer.add_image(output_heatmaps_volume_numpy, name='Output Heatmaps Volume', colormap='magenta')
-            viewer.add_image(dataset.grandmodel[args.shrec_model_number[0]].cpu().numpy(), name='Grandmodel Volume', colormap='gray')
+            viewer.add_image(dataset.grandmodel[args.shrec_model_number[0]].cpu().numpy(), name='Grandmodel Volume',
+                             colormap='gray')
             napari.run()
 
             # We take order z, y, x because that's how peak_local_max returns them as well
             if args.shrec_specific_particle is None or args.shrec_specific_particle == "":
-                target_coordinates = dataset.get_particle_locations_of_first_model_number()
+                target_coordinates_df = dataset.get_particle_locations_of_first_model_number()
             else:
-                filtered_particle_locations = dataset.particle_locations[args.shrec_model_number[0]][
+                target_coordinates_df = dataset.particle_locations[args.shrec_model_number[0]][
                     dataset.particle_locations[args.shrec_model_number[0]]['class'] == args.shrec_specific_particle]
-                target_coordinates = torch.tensor(filtered_particle_locations[['Z', 'Y', 'X']].values)
+            target_coordinates = torch.tensor(target_coordinates_df[['Z', 'Y', 'X']].values)
 
             pred_coords = coordinates.float()
             tgt_coords = target_coordinates.float()
@@ -385,7 +388,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
             avg_pixels_off = np.mean(matched_dists) if matched_dists else 0.0
 
-            avg_loss = 0  # TODO: compute mse between target and produced heatmap here
+            avg_loss = 0  # TODO: compute mse between target and produced volume here
             avg_pixel_loss = avg_pixels_off
             avg_missed_predictions = missed_predictions
             avg_extra_predictions = extra_predictions
