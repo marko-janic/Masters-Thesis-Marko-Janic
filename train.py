@@ -28,8 +28,9 @@ def prepare_dataloaders(dataset, validation_dataset, batch_size):
 
     # Important to set drop_last=True otherwise certain bath_size + dataset combinations don't work since every
     # batch needs to be of size args.batch_size
-    train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True, collate_fn=collate_fn)
-    test_dataloader = DataLoader(dataset, batch_size=1, drop_last=True, collate_fn=collate_fn)
-    validation_dataloader = DataLoader(validation_dataset, batch_size=1, drop_last=True, collate_fn=collate_fn)
+    train_dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True, collate_fn=collate_fn, shuffle=True)
+    test_dataloader = DataLoader(dataset, batch_size=1, drop_last=True, collate_fn=collate_fn, shuffle=True)
+    validation_dataloader = DataLoader(validation_dataset, batch_size=1, drop_last=True, collate_fn=collate_fn,
+                                       shuffle=True)
 
     return train_dataloader, test_dataloader, validation_dataloader
