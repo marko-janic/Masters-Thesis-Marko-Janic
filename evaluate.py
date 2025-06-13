@@ -239,7 +239,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 avg_pixels_off = 0
 
                 predictions = torch.from_numpy(peak_local_max(
-                    target_heatmaps[0, 0].cpu().numpy(), min_distance=args.neighborhood_size,
+                    outputs["heatmaps"][0, 0].cpu().numpy(), min_distance=args.neighborhood_size,
                     threshold_abs=args.prediction_threshold))
                 predictions *= 2  # The heatmaps are size 112 x 112 and the actual coordinates are 224 x 224
                 predictions[:, 0] = args.vit_input_size - predictions[:, 0]
