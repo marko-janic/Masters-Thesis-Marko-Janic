@@ -1,6 +1,6 @@
 {
     "mode": "eval",
-    "existing_result_folder": "",
+    "existing_result_folder": "experiment_2025-06-13_13-49-50_testing_different_particle_sizes_and_random_sub_micrographs_again",
     "existing_evaluation_folder": "",
     "volume_evaluation": true,
     "missing_pred_threshold": 20,
