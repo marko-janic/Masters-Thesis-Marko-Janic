@@ -8,7 +8,7 @@
 #SBATCH --gres=gpu:1          #--gres=gpu:2 for two GPU, etc
 #SBATCH --output=job_results/random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader.o%j   #Path and name to the file for the STDOUT
 #SBATCH --error=job_results/random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader.e%j    #Path and name to the file for the STDERR
-#SBATCH --cpus-per-task=8     #Number of cores to reserve
+#SBATCH --cpus-per-task=16     #Number of cores to reserve
 #SBATCH --mem-per-cpu=8G     #Amount of RAM/core to reserve
 
 module purge
