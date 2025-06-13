@@ -420,6 +420,9 @@ def main():
             with open(args.validation_loss_log_path, 'a') as f:
                 f.write(f"{epoch},{avg_validation_loss}\n")
 
+            # Plot the loss log after every epoch
+            plot_loss_log(args.loss_log_path, args.validation_loss_log_path, args.result_dir)
+
         # Save final checkpoint
         torch.save(model.state_dict(), os.path.join(args.result_dir, f"checkpoint_final.pth"))
         if args.finetune_vit:
