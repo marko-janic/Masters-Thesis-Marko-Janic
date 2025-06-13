@@ -285,7 +285,7 @@ def main():
         else:
             optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
             model.train()
-            vit_model.eval()
+            vit_model.train()
 
         last_checkpoint_time = time.time()
 
