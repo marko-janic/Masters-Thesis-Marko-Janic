@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "testing_different_particle_sizes_and_random_sub_micrographs_again",
+    "result_dir_appended_name": "testing_different_particle_sizes_and_random_sub_micrographs_again_VIT_NOT_IN_EVAL",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
