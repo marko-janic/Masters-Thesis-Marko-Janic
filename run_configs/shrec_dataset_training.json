@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "model_size_2x",
+    "result_dir_appended_name": "model_size",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
