@@ -28,9 +28,9 @@ def get_args():
     parser.add_argument("--max_z", type=int, default=171)
     parser.add_argument("--example_visualizations", type=int, default=20)
     parser.add_argument("--model_number", type=int, default=[0])
-    parser.add_argument("--particle_width", type=int, default=15)
-    parser.add_argument("--particle_height", type=int, default=15)
-    parser.add_argument("--particle_depth", type=int, default=10)
+    parser.add_argument("--particle_width", type=int, default=12)
+    parser.add_argument("--particle_height", type=int, default=12)
+    parser.add_argument("--particle_depth", type=int, default=6)
     parser.add_argument("--noise", type=int, default=10)
     parser.add_argument("--heatmap_size", type=int, default=112)
     parser.add_argument("--add_noise", type=bool, default=False)
@@ -131,21 +131,16 @@ class ShrecDatasetTests(unittest.TestCase):
 
         for model_num in self.args.model_number:
             grandmodel = self.dataset.grandmodel[model_num].cpu().numpy()
-            min_val = np.min(grandmodel)
-            max_val = np.max(grandmodel)
-            normalized = (grandmodel - min_val) / (max_val - min_val)
+            viewer.add_image(grandmodel, name=f'{model_num}', colormap='gray')
 
-            viewer.add_image(normalized, name=f'{model_num}, min={min_val}, '
-                                              f'max={max_val}', colormap='gray')
+        #for layer in viewer.layers:
+        #    if layer.__class__.__name__ == "Image":
+        #        layer.contrast_limits = [0, 1]
 
-        for layer in viewer.layers:
-            if layer.__class__.__name__ == "Image":
-                layer.contrast_limits = [0, 1]
-
-        viewer.add_image(heatmaps, name='Heatmaps Volume', colormap='magenta')
+        viewer.add_image(heatmaps, name='Heatmaps Volume', colormap='magenta', blending='additive')
         if self.dataset.use_fbp:
             fbp_volume = self.dataset.grandmodel_fbp[0].cpu().numpy()
-            viewer.add_image(fbp_volume, name='FBP Reconstructed voume', colormap='gray')
+            viewer.add_image(fbp_volume, name='FBP Reconstructed voume', colormap='gray', blending='additive')
         napari.run()
 
     def test_shapes(self):

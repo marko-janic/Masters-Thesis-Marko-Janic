@@ -226,22 +226,36 @@ def create_3d_gaussian_volume(particle_locations: pd.DataFrame, particle_width, 
     """
     volume = torch.zeros(volume_shape, dtype=torch.float32, device=device)
 
-    # Magic numbers for sigmas :3
-    sigma_x = particle_width / 3  # TODO: maybe add these as arguments?
-    sigma_y = particle_height / 3
-    sigma_z = particle_depth / 3
-
-    # Define window size (e.g., 3 sigma in each direction), we do this to save computation time for the gaussians
-    wx = int(3 * sigma_x)
-    wy = int(3 * sigma_y)
-    wz = int(3 * sigma_z)
-
     for _, row in particle_locations.iterrows():
         class_name = str(row['class'])
         # Shrec dataset is bugged, so we exclude particle 4V94, see important note here: https://www.shrec.net/cryo-et/
         # Vesicle also seems to just be invisible?
         if class_name == "4V94" or class_name == "vesicle":
             continue
+
+        if class_name == "5MRC":
+            sigma_x = (particle_width + 8) / 3
+            sigma_y = (particle_height + 8) / 3
+            sigma_z = (particle_depth + 5) / 3
+            wx = int(3 * sigma_x)
+            wy = int(3 * sigma_y)
+            wz = int(3 * sigma_z)
+        elif class_name == "4CR2":
+            sigma_x = (particle_width + 2) / 3
+            sigma_y = (particle_height + 2) / 3
+            sigma_z = (particle_depth + 3) / 3
+            wx = int(3 * sigma_x)
+            wy = int(3 * sigma_y)
+            wz = int(3 * sigma_z)
+        else:
+            sigma_x = particle_width / 3
+            sigma_y = particle_height / 3
+            sigma_z = particle_depth / 3
+            # Define window size (e.g., 3 sigma in each direction), we do this to save computation time for
+            # the gaussians
+            wx = int(3 * sigma_x)
+            wy = int(3 * sigma_y)
+            wz = int(3 * sigma_z)
 
         if shrec_specific_particle is None or shrec_specific_particle == "":
             pass

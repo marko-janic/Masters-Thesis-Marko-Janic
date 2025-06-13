@@ -9,9 +9,9 @@
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
-    "particle_width": 15,
-    "particle_height": 15,
-    "particle_depth": 10,
+    "particle_width": 12,
+    "particle_height": 12,
+    "particle_depth": 6,
     "add_noise": false,
     "noise": 0,
     "use_fbp": false,

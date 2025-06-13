@@ -307,7 +307,7 @@ def main():
                     in enumerate(train_dataloader):
                 batch_counter += 1
 
-                if plotted < 20:  # TODO: move this into seperate function
+                if plotted < 32:  # TODO: move this into seperate function
                     save_image_with_bounding_object(
                         micrographs[0].cpu(), target_coordinates_list[0].cpu()*args.vit_input_size,
                         "circle", {"circle_radius": 6}, os.path.join(args.result_dir, 'training_examples'),

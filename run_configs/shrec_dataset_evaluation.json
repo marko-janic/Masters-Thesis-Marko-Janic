@@ -5,20 +5,20 @@
     "volume_evaluation": true,
     "missing_pred_threshold": 20,
     "prediction_threshold": 0.6,
-    "neighborhood_size": 10,
+    "neighborhood_size": 5,
     "use_train_dataset_for_evaluation": false,
     "batch_size": 1,
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
-    "particle_width": 15,
-    "particle_height": 15,
-    "particle_depth": 10,
+    "particle_width": 12,
+    "particle_height": 12,
+    "particle_depth": 6,
     "add_noise": false,
     "noise": 0,
     "use_fbp": false,
     "fbp_num_projections": 60,
-    "random_sub_micrographs": true,
+    "random_sub_micrographs": false,
 
     "device": "cuda",
     "train_eval_split": 1,
@@ -35,6 +35,6 @@
     "shrec_model_number": [0],
     "shrec_validation_model_number": [9],
     "shrec_min_z": 170,
-    "shrec_max_z": 171,
+    "shrec_max_z": 340,
     "shrec_specific_particle": ""
 }

@@ -11,9 +11,9 @@ reconstructing a single averaged particles from the estimation of the previous m
 
 ## Development
 ### Particles
-- 4V94:     This particle is the bugged one and won't be included
-- 4CR2:     Looks Fine, slightly bigger than 15 15 10
-- 1QVR:     Looks Fine, slightly bigger than 15 15 10
+- 4V94:     Not included
+- 4CR2:     Increase by 2, 2, 3
+- 1QVR:     Fine
 - 1BXN:     Looks fine, Fits fine with 15 15 10
 - 3CF3:     Looks like a flower, fine with 15 15 10
 - 1U6G:     Looks fine with 15 15 10
@@ -22,8 +22,8 @@ reconstructing a single averaged particles from the estimation of the previous m
 - 3H84:     Looks fine and, like an "S", fits fine with 15 15 10
 - 3GL1:     Looks fine, Slightly smaller than 15 15 10
 - 1S3X:     Looks fine, a bit smaller than 15 15 10
-- 5MRC:     Is a lot bigger than 15 15 10 --> Increase the particle width slightly when creating heatmap?
-- vesicle:  Doesn't actually exist?
+- 5MRC:     Increase by 8, 8, 5
+- vesicle:  Not included
 - fiducial: Looks fine, some are slightly smaller thant 15 15 10
 
 ### Description of pipeline
