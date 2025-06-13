@@ -1,16 +1,8 @@
-# Masters-Thesis-Marko-Janic
-This repository contains all code used for my Master's thesis.
-
-In this thesis we explore how powerful pretrained vision transformers can bring in the task of particle picking in cryo 
-electron microscopy. The first task of this thesis is implement and analyze existing state-of-the-art deep learning 
-methods. The second task of this thesis is to explore the interest of using pretrained vision transformers in a 
-straightforward particle picking pipeline. This includes a thorough understanding of the cryoEM problem, 
-its implementation using existing Python functions and the collection of meaningful real or synthetic dataset. The 
-evaluation of the different approaches will be done by following the formalism described in the CryoSPARC paper, by 
-reconstructing a single averaged particles from the estimation of the previous methods.
+# Cryo-Et particle picker with ViT backbone
+This repository contains all code used for my Master's thesis. In this thesis I train a deconvolution model on the output of pretrained ViT backbones to perform particle picking in the context of Cryo-ET.
 
 ## Development
-### Particles
+### Shrec Particles
 - 4V94:     Not included
 - 4CR2:     Increase by 2, 2, 3
 - 1QVR:     Fine
@@ -32,6 +24,7 @@ Input of size batch_size x 3 x 224 x 224 -> vit model preprocessor -> vit model 
 calculate predictions by taking local maxima of each heatmap and checking if it's above the threshold we set.
 
 The output of the vit model is 197 due to the embedded patches + class token. We don't use the class token.
+The 768 is referred to as "latent dimension" and can be different depending on what kind of ViT model we use.
 
 ### Important arguments
 - particle_width
@@ -89,10 +82,17 @@ I try to use the default linter of PyCharm for this code wherever I don't forget
 Calculations were performed at sciCORE (http://scicore.unibas.ch/) scientific computing center at University of Basel.
 Thank you very much!
 
-## Relevant Papers:
-- An Image is Worth 16x16 Words (I use their pretrained ViT): 
-  - https://arxiv.org/abs/2010.11929
-  - https://github.com/google-research/vision_transformer
-- CryoTransformer (I use their loss function): 
-  - https://academic.oup.com/bioinformatics/article/40/3/btae109/7614090
-  - https://github.com/jianlin-cheng/CryoTransformer
+## Link to thesis
+TODO
+
+## Citing
+```
+@mastersthesis{janic2025,
+    author       = {Marko Janic},
+    title        = {Vision Transformers for Cryo-ET particle picking},
+    school       = {University of Basel},
+    year         = {2025},
+    month        = {July},
+    note         = {Unpublished Master's thesis},
+}
+```
