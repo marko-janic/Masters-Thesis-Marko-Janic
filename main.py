@@ -269,7 +269,7 @@ def main():
         add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
         fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
         shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-        random_sub_micrographs=False)  # TODO: should I set this to false in validation set?
+        random_sub_micrographs=False)
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader, validation_dataloader = prepare_dataloaders(
