@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 7200,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "best",
+    "result_dir_appended_name": "potential_best_model",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -25,7 +25,7 @@
     "model_deconv_filters": [64, 32, 16],
     "dropout_prob": 0.1,
     "finetune_vit": true,
-    "num_vit_finetune_layers": 2,
+    "num_vit_finetune_layers": 1,
     "vit_model": "google/vit-large-patch16-224-in21k",
     "latent_dim": 1024,
 

@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 7200,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "potential_best_model",
+    "result_dir_appended_name": "potential_best_model_fbp_no_noise",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -14,7 +14,7 @@
     "particle_depth": 6,
     "add_noise": false,
     "noise": 0,
-    "use_fbp": false,
+    "use_fbp": true,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,
 
