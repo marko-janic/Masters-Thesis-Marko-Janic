@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 14400,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "finetune_2_vit_layers",
+    "result_dir_appended_name": "finetune_4_vit_layers",
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -25,7 +25,7 @@
     "model_deconv_filters": [32, 16, 8],
     "dropout_prob": 0.1,
     "finetune_vit": true,
-    "num_vit_finetune_layers": 2,
+    "num_vit_finetune_layers": 4,
     "vit_model": "google/vit-base-patch16-224-in21k",
     "latent_dim": 768,
 
