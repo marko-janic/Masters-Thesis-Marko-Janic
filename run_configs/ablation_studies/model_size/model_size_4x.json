@@ -3,7 +3,7 @@
     "epochs": 50,
     "batch_size": 16,
     "learning_rate": 0.001,
-    "checkpoint_interval": 3600,
+    "checkpoint_interval": 7200,
     "loss_log_file": "loss_log.txt",
     "result_dir_appended_name": "model_size_4x",
 
@@ -25,6 +25,7 @@
     "model_deconv_filters": [64, 32, 16],
     "dropout_prob": 0.1,
     "finetune_vit": false,
+    "num_vit_finetune_layers": 2,
     "vit_model": "google/vit-base-patch16-224-in21k",
     "latent_dim": 768,
 
