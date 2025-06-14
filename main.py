@@ -73,6 +73,9 @@ def get_args():
                         help="Determines whether to fintune a vit during training or not. If set to true while "
                              "evaluating the program will try to load an already finetuned vit from the experiment "
                              "folder")
+    parser.add_argument("--num_vit_finetune_layers", type=int, default=False,
+                        help="Determines how many of the last blocks of the vision transformer should be unfrozen and"
+                             "then finetuned. Only works if the finetune_vit option is set to True")
     parser.add_argument("--shrec_validation_model_number", type=int, default=[9],
                         help="Shrec model volume to use for validating while training. Validation happens after"
                              "every epoch")
@@ -91,14 +94,14 @@ def get_args():
                              "will be counted as missed predictions")
 
     # Data and Model
-    parser.add_argument("--latent_dim", type=int, default=768, help="Dimensions of input to model")
+    parser.add_argument("--latent_dim", type=int, help="Dimensions of input to model")
     parser.add_argument("--num_patch_embeddings", type=int, default=196, help="Number of patch"
                                                                               "embeddings that the vit model generates,"
                                                                               "this is based on the patch size of the"
                                                                               "vit model")
     parser.add_argument("--model_deconv_filters", type=tuple, help="Tuple determining the 3 layer deconv"
                                                                    "filter size for the model. For example"
-                                                                   "[256, 256, 256]")
+                                                                   "[64, 32, 16]")
     parser.add_argument("--dropout_prob", type=float, help="Determines the dropout probability for"
                                                            "Dropout layers in the model. For example 0.1")
     parser.add_argument("--heatmap_size", type=int, help="Size of the heatmaps that are fed into the model"
@@ -144,9 +147,9 @@ def get_args():
                              "Has to be specified as a list and these are the models that will be used during training."
                              "For evaluation it will only take the first element in the list, irrespective of what"
                              "you specify after in the list")
-    parser.add_argument("--shrec_min_z", type=int, default=150, help="Minimum z to start taking z slices "
+    parser.add_argument("--shrec_min_z", type=int, default=170, help="Minimum z to start taking z slices "
                                                                      "from for the shrec dataset")
-    parser.add_argument("--shrec_max_z", type=int, default=360, help="Maximum z to start taking z slices "
+    parser.add_argument("--shrec_max_z", type=int, default=340, help="Maximum z to start taking z slices "
                                                                      "from for the shrec dataset")
     # TODO: Add support for multiple particles maybe?
     parser.add_argument("--shrec_specific_particle", type=str, default=None,
@@ -188,6 +191,14 @@ def get_args():
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 768, you specified {args.latent_dim}")
     if args.vit_model == 'google/vit-large-patch16-224-in21k' and args.latent_dim != 1024:
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 1024, you specified {args.latent_dim}")
+
+    if args.num_vit_finetune_layers > 8:
+        raise Exception(f"Are you sure you want to finetune {args.num_vit_finetune_layers} layers of the ViT? "
+                        f"The base 16x16 ViT only has 11 transformer layers."
+                        f"If this was not accidental, you can disable this exception message")
+    if args.finetune_vit and args.num_vit_finetune_layers is None or args.num_vit_finetune_layers <= 0:
+        raise Exception(f"You want to finetune the ViT but you haven't specified the number of layers that you"
+                        f"want to finetune, or the number of layers is negative which makes no sense.")
 
     return args
 
@@ -233,9 +244,10 @@ def main():
     for param in vit_model.parameters():
         param.requires_grad = False
 
-    # Unfreeze last 2 trasnformer blocks (finetuning vit)
+    # Unfreeze last x transformer layers (finetuning vit)
     if args.finetune_vit:
-        for block in vit_model.encoder.layer[-2:]:
+        print(f"Unfreezing last {args.num_vit_finetune_layers} layers of the ViT for finetuning")
+        for block in vit_model.encoder.layer[-args.num_vit_finetune_layers:]:
             for param in block.parameters():
                 param.requires_grad = True
 
@@ -257,7 +269,7 @@ def main():
         add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
         fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
         shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-        random_sub_micrographs=args.random_sub_micrographs)  # TODO: should I set this to false in validation set?
+        random_sub_micrographs=False)  # TODO: should I set this to false in validation set?
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader, validation_dataloader = prepare_dataloaders(
