@@ -63,7 +63,7 @@ def plot_loss_log(loss_log_path, validation_loss_log_path, result_dir):
             plt.semilogy(epochs, losses, label='Training Loss')
             plt.semilogy(validation_epochs, validation_losses, label='Validation Loss')
             plt.xlabel('epochs')
-            plt.ylabel('loss (log scale)')
+            plt.ylabel('mse loss target vs output heatmaps (log scale)')
             plt.title('Training and Validation Loss')
             plt.legend()
             plt.grid(True)
