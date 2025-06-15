@@ -4,7 +4,7 @@
 #SBATCH --job-name=potential_best_model_fbp_10dB    #Name of your job
 #SBATCH --time=7-00:00:00    #Maximum allocated time
 #SBATCH --qos=gpu1week      #Selected queue to allocate your job (the gpu before 6hours is important, see comment: https://wiki.biozentrum.unibas.ch/display/scicore/9.+Requesting+GPUs)
-#SBATCH --partition=titan
+#SBATCH --partition=rtx4090
 #SBATCH --gres=gpu:1          #--gres=gpu:2 for two GPU, etc
 #SBATCH --output=job_results/potential_best_model_fbp_10dB.o%j   #Path and name to the file for the STDOUT
 #SBATCH --error=job_results/potential_best_model_fbp_10dB.e%j    #Path and name to the file for the STDERR
