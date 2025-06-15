@@ -1,7 +1,7 @@
 {
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-13_16-11-09_random_sub_micrographs_vit_not_in_eval_shuffle_true_in_dataloader",
-    "existing_evaluation_folder": "evaluation_2025-06-13_20-24-15_model5_volume_evaluation",
+    "existing_result_folder": "experiment_2025-06-14_00-25-50_model_size_base",
+    "existing_evaluation_folder": "",
     "volume_evaluation": true,
     "missing_pred_threshold": 20,
     "prediction_threshold": 0.3,
@@ -33,9 +33,9 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [5],
+    "shrec_model_number": [4, 5, 6, 7, 8],
     "shrec_validation_model_number": [9],
-    "shrec_min_z": 160,
-    "shrec_max_z": 350,
+    "shrec_min_z": 150,
+    "shrec_max_z": 370,
     "shrec_specific_particle": ""
 }

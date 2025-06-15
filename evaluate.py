@@ -132,17 +132,17 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
     :return:
     """
     if args.existing_evaluation_folder == "" or args.existing_evaluation_folder is None:
-        result_dir = os.path.join(args.result_dir,
+        this_evaluation_result_dir = os.path.join(args.result_dir,
                                   f'evaluation_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_'
-                                  f'model{args.shrec_model_number[0]}')
+                                  f'model{args.shrec_model_number}')
         if args.volume_evaluation:
-            result_dir += "_volume_evaluation"
-        create_folder_if_missing(result_dir)
-        with open(os.path.join(result_dir, 'arguments.txt'), 'a') as f:
+            this_evaluation_result_dir += "_volume_evaluation"
+        create_folder_if_missing(this_evaluation_result_dir)
+        with open(os.path.join(this_evaluation_result_dir, 'arguments.txt'), 'a') as f:
             for arg in vars(args):
                 f.write(f"{arg}: {getattr(args, arg)}\n")
     else:
-        result_dir = os.path.join("experiments", args.existing_result_folder, args.existing_evaluation_folder)
+        this_evaluation_result_dir = os.path.join("experiments", args.existing_result_folder, args.existing_evaluation_folder)
 
     experiment_result_dir = args.result_dir
 
@@ -175,7 +175,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         "random_sub_micrographs",
         "validation_loss_log_path"
     ]
-    arguments_file_evaluation = os.path.join(result_dir, 'arguments.txt')
+    arguments_file_evaluation = os.path.join(this_evaluation_result_dir, 'arguments.txt')
     arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')
     if not os.path.exists(arguments_file_experiment):
         raise FileNotFoundError(f"arguments.txt not found in experiment_result_dir: {experiment_result_dir}")
@@ -282,12 +282,12 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                                                        heatmaps_title="Model output",
                                                        result_file_name=f"model_to_ground_truth_heatmaps_comparison_"
                                                                         f"{example_counter}",
-                                                       result_dir=result_dir)
+                                                       result_dir=this_evaluation_result_dir)
 
                     compare_heatmaps(heatmaps_gt=target_heatmaps[0].cpu(),
                                      heatmaps_pred=outputs["heatmaps"][0].cpu(),
                                      result_folder_name=f"model_heatmaps_vs_target_heatmaps_{example_counter}",
-                                     result_dir=result_dir)
+                                     result_dir=this_evaluation_result_dir)
 
                     compare_predictions_with_ground_truth(
                         image_tensor=micrographs[0].cpu(),
@@ -295,7 +295,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                         predictions=pred_coords[0],
                         object_type="output_box",
                         object_parameters={"box_width": args.particle_width, "box_height": args.particle_height},
-                        result_dir=result_dir,
+                        result_dir=this_evaluation_result_dir,
                         file_name=f'example_{example_counter}.png',
                         figure_title=f"Avg pixels off: {avg_pixels_off}, missing: {missed_predictions}, "
                                      f"extra: {extra_predictions}"
@@ -314,100 +314,102 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             print(f"prediction_threshold: {args.prediction_threshold}")
             
         else:
-            if args.existing_evaluation_folder is None or args.existing_evaluation_folder == "":
-                output_heatmaps_volume = generate_heatmaps_volume(dataset=dataset, vit_model=vit_model,
-                                                                  vit_image_processor=vit_image_processor,
-                                                                  device=args.device, latent_dim=args.latent_dim,
-                                                                  model=model, vit_input_size=args.vit_input_size,
-                                                                  use_fbp=args.use_fbp, z_eval_max=args.shrec_max_z,
-                                                                  z_eval_min=args.shrec_min_z,
-                                                                  model_number=args.shrec_model_number[0])
-                output_heatmaps_volume_numpy = output_heatmaps_volume.cpu().numpy()
-                np.save(os.path.join(result_dir, f"output_heatmaps_volume.npy"), output_heatmaps_volume_numpy)
-            else:
-                output_heatmaps_volume_numpy = np.load(os.path.join(result_dir, "output_heatmaps_volume.npy"))
-
-            coordinates = torch.from_numpy(peak_local_max(output_heatmaps_volume_numpy,
-                                                          min_distance=args.neighborhood_size,
-                                                          threshold_abs=args.prediction_threshold))
-            coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are smaller
-
-            target_heatmap_volume = dataset.heatmaps_volume[args.shrec_model_number[0]]
-            viewer = napari.Viewer()
-            viewer.add_points(coordinates, size=5, face_color='red')
-            viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
-            output_heatmaps_volume_numpy = resize(output_heatmaps_volume_numpy, (512, 512, 512), order=1,
-                                                  preserve_range=True, anti_aliasing=True)
-            viewer.add_image(output_heatmaps_volume_numpy, name='Output Heatmaps Volume', colormap='magenta')
-            viewer.add_image(dataset.grandmodel[args.shrec_model_number[0]].cpu().numpy(), name='Grandmodel Volume',
-                             colormap='gray')
-            napari.run()
-
-            # We take order z, y, x because that's how peak_local_max returns them as well
-            if args.shrec_specific_particle is None or args.shrec_specific_particle == "":
-                target_coordinates_df = dataset.get_particle_locations_of_first_model_number()
-            else:
-                target_coordinates_df = dataset.particle_locations[args.shrec_model_number[0]][
-                    dataset.particle_locations[args.shrec_model_number[0]]['class'] == args.shrec_specific_particle]
-            target_coordinates = torch.tensor(target_coordinates_df[['Z', 'Y', 'X']].values)
-
-            pred_coords = coordinates.float()
-            tgt_coords = target_coordinates.float()
-            num_preds = pred_coords.shape[0]
-            num_targets = tgt_coords.shape[0]
-
-            # Compute pairwise distances (num_preds, num_targets)
-            dists = torch.cdist(pred_coords, tgt_coords, p=2).cpu().numpy()
-            # Assign each prediction to the closest target
-            pred_to_target = dists.argmin(axis=1)
-            pred_to_target_dist = dists[np.arange(num_preds), pred_to_target]
-
-            # Remove predictions that are too far from any target (count as extra)
-            assigned_preds = {}
-            extra_predictions = 0
-            for pred_idx, (tgt_idx, dist) in enumerate(zip(pred_to_target, pred_to_target_dist)):
-                if dist > args.missing_pred_threshold:
-                    extra_predictions += 1
+            output_heatmaps_volumes = {}
+            for model_num in args.shrec_model_number:
+                output_heatmap_volume_path = os.path.join(experiment_result_dir,
+                                                          f"output_heatmaps_volume_shrec_volume_{model_num}.npy")
+                if os.path.exists(output_heatmap_volume_path):
+                    print(f"Found shrec volume {model_num}")
+                    output_heatmaps_volumes[model_num] = np.load(output_heatmap_volume_path)
                 else:
-                    assigned_preds.setdefault(tgt_idx, []).append((pred_idx, dist))
+                    print(f"Shrec volume {model_num} has not been generated yet. Generating now...")
+                    output_heatmaps_volumes[model_num] = generate_heatmaps_volume(
+                        dataset=dataset, vit_model=vit_model, vit_image_processor=vit_image_processor,
+                        device=args.device, latent_dim=args.latent_dim, model=model, vit_input_size=args.vit_input_size,
+                        use_fbp=args.use_fbp, z_eval_max=args.shrec_max_z, z_eval_min=args.shrec_min_z,
+                        model_number=model_num).cpu().numpy()
+                    np.save(output_heatmap_volume_path, output_heatmaps_volumes[model_num])
+            target_coordinates_dict = dataset.get_particle_locations_of_models()
 
-            missed_predictions = 0
-            matched_dists = []
-            for tgt_idx in range(num_targets):
-                preds_for_target = assigned_preds.get(tgt_idx, [])
-                if len(preds_for_target) == 0:
-                    missed_predictions += 1
-                elif len(preds_for_target) == 1:
-                    # One prediction for this target
-                    matched_dists.append(preds_for_target[0][1])
-                else:
-                    # Multiple predictions: pick the closest, others are extra
-                    preds_for_target.sort(key=lambda x: x[1])
-                    matched_dists.append(preds_for_target[0][1])
-                    extra_predictions += len(preds_for_target) - 1
+            for model_num in args.shrec_model_number:
+                this_output_heatmaps_volume = output_heatmaps_volumes[model_num]
 
-            avg_pixels_off = np.mean(matched_dists) if matched_dists else 0.0
+                coordinates = torch.from_numpy(peak_local_max(this_output_heatmaps_volume,
+                                                              min_distance=args.neighborhood_size,
+                                                              threshold_abs=args.prediction_threshold))
+                coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are smaller
 
-            avg_loss = 0  # TODO: compute mse between target and produced volume here
-            avg_pixel_loss = avg_pixels_off
-            avg_missed_predictions = missed_predictions
-            avg_extra_predictions = extra_predictions
-            correct_predictions = len(matched_dists)
+                #target_heatmap_volume = dataset.heatmaps_volume[model_num]
+                #viewer = napari.Viewer()
+                #viewer.add_points(coordinates, size=5, face_color='red')
+                #viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
+                #this_output_heatmaps_volume = resize(this_output_heatmaps_volume, (512, 512, 512), order=1,
+                #                                     preserve_range=True, anti_aliasing=True)
+                #viewer.add_image(this_output_heatmaps_volume, name='Output Heatmaps Volume', colormap='magenta')
+                #viewer.add_image(dataset.grandmodel[model_num].cpu().numpy(), name='Grandmodel Volume',
+                #                 colormap='gray')
+                #napari.run()
 
-            output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                      f"\nTotal number of predictions: {num_preds}"
-                      f"\nTotal number of targets: {num_targets}"
-                      f"\nAverage evaluation loss: {avg_loss}"
-                      f"\nAverage pixel loss: {avg_pixel_loss}"
-                      f"\nMissed predictions: {avg_missed_predictions}"
-                      f"\nExtra predictions: {avg_extra_predictions}"
-                      f"\nCorrect predictions: {correct_predictions}"
-                      f"\nprediction_threshold: {args.prediction_threshold}"
-                      f"\nneighborhood_size: {args.neighborhood_size}"
-                      f"\nmissing_pred_threshold: {args.missing_pred_threshold}")
-            print(output)
+                target_coordinates_df = target_coordinates_dict[model_num]
+                # We take order z, y, x because that's how peak_local_max returns them as well
+                target_coordinates = torch.tensor(target_coordinates_df[['Z', 'Y', 'X']].values)
 
-            # Logging the running loss to a txt file
-            log_file_path = os.path.join(result_dir, "evaluation_log.txt")
-            with open(log_file_path, "a") as log_file:
-                log_file.write(output)
+                pred_coords = coordinates.float()
+                tgt_coords = target_coordinates.float()
+                num_preds = pred_coords.shape[0]
+                num_targets = tgt_coords.shape[0]
+
+                # Compute pairwise distances (num_preds, num_targets)
+                dists = torch.cdist(pred_coords, tgt_coords, p=2).cpu().numpy()
+                # Assign each prediction to the closest target
+                pred_to_target = dists.argmin(axis=1)
+                pred_to_target_dist = dists[np.arange(num_preds), pred_to_target]
+
+                # Remove predictions that are too far from any target (count as extra)
+                assigned_preds = {}
+                extra_predictions = 0
+                for pred_idx, (tgt_idx, dist) in enumerate(zip(pred_to_target, pred_to_target_dist)):
+                    if dist > args.missing_pred_threshold:
+                        extra_predictions += 1
+                    else:
+                        assigned_preds.setdefault(tgt_idx, []).append((pred_idx, dist))
+
+                missed_predictions = 0
+                matched_dists = []
+                for tgt_idx in range(num_targets):
+                    preds_for_target = assigned_preds.get(tgt_idx, [])
+                    if len(preds_for_target) == 0:
+                        missed_predictions += 1
+                    elif len(preds_for_target) == 1:
+                        # One prediction for this target
+                        matched_dists.append(preds_for_target[0][1])
+                    else:
+                        # Multiple predictions: pick the closest, others are extra
+                        preds_for_target.sort(key=lambda x: x[1])
+                        matched_dists.append(preds_for_target[0][1])
+                        extra_predictions += len(preds_for_target) - 1
+
+                avg_pixels_off = np.mean(matched_dists) if matched_dists else 0.0
+
+                avg_pixel_loss = avg_pixels_off
+                avg_missed_predictions = missed_predictions
+                avg_extra_predictions = extra_predictions
+                correct_predictions = len(matched_dists)
+
+                output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} for shrec volume"
+                          f"{model_num}"
+                          f"\nTotal number of predictions: {num_preds}"
+                          f"\nTotal number of targets: {num_targets}"
+                          f"\nAverage pixel loss: {avg_pixel_loss}"
+                          f"\nMissed predictions: {avg_missed_predictions}"
+                          f"\nExtra predictions: {avg_extra_predictions}"
+                          f"\nCorrect predictions: {correct_predictions}"
+                          f"\nprediction_threshold: {args.prediction_threshold}"
+                          f"\nneighborhood_size: {args.neighborhood_size}"
+                          f"\nmissing_pred_threshold: {args.missing_pred_threshold}")
+                print(output)
+
+                # Logging the running loss to a txt file
+                log_file_path = os.path.join(this_evaluation_result_dir, "evaluation_log.txt")
+                with open(log_file_path, "a") as log_file:
+                    log_file.write(output)

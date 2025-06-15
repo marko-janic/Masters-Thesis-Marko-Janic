@@ -432,13 +432,22 @@ class ShrecDataset(Dataset):
 
                 self.sub_micrographs = pd.concat([self.sub_micrographs, sub_micrographs_df], ignore_index=True)
 
-    def get_particle_locations_of_first_model_number(self):
-        # Get the first model number
-        first_model_num = self.model_number[0]
-        df = self.particle_locations[first_model_num]
-        # Filter out "vesicle" and "4V94"
-        filtered = df[(df['class'] != "vesicle") & (df['class'] != "4V94")]
-        return filtered
+    def get_particle_locations_of_models(self):
+        target_coordinates_dict = {}
+
+        for model_num in self.model_number:
+            df = self.particle_locations[model_num]
+
+            # Filter out "vesicle" and "4V94"
+            if self.shrec_specific_particle is None or self.shrec_specific_particle == "":
+                filtered = df[(df['class'] != "vesicle") & (df['class'] != "4V94")]
+            else:
+                filtered = df[(df['class'] != "vesicle") & (df['class'] != "4V94") &
+                              (df['class'] == self.shrec_specific_particle)]
+
+            target_coordinates_dict[model_num] = filtered
+
+        return target_coordinates_dict
 
     def update_sub_micrographs(self):
         """
