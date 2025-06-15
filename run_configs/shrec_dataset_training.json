@@ -5,7 +5,8 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 14400,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "potential_best_model_fbp_no_noise",
+    "result_dir_appended_name": "TESTpotential_best_model",
+    "patience": 5,
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -14,7 +15,7 @@
     "particle_depth": 6,
     "add_noise": false,
     "noise": 0,
-    "use_fbp": true,
+    "use_fbp": false,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,
 
@@ -29,11 +30,11 @@
     "vit_model": "google/vit-large-patch16-224-in21k",
     "latent_dim": 1024,
 
-    "shrec_sampling_points": 4,
+    "shrec_sampling_points": 2,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1, 2, 3, 4],
-    "shrec_validation_model_number": [9],
-    "shrec_min_z": 170,
-    "shrec_max_z": 340,
+    "shrec_model_number": [0],
+    "shrec_validation_model_number": [8, 9],
+    "shrec_min_z": 100,
+    "shrec_max_z": 101,
     "shrec_specific_particle": ""
 }

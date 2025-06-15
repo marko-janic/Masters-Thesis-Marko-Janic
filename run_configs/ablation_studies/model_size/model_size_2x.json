@@ -6,6 +6,7 @@
     "checkpoint_interval": 7200,
     "loss_log_file": "loss_log.txt",
     "result_dir_appended_name": "model_size_base",
+    "patience": 5,
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",

@@ -61,6 +61,8 @@ def get_args():
     parser.add_argument("--learning_rate", type=float, help="Learning rate for training")
     parser.add_argument("--checkpoint_interval", type=int,
                         help="Save model checkpoint every checkpoint_interval seconds")
+    parser.add_argument("--patience", type=int, help="Number of epochs before training stops if validation"
+                                                     "loss doesn't improve in these epochs.")
     parser.add_argument("--loss_log_file", type=str, default="loss_log.txt",
                         help="File to save running loss for each epoch")
     parser.add_argument("--train_eval_split", type=float, default=0.9,
@@ -305,6 +307,8 @@ def main():
         torch.save(model.state_dict(), os.path.join(args.result_dir, f'checkpoints/checkpoint_untrained.pth'))
 
         plotted = 0
+        best_validation_loss = float('inf')
+        patience_counter = 0
         for epoch in range(args.epochs):
             epoch_bar = tqdm(range(len(train_dataloader)), desc=f'Epoch [{epoch + 1}/{args.epochs}]', unit='batch')
             # This is different from batch_index as this only counts how many batches have been done since the last
@@ -404,26 +408,25 @@ def main():
             if args.random_sub_micrographs:
                 dataset.update_sub_micrographs()
 
-            print("Running Validation")
             # Validation here
-            for batch_index, (micrographs, target_heatmaps, target_coordinates_list, debug_tuple) \
-                    in enumerate(validation_dataloader):
-                validation_batch_counter += 1
+            with torch.no_grad():
+                for batch_index, (micrographs, target_heatmaps, target_coordinates_list, debug_tuple) \
+                        in enumerate(validation_dataloader):
+                    validation_batch_counter += 1
 
-                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor, device=args.device)
-                # 1: here because we don't need the class token
-                latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-                # Right shape for model, we permute the hidden dimension to the second place
-                # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you
-                #  don't change the vit input size
-                latent_micrographs = latent_micrographs.permute(0, 2, 1)
-                latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0), latent_micrographs.size(1),
-                                                                14, 14)
-                outputs = model(latent_micrographs)
+                    encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor, device=args.device)
+                    # 1: here because we don't need the class token
+                    latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
+                    # Right shape for model, we permute the hidden dimension to the second place
+                    # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you
+                    #  don't change the vit input size
+                    latent_micrographs = latent_micrographs.permute(0, 2, 1)
+                    latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0),
+                                                                    latent_micrographs.size(1), 14, 14)
+                    outputs = model(latent_micrographs)
 
-                validation_losses = mse_loss(outputs["heatmaps"], target_heatmaps)
-                running_validation_loss += validation_losses.item()
-
+                    validation_losses = mse_loss(outputs["heatmaps"], target_heatmaps)
+                    running_validation_loss += validation_losses.item()
             avg_validation_loss = running_validation_loss / validation_batch_counter
             # Save running validation loss to log file
             with open(args.validation_loss_log_path, 'a') as f:
@@ -431,6 +434,17 @@ def main():
 
             # Plot the loss log after every epoch
             plot_loss_log(args.loss_log_path, args.validation_loss_log_path, args.result_dir)
+
+            print(f'\nEpoch {epoch}: Train Loss {avg_loss}, Eval Loss {avg_validation_loss}, best validation loss {best_validation_loss}, patience counter {patience_counter}')
+            if avg_validation_loss < best_validation_loss:
+                print(f"Found new best loss, patience counter reset")
+                best_validation_loss = avg_validation_loss
+                patience_counter = 0
+            else:
+                patience_counter += 1
+            if patience_counter > args.patience:
+                print(f"Early stopping triggered, validation loss has not improved in the last {args.patience} epochs.")
+                break
 
         # Save final checkpoint
         torch.save(model.state_dict(), os.path.join(args.result_dir, f"checkpoint_final.pth"))
