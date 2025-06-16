@@ -94,6 +94,9 @@ def get_args():
     parser.add_argument("--missing_pred_threshold", type=int,
                         help="Predictions that are further away than this parameter (in pixels) from a valid target "
                              "will be counted as missed predictions")
+    parser.add_argument("--find_optimal_parameters", type=bool,
+                        help="If enabled a grid search will be performed to find optimal values for "
+                             "prediction_threshold and neighborhood_size")
 
     # Data and Model
     parser.add_argument("--latent_dim", type=int, help="Dimensions of input to model")

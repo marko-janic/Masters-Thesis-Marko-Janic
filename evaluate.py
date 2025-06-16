@@ -315,7 +315,6 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             print(f"Average number of missed predictions: {avg_missed_predictions}")
             print(f"Average number of extra predictions: {avg_extra_predictions}")
             print(f"prediction_threshold: {args.prediction_threshold}")
-            
         else:
             output_heatmaps_volumes = {}
             for model_num in args.shrec_model_number:
@@ -332,98 +331,43 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                         use_fbp=args.use_fbp, z_eval_max=args.shrec_max_z, z_eval_min=args.shrec_min_z,
                         model_number=model_num).cpu().numpy()
                     np.save(output_heatmap_volume_path, output_heatmaps_volumes[model_num])
+
             target_coordinates_dict = dataset.get_particle_locations_of_models()
 
+            if args.find_optimal_parameters:
+                best_f1_score, best_prediction_threshold, best_neighborhood_size, results = find_optimal_parameters(
+                    args.shrec_model_number, target_coordinates_dict, output_heatmaps_volumes,
+                    args.missing_pred_threshold)
+                with open(os.path.join(experiment_result_dir, "optimal_parameters.txt"), "a") as log_file:
+                    log_file.write(
+                        f"Calculation of optimal parameters from "
+                        f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        f"\nBest average f1 score: {best_f1_score}"
+                        f"\nBest prediction threshold: {best_prediction_threshold}"
+                        f"\nBest neighborhood size: {best_neighborhood_size},"
+                        f"\nArray with all checked results: \n"
+                        f"{results}"
+                    )
+
             for model_num in args.shrec_model_number:
-                fp = 0
-                tp = 0
-                fn = 0
-
-                this_output_heatmaps_volume = output_heatmaps_volumes[model_num]
-
-                coordinates = torch.from_numpy(peak_local_max(this_output_heatmaps_volume,
-                                                              min_distance=args.neighborhood_size,
-                                                              threshold_abs=args.prediction_threshold))
-                coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are smaller
-
-                #target_heatmap_volume = dataset.heatmaps_volume[model_num]
-                #viewer = napari.Viewer()
-                #viewer.add_points(coordinates, size=5, face_color='red')
-                #viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
-                #this_output_heatmaps_volume = resize(this_output_heatmaps_volume, (512, 512, 512), order=1,
-                #                                     preserve_range=True, anti_aliasing=True)
-                #viewer.add_image(this_output_heatmaps_volume, name='Output Heatmaps Volume', colormap='magenta')
-                #viewer.add_image(dataset.grandmodel[model_num].cpu().numpy(), name='Grandmodel Volume',
-                #                 colormap='gray')
-                #napari.run()
-
-                target_coordinates_df = target_coordinates_dict[model_num]
-                # We take order z, y, x because that's how peak_local_max returns them as well
-                target_coordinates = torch.tensor(target_coordinates_df[['Z', 'Y', 'X']].values)
-
-                pred_coords = coordinates.float()
-                tgt_coords = target_coordinates.float()
-                num_preds = pred_coords.shape[0]
-                num_targets = tgt_coords.shape[0]
-
-                # Compute pairwise distances (num_preds, num_targets)
-                dists = torch.cdist(pred_coords, tgt_coords, p=2).cpu().numpy()
-                # Assign each prediction to the closest target
-                pred_to_target = dists.argmin(axis=1)
-                pred_to_target_dist = dists[np.arange(num_preds), pred_to_target]
-
-                # Remove predictions that are too far from any target (count as extra)
-                assigned_preds = {}
-                extra_predictions = 0
-                for pred_idx, (tgt_idx, dist) in enumerate(zip(pred_to_target, pred_to_target_dist)):
-                    if dist > args.missing_pred_threshold:
-                        extra_predictions += 1
-                        fp += 1
-                    else:
-                        assigned_preds.setdefault(tgt_idx, []).append((pred_idx, dist))
-
-                missed_predictions = 0
-                matched_dists = []
-                for tgt_idx in range(num_targets):
-                    preds_for_target = assigned_preds.get(tgt_idx, [])
-                    if len(preds_for_target) == 0:
-                        missed_predictions += 1
-                        fn += 1
-                    elif len(preds_for_target) == 1:
-                        # One prediction for this target
-                        matched_dists.append(preds_for_target[0][1])
-                        tp += 1
-                    else:
-                        # Multiple predictions: pick the closest, others are extra
-                        preds_for_target.sort(key=lambda x: x[1])
-                        matched_dists.append(preds_for_target[0][1])
-                        tp += 1
-                        extra_predictions += len(preds_for_target) - 1
-                        fp += len(preds_for_target) - 1
-
-                avg_pixels_off = np.mean(matched_dists) if matched_dists else 0.0
-
-                avg_pixel_loss = avg_pixels_off
-                avg_missed_predictions = missed_predictions
-                avg_extra_predictions = extra_predictions
-                correct_predictions = len(matched_dists)
-
-                precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-                recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-                f1_score = (2 * precision * recall) / (precision + recall)
+                evaluation_dict = evaluate_predictions(
+                    target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
+                    model_num=model_num, missing_pred_threshold=args.missing_pred_threshold,
+                    prediction_threshold=args.prediction_threshold, neighborhood_size=args.neighborhood_size)
 
                 output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} for shrec volume"
                           f"{model_num}"
-                          f"\nTotal number of predictions: {num_preds}"
-                          f"\nTotal number of targets: {num_targets}"
-                          f"\nAverage pixel loss: {avg_pixel_loss}"
-                          f"\nMissed predictions: {avg_missed_predictions}"
-                          f"\nExtra predictions: {avg_extra_predictions}"
-                          f"\nCorrect predictions: {correct_predictions}"
+                          f"\nTotal number of predictions: {evaluation_dict['num_preds']}"
+                          f"\nTotal number of targets: {evaluation_dict['num_targets']}"
+                          f"\nAverage pixel loss: {evaluation_dict['avg_pixel_loss']}"
+                          f"\nMissed predictions: {evaluation_dict['avg_missed_predictions']}"
+                          f"\nExtra predictions: {evaluation_dict['avg_extra_predictions']}"
+                          f"\nCorrect predictions: {evaluation_dict['correct_predictions']}"
                           f"\nprediction_threshold: {args.prediction_threshold}"
                           f"\nneighborhood_size: {args.neighborhood_size}"
                           f"\nmissing_pred_threshold: {args.missing_pred_threshold}"
-                          f"\nF1 Score: {f1_score}, precision: {precision}, recall: {recall}"
+                          f"\nF1 Score: {evaluation_dict['f1_score']}, precision: {evaluation_dict['precision']}, "
+                          f"recall: {evaluation_dict['recall']}"
                           f"\n")
                 print(output)
 
@@ -431,3 +375,135 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 log_file_path = os.path.join(this_evaluation_result_dir, "evaluation_log.txt")
                 with open(log_file_path, "a") as log_file:
                     log_file.write(output)
+
+
+def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatmaps_volumes,
+                            missing_pred_threshold):
+    """
+    Performs grid search to find optimal parameters
+    :param model_numbers: list of model numbers to check this on
+    :param target_coordinates_dict:
+    :param output_heatmaps_volumes:
+    :param missing_pred_threshold
+    :return: best_f1_score, best_prediction_threshold, best_neighborhood_size, results
+        where results is a dictionary with the lists of parameters and avg_f1_scores that were checked
+    """
+    prediction_threshold_range = torch.arange(0.1, 1, 0.1)
+    neighborhood_size_range = torch.arange(1, 15, 1)
+    best_f1_score = 0
+    best_prediction_threshold = 0
+    best_neighborhood_size = 0
+
+    results = {"prediction_thresholds": [], "neighborhood_sizes": [], "avg_f1_scores": []}
+    for prediction_threshold in tqdm(prediction_threshold_range, desc="Grid search prediction threshold"):
+        for neighborhood_size in tqdm(neighborhood_size_range, desc="Grid search neighborhood size"):
+            avg_f1_score = 0
+            for model_num in model_numbers:
+                evaluation_dict = evaluate_predictions(
+                    target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
+                    model_num=model_num, missing_pred_threshold=missing_pred_threshold,
+                    prediction_threshold=prediction_threshold.item(), neighborhood_size=neighborhood_size.item())
+                avg_f1_score += evaluation_dict["f1_score"]
+            avg_f1_score = avg_f1_score / len(model_numbers)
+
+            results["prediction_thresholds"].append(prediction_threshold)
+            results["neighborhood_sizes"].append(neighborhood_size)
+            results["avg_f1_scores"].append(avg_f1_score)
+
+            if avg_f1_score > best_f1_score:
+                best_f1_score = avg_f1_score
+                best_prediction_threshold = prediction_threshold
+                best_neighborhood_size = neighborhood_size
+
+    print(f"Best average f1 score: {best_f1_score} with pred_threshold: {best_prediction_threshold} "
+          f"and neighborhood_size: {best_neighborhood_size}")
+    return best_f1_score, best_prediction_threshold, best_neighborhood_size, results
+
+
+def evaluate_predictions(target_coordinates_dict, output_heatmaps_volumes, model_num, missing_pred_threshold,
+                         prediction_threshold, neighborhood_size):
+    this_output_heatmaps_volume = output_heatmaps_volumes[model_num]
+
+    coordinates = torch.from_numpy(peak_local_max(this_output_heatmaps_volume,
+                                                  min_distance=neighborhood_size,
+                                                  threshold_abs=prediction_threshold))
+    coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are half the size
+
+    # target_heatmap_volume = dataset.heatmaps_volume[model_num]
+    # viewer = napari.Viewer()
+    # viewer.add_points(coordinates, size=5, face_color='red')
+    # viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
+    # this_output_heatmaps_volume = resize(this_output_heatmaps_volume, (512, 512, 512), order=1,
+    #                                     preserve_range=True, anti_aliasing=True)
+    # viewer.add_image(this_output_heatmaps_volume, name='Output Heatmaps Volume', colormap='magenta')
+    # viewer.add_image(dataset.grandmodel[model_num].cpu().numpy(), name='Grandmodel Volume',
+    #                 colormap='gray')
+    # napari.run()
+
+    target_coordinates_df = target_coordinates_dict[model_num]
+    # We take order z, y, x because that's how peak_local_max returns them as well
+    target_coordinates = torch.tensor(target_coordinates_df[['Z', 'Y', 'X']].values)
+
+    pred_coords = coordinates.float()
+    tgt_coords = target_coordinates.float()
+    num_preds = pred_coords.shape[0]
+    num_targets = tgt_coords.shape[0]
+
+    fp = 0
+    tp = 0
+    fn = 0
+
+    num_preds = pred_coords.shape[0]
+    num_targets = tgt_coords.shape[0]
+    # Compute pairwise distances (num_preds, num_targets)
+    dists = torch.cdist(pred_coords, tgt_coords, p=2).cpu().numpy()
+    # Assign each prediction to the closest target
+    pred_to_target = dists.argmin(axis=1)
+    pred_to_target_dist = dists[np.arange(num_preds), pred_to_target]
+
+    # Remove predictions that are too far from any target (count as extra)
+    assigned_preds = {}
+    extra_predictions = 0
+    for pred_idx, (tgt_idx, dist) in enumerate(zip(pred_to_target, pred_to_target_dist)):
+        if dist > missing_pred_threshold:
+            extra_predictions += 1
+            fp += 1
+        else:
+            assigned_preds.setdefault(tgt_idx, []).append((pred_idx, dist))
+
+    missed_predictions = 0
+    matched_dists = []
+    for tgt_idx in range(num_targets):
+        preds_for_target = assigned_preds.get(tgt_idx, [])
+        if len(preds_for_target) == 0:
+            missed_predictions += 1
+            fn += 1
+        elif len(preds_for_target) == 1:
+            # One prediction for this target
+            matched_dists.append(preds_for_target[0][1])
+            tp += 1
+        else:
+            # Multiple predictions: pick the closest, others are extra
+            preds_for_target.sort(key=lambda x: x[1])
+            matched_dists.append(preds_for_target[0][1])
+            tp += 1
+            extra_predictions += len(preds_for_target) - 1
+            fp += len(preds_for_target) - 1
+
+    avg_pixels_off = np.mean(matched_dists) if matched_dists else 0.0
+
+    avg_pixel_loss = avg_pixels_off
+    avg_missed_predictions = missed_predictions
+    avg_extra_predictions = extra_predictions
+    correct_predictions = len(matched_dists)
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    f1_score = (2 * precision * recall) / (precision + recall)
+
+    evaluation_dict = {"avg_pixel_loss": avg_pixel_loss, "avg_missed_predictions": avg_missed_predictions,
+                       "avg_extra_predictions": avg_extra_predictions, "correct_predictions": correct_predictions,
+                       "precision": precision, "recall": recall, "f1_score": f1_score, "num_preds": num_preds,
+                       "num_targets": num_targets}
+
+    return evaluation_dict
