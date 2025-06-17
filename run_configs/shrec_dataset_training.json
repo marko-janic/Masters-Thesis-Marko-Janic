@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 14400,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "training_with_shrecs_reconstruction_volume_bigger_model",
+    "result_dir_appended_name": "fbp_20dB_4_training_volumes",
     "patience": 5,
 
     "dataset": "shrec",
@@ -13,8 +13,8 @@
     "particle_width": 12,
     "particle_height": 12,
     "particle_depth": 6,
-    "add_noise": false,
-    "noise": 0,
+    "add_noise": true,
+    "noise": 20,
     "use_fbp": true,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,
@@ -23,7 +23,7 @@
     "train_eval_split": 1,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
-    "model_deconv_filters": [128, 64, 32],
+    "model_deconv_filters": [64, 32, 16],
     "dropout_prob": 0.1,
     "finetune_vit": true,
     "num_vit_finetune_layers": 1,
@@ -32,10 +32,9 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1, 2, 3, 4, 5, 6],
+    "shrec_model_number": [0, 1, 2, 3],
     "shrec_validation_model_number": [8, 9],
     "shrec_min_z": 166,
     "shrec_max_z": 345,
-    "shrec_specific_particle": "",
-    "use_shrec_reconstruction": true
+    "shrec_specific_particle": ""
 }
