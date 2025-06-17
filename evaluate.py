@@ -176,7 +176,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
         "train_eval_split",
         "random_sub_micrographs",
         "validation_loss_log_path",
-        "patience"
+        "patience",
+        "find_optimal_parameters"
     ]
     arguments_file_evaluation = os.path.join(this_evaluation_result_dir, 'arguments.txt')
     arguments_file_experiment = os.path.join(experiment_result_dir, 'arguments.txt')
@@ -346,14 +347,15 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                         f"\nBest prediction threshold: {best_prediction_threshold}"
                         f"\nBest neighborhood size: {best_neighborhood_size},"
                         f"\nArray with all checked results: \n"
-                        f"{results}"
-                    )
+                        f"{results}")
 
+            avg_f1_score = 0
             for model_num in args.shrec_model_number:
                 evaluation_dict = evaluate_predictions(
                     target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
                     model_num=model_num, missing_pred_threshold=args.missing_pred_threshold,
                     prediction_threshold=args.prediction_threshold, neighborhood_size=args.neighborhood_size)
+                avg_f1_score += evaluation_dict['f1_score']
 
                 output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} for shrec volume"
                           f"{model_num}"
@@ -375,6 +377,13 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 log_file_path = os.path.join(this_evaluation_result_dir, "evaluation_log.txt")
                 with open(log_file_path, "a") as log_file:
                     log_file.write(output)
+            avg_f1_score = avg_f1_score / len(args.shrec_model_number)
+
+            # Logging the running loss to a txt file
+            log_file_path = os.path.join(this_evaluation_result_dir, "evaluation_log.txt")
+            with open(log_file_path, "a") as log_file:
+                log_file.write(f"\nAverage f1 score of last {len(args.shrec_model_number)} evaluations "
+                               f"with models {args.shrec_model_number}: {avg_f1_score}")
 
 
 def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatmaps_volumes,
