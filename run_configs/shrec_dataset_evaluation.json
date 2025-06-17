@@ -1,6 +1,6 @@
 {
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-17_00-18-25_potential_best_model_fbp_20dB",
+    "existing_result_folder": "experiment_2025-06-17_00-15-29_potential_best_model_fbp_0dB",
     "existing_evaluation_folder": "",
     "volume_evaluation": true,
     "find_optimal_parameters": true,
@@ -16,7 +16,7 @@
     "particle_height": 12,
     "particle_depth": 6,
     "add_noise": true,
-    "noise": 20,
+    "noise": 0,
     "use_fbp": true,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,

@@ -34,11 +34,12 @@ def get_args():
     parser.add_argument("--noise", type=int, default=10)
     parser.add_argument("--heatmap_size", type=int, default=112)
     parser.add_argument("--add_noise", type=bool, default=False)
-    parser.add_argument("--use_fbp", type=bool, default=False)
+    parser.add_argument("--use_fbp", type=bool, default=True)
     parser.add_argument("--fbp_num_projections", type=int, default=60)
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
     parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
     parser.add_argument("--shrec_specific_particle", type=str, default="")
+    parser.add_argument("--use_shrec_reconstruction", type=bool, default=True)
 
     args = parser.parse_args()
 
@@ -57,7 +58,8 @@ class ShrecDatasetTests(unittest.TestCase):
                                     fbp_min_angle=self.args.fbp_min_angle, fbp_max_angle=self.args.fbp_max_angle,
                                     particle_depth=self.args.particle_depth,
                                     shrec_specific_particle=self.args.shrec_specific_particle,
-                                    model_number=self.args.model_number, heatmap_size=self.args.heatmap_size)
+                                    model_number=self.args.model_number, heatmap_size=self.args.heatmap_size,
+                                    use_shrec_reconstruction=self.args.use_shrec_reconstruction)
 
     def test_orientations(self):
         micrograph_0, heatmap_0, targets_0 = self.dataset.__getitem__(0)

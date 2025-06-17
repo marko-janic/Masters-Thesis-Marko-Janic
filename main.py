@@ -159,6 +159,9 @@ def get_args():
     # TODO: Add support for multiple particles maybe?
     parser.add_argument("--shrec_specific_particle", type=str, default=None,
                         help="If specified, the dataset will only create 3d gaussians for the specified particle.")
+    parser.add_argument("--use_shrec_reconstruction", type=bool, default=False,
+                        help="If set to true the program will use the reconstruction.mrc file from shrec instead of"
+                             "simulating a reconstruction itself.")
 
     args = parser.parse_args()
 
@@ -186,7 +189,6 @@ def get_args():
     if args.existing_evaluation_folder != "" and args.existing_result_folder == "":
         raise Exception("You specified an existing evaluation folder but not an experiment folder, please specify the "
                         "experiment folder in which the existing evaluation folder exists.")
-
     if args.vit_model not in [
         'google/vit-base-patch16-224-in21k',
         'google/vit-large-patch16-224-in21k'
@@ -196,7 +198,6 @@ def get_args():
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 768, you specified {args.latent_dim}")
     if args.vit_model == 'google/vit-large-patch16-224-in21k' and args.latent_dim != 1024:
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 1024, you specified {args.latent_dim}")
-
     if args.num_vit_finetune_layers > 8:
         raise Exception(f"Are you sure you want to finetune {args.num_vit_finetune_layers} layers of the ViT? "
                         f"The base 16x16 ViT only has 11 transformer layers."
@@ -204,6 +205,8 @@ def get_args():
     if args.finetune_vit and args.num_vit_finetune_layers is None or args.num_vit_finetune_layers <= 0:
         raise Exception(f"You want to finetune the ViT but you haven't specified the number of layers that you"
                         f"want to finetune, or the number of layers is negative which makes no sense.")
+    if args.use_shrec_reconstruction and not args.use_fbp:
+        raise Exception(f"You want to use shrec reconstruction but didnt set use_fbp to true, this does nothing.")
 
     return args
 
@@ -264,7 +267,8 @@ def main():
                            device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
                            fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
                            shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-                           random_sub_micrographs=args.random_sub_micrographs)
+                           random_sub_micrographs=args.random_sub_micrographs,
+                           use_shrec_reconstruction=args.use_shrec_reconstruction)
 
     validation_dataset = ShrecDataset(
         sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
@@ -274,7 +278,7 @@ def main():
         add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
         fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
         shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-        random_sub_micrographs=False)
+        random_sub_micrographs=False, use_shrec_reconstruction=args.use_shrec_reconstruction)
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader, validation_dataloader = prepare_dataloaders(

@@ -323,7 +323,7 @@ class ShrecDataset(Dataset):
                  add_noise, heatmap_size, micrograph_size=512, sub_micrograph_size=224, model_number=None,
                  dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
                  fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60,
-                 shrec_specific_particle=None, random_sub_micrographs=False):
+                 shrec_specific_particle=None, random_sub_micrographs=False, use_shrec_reconstruction=False):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -391,13 +391,21 @@ class ShrecDataset(Dataset):
 
         if self.use_fbp:
             self.grandmodel_fbp = {}
-            angles = np.linspace(self.fbp_min_angle, self.fbp_max_angle, fbp_num_projections)
-            for model_num in self.model_number:
-                projections = generate_projections(self.grandmodel[model_num].permute(2, 1, 0), angles)
-                if self.add_noise:  # We add noise to the projections and then reconstruct to simulate how it would be
-                    projections = add_noise_to_projections(projections, noise_db=self.noise)
-                self.grandmodel_fbp[model_num] = reconstruct_fbp_volume(
-                    projections, angles, self.grandmodel[model_num].shape[0]).permute(2, 1, 0)
+            if not use_shrec_reconstruction:
+                angles = np.linspace(self.fbp_min_angle, self.fbp_max_angle, fbp_num_projections)
+                for model_num in self.model_number:
+                    projections = generate_projections(self.grandmodel[model_num].permute(2, 1, 0), angles)
+                    # We add noise to the projections and then reconstruct to simulate how it would be
+                    if self.add_noise:
+                        projections = add_noise_to_projections(projections, noise_db=self.noise)
+                    self.grandmodel_fbp[model_num] = reconstruct_fbp_volume(
+                        projections, angles, self.grandmodel[model_num].shape[0]).permute(2, 1, 0)
+            else:
+                for model_num in self.model_number:
+                    with mrc.open(os.path.join(self.dataset_path, f'model_{model_num}/reconstruction.mrc'),
+                                  permissive=True) as f:
+                        # shape [512, 512, 512]
+                        self.grandmodel_fbp[model_num] = torch.tensor(f.data, dtype=torch.float32)
 
         self.micrographs = {}
         self.heatmaps = {}
