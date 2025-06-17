@@ -11,7 +11,7 @@ experiments/experiment*/
 experiments/archive
 experiments/tmp
 experiments/archive/saved/**
-!experiments/archive/saved/
+experiments/ablation_studies
 tests/mocks/*
 tests/test_vit_model/experiments
 tests/test_vit_model_huggingface/*
