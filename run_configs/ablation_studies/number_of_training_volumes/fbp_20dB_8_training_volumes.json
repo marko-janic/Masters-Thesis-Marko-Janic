@@ -36,5 +36,6 @@
     "shrec_validation_model_number": [9],
     "shrec_min_z": 166,
     "shrec_max_z": 345,
-    "shrec_specific_particle": ""
+    "shrec_specific_particle": "",
+    "use_shrec_reconstruction": false
 }

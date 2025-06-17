@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 14400,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "fbp_20dB_5_training_volumes",
+    "result_dir_appended_name": "potential_best_model_fbp_0dB",
     "patience": 5,
 
     "dataset": "shrec",
@@ -14,7 +14,7 @@
     "particle_height": 12,
     "particle_depth": 6,
     "add_noise": true,
-    "noise": 20,
+    "noise": 0,
     "use_fbp": true,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,
@@ -36,5 +36,6 @@
     "shrec_validation_model_number": [8, 9],
     "shrec_min_z": 166,
     "shrec_max_z": 345,
-    "shrec_specific_particle": ""
+    "shrec_specific_particle": "",
+    "use_shrec_reconstruction": false
 }
