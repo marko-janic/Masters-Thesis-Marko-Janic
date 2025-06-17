@@ -1,13 +1,13 @@
 #!/bin/bash
 #The previous line is mandatory
 
-#SBATCH --job-name=potential_best_model_fbp_20dB    #Name of your job
+#SBATCH --job-name=fbp_20dB_1_training_volumes    #Name of your job
 #SBATCH --time=7-00:00:00    #Maximum allocated time
 #SBATCH --qos=gpu1week      #Selected queue to allocate your job (the gpu before 6hours is important, see comment: https://wiki.biozentrum.unibas.ch/display/scicore/9.+Requesting+GPUs)
 #SBATCH --partition=rtx4090
 #SBATCH --gres=gpu:1          #--gres=gpu:2 for two GPU, etc
-#SBATCH --output=job_results/potential_best_model_fbp_20dB.o%j   #Path and name to the file for the STDOUT
-#SBATCH --error=job_results/potential_best_model_fbp_20dB.e%j    #Path and name to the file for the STDERR
+#SBATCH --output=job_results/fbp_20dB_1_training_volumes.o%j   #Path and name to the file for the STDOUT
+#SBATCH --error=job_results/fbp_20dB_1_training_volumes.e%j    #Path and name to the file for the STDERR
 #SBATCH --cpus-per-task=16     #Number of cores to reserve
 #SBATCH --mem-per-cpu=8G     #Amount of RAM/core to reserve
 
