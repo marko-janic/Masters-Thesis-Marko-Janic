@@ -21,5 +21,5 @@ conda list
 python main.py --config run_configs/ablation_studies/finetuning_vit/finetune_3_layers.json
 #python main.py --config run_configs/ablation_studies/finetuning_vit/finetune_4_layers.json
 python main.py --config run_configs/ablation_studies/finetuning_vit/finetune_5_layers.json
-#python main.py --config run_configs/ablation_studies/finetuning_vit/finetune_8_layers.json
+python main.py --config run_configs/ablation_studies/finetuning_vit/finetune_8_layers.json
 python main.py --config run_configs/ablation_studies/finetuning_vit/finetune_10_layers.json
