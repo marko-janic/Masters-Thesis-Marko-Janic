@@ -338,7 +338,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             if args.find_optimal_parameters:
                 best_f1_score, best_prediction_threshold, best_neighborhood_size, results = find_optimal_parameters(
                     args.shrec_model_number, target_coordinates_dict, output_heatmaps_volumes,
-                    args.missing_pred_threshold)
+                    args.missing_pred_threshold, dataset=dataset)
                 with open(os.path.join(experiment_result_dir, "optimal_parameters.txt"), "a") as log_file:
                     log_file.write(
                         f"Calculation of optimal parameters from "
@@ -354,7 +354,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 evaluation_dict = evaluate_predictions(
                     target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
                     model_num=model_num, missing_pred_threshold=args.missing_pred_threshold,
-                    prediction_threshold=args.prediction_threshold, neighborhood_size=args.neighborhood_size)
+                    prediction_threshold=args.prediction_threshold, neighborhood_size=args.neighborhood_size,
+                    dataset=dataset)
                 avg_f1_score += evaluation_dict['f1_score']
 
                 output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} for shrec volume"
@@ -387,7 +388,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
 
 
 def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatmaps_volumes,
-                            missing_pred_threshold):
+                            missing_pred_threshold, dataset):
     """
     Performs grid search to find optimal parameters
     :param model_numbers: list of model numbers to check this on
@@ -411,7 +412,8 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
                 evaluation_dict = evaluate_predictions(
                     target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
                     model_num=model_num, missing_pred_threshold=missing_pred_threshold,
-                    prediction_threshold=prediction_threshold.item(), neighborhood_size=neighborhood_size.item())
+                    prediction_threshold=prediction_threshold.item(), neighborhood_size=neighborhood_size.item(),
+                    dataset=dataset)
                 avg_f1_score += evaluation_dict["f1_score"]
             avg_f1_score = avg_f1_score / len(model_numbers)
 
@@ -430,7 +432,7 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
 
 
 def evaluate_predictions(target_coordinates_dict, output_heatmaps_volumes, model_num, missing_pred_threshold,
-                         prediction_threshold, neighborhood_size):
+                         prediction_threshold, neighborhood_size, dataset):
     this_output_heatmaps_volume = output_heatmaps_volumes[model_num]
 
     coordinates = torch.from_numpy(peak_local_max(this_output_heatmaps_volume,

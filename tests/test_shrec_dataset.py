@@ -39,7 +39,7 @@ def get_args():
     parser.add_argument("--fbp_min_angle", type=int, default=-torch.pi/3)
     parser.add_argument("--fbp_max_angle", type=int, default=torch.pi/3)
     parser.add_argument("--shrec_specific_particle", type=str, default="")
-    parser.add_argument("--use_shrec_reconstruction", type=bool, default=True)
+    parser.add_argument("--use_shrec_reconstruction", type=bool, default=False)
 
     args = parser.parse_args()
 
