@@ -462,6 +462,8 @@ def main():
         plot_loss_log(args.loss_log_path, args.validation_loss_log_path, args.result_dir)
 
     if args.mode == "eval":
+        model.eval()
+        vit_model.eval()
         if not os.path.exists(os.path.join(args.result_dir, "losses_plot.png")):
             plot_loss_log(args.loss_log_path, args.validation_loss_log_path, args.result_dir)
 
