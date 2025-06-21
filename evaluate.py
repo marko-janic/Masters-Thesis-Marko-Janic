@@ -350,6 +350,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                         f"{results}")
 
             avg_f1_score = 0
+            avg_precision = 0
+            avg_recall = 0
             for model_num in args.shrec_model_number:
                 evaluation_dict = evaluate_predictions(
                     target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
@@ -357,6 +359,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                     prediction_threshold=args.prediction_threshold, neighborhood_size=args.neighborhood_size,
                     dataset=dataset)
                 avg_f1_score += evaluation_dict['f1_score']
+                avg_precision += evaluation_dict['precision']
+                avg_recall += evaluation_dict['recall']
 
                 output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} for shrec volume"
                           f"{model_num}"
@@ -384,7 +388,9 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             log_file_path = os.path.join(this_evaluation_result_dir, "evaluation_log.txt")
             with open(log_file_path, "a") as log_file:
                 log_file.write(f"\nAverage f1 score of last {len(args.shrec_model_number)} evaluations "
-                               f"with models {args.shrec_model_number}: {avg_f1_score}")
+                               f"with models {args.shrec_model_number}: {avg_f1_score}"
+                               f"\nAverage precision: {avg_precision}"
+                               f"\nAverage recall: {avg_recall}")
 
 
 def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatmaps_volumes,
