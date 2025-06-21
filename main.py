@@ -254,8 +254,8 @@ def main():
         print(f"Training ViT model from scratch with parameters {vit_model.config}")
 
     vit_model.to(args.device)
-    if args.mode == "eval" and args.finetune_vit:
-        print("Loading finetuned ViT model")
+    if args.mode == "eval" and (args.finetune_vit or args.train_vit_from_scratch):
+        print("Loading finetuned or trained from scratch ViT model")
         vit_model.load_state_dict(torch.load(os.path.join(args.result_dir, 'vit_checkpoint_final.pth'),
                                              map_location=args.device))
 
