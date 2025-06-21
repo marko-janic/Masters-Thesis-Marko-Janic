@@ -19,8 +19,8 @@ from utils import create_folder_if_missing
 from evaluate import evaluate
 from train import prepare_dataloaders
 from plotting import save_image_with_bounding_object, plot_loss_log, compare_heatmaps_with_ground_truth
-from vit_model import get_vit_model, get_encoded_image
-
+from vit_model import get_encoded_image
+from transformers import ViTModel, ViTImageProcessor, ViTConfig
 
 ## Set the seed for reproducibility
 #seed = 42
@@ -81,6 +81,9 @@ def get_args():
     parser.add_argument("--shrec_validation_model_number", type=int, default=[9],
                         help="Shrec model volume to use for validating while training. Validation happens after"
                              "every epoch")
+    parser.add_argument("--train_vit_from_scratch", type=bool, default=False,
+                        help="If set to true then the program will train the vit from scratch without loading a"
+                             "pretrained one")
 
     # Evaluation
     parser.add_argument('--prediction_threshold', type=float,
@@ -202,7 +205,7 @@ def get_args():
         raise Exception(f"Are you sure you want to finetune {args.num_vit_finetune_layers} layers of the ViT? "
                         f"The base 16x16 ViT only has 11 transformer layers."
                         f"If this was not accidental, you can disable this exception message")
-    if args.finetune_vit and args.num_vit_finetune_layers is None or args.num_vit_finetune_layers <= 0:
+    if args.finetune_vit and (args.num_vit_finetune_layers is None or args.num_vit_finetune_layers <= 0):
         raise Exception(f"You want to finetune the ViT but you haven't specified the number of layers that you"
                         f"want to finetune, or the number of layers is negative which makes no sense.")
     if args.use_shrec_reconstruction and not args.use_fbp:
@@ -241,7 +244,15 @@ def main():
     create_folders_and_initiate_files(args)
 
     # ViT model
-    vit_model, vit_image_processor = get_vit_model(args.vit_model)
+    vit_image_processor = ViTImageProcessor.from_pretrained(args.vit_model)
+    if not args.train_vit_from_scratch:
+        print(f"Loading ViT model: {args.vit_model}")
+        vit_model = ViTModel.from_pretrained(args.vit_model)
+    else:
+        config = ViTConfig()
+        vit_model = ViTModel(config)
+        print(f"Training ViT model from scratch with parameters {vit_model.config}")
+
     vit_model.to(args.device)
     if args.mode == "eval" and args.finetune_vit:
         print("Loading finetuned ViT model")

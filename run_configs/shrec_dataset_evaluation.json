@@ -1,11 +1,11 @@
 {
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-17_00-18-25_potential_best_model_fbp_20dB",
+    "existing_result_folder": "experiment_2025-06-19_02-06-21_fbp_20dB_9_training_volumes",
     "existing_evaluation_folder": "",
     "volume_evaluation": true,
     "find_optimal_parameters": false,
     "missing_pred_threshold": 7,
-    "prediction_threshold": 0.3,
+    "prediction_threshold": 0.5,
     "neighborhood_size": 5,
     "use_train_dataset_for_evaluation": false,
     "batch_size": 1,
@@ -34,10 +34,10 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [5, 6, 7],
+    "shrec_model_number": [9],
     "shrec_validation_model_number": [8, 9],
     "shrec_min_z": 166,
-    "shrec_max_z": 167,
+    "shrec_max_z": 345,
     "shrec_specific_particle": "",
     "use_shrec_reconstruction": false
 }
