@@ -1,6 +1,6 @@
 {
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-18_15-00-50_finetune_3_vit_layers",
+    "existing_result_folder": "experiment_2025-06-18_17-11-33_finetune_5_vit_layers",
     "existing_evaluation_folder": "",
     "volume_evaluation": true,
     "find_optimal_parameters": false,
@@ -28,7 +28,7 @@
     "model_deconv_filters": [32, 16, 8],
     "dropout_prob": 0.1,
     "finetune_vit": true,
-    "num_vit_finetune_layers": 3,
+    "num_vit_finetune_layers": 5,
     "vit_model": "google/vit-base-patch16-224-in21k",
     "latent_dim": 768,
 
