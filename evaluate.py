@@ -383,6 +383,8 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 with open(log_file_path, "a") as log_file:
                     log_file.write(output)
             avg_f1_score = avg_f1_score / len(args.shrec_model_number)
+            avg_precision = avg_precision / len(args.shrec_model_number)
+            avg_recall = avg_recall / len(args.shrec_model_number)
 
             # Logging the running loss to a txt file
             log_file_path = os.path.join(this_evaluation_result_dir, "evaluation_log.txt")
