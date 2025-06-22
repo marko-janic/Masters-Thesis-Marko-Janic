@@ -142,6 +142,9 @@ def get_args():
                         help="Minimum angle of fbp simulation given in radians")
     parser.add_argument("--fbp_max_angle", type=float, default=torch.pi/3,
                         help="Maximum angle of fbp simulation given in radians")
+    parser.add_argument("--z_slice_window", type=int, default=0,
+                        help="If set to a value larger than 0, the input heatmaps will include extra z slices equal"
+                             "to z_slice_window on top and below the current z slice that is being processed.")
 
     # Shrec Dataset
     parser.add_argument("--shrec_sampling_points", type=int,
@@ -279,7 +282,8 @@ def main():
                            fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
                            shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
                            random_sub_micrographs=args.random_sub_micrographs,
-                           use_shrec_reconstruction=args.use_shrec_reconstruction)
+                           use_shrec_reconstruction=args.use_shrec_reconstruction,
+                           z_slice_window=args.z_slice_window)
 
     validation_dataset = ShrecDataset(
         sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
@@ -289,7 +293,8 @@ def main():
         add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
         fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
         shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-        random_sub_micrographs=False, use_shrec_reconstruction=args.use_shrec_reconstruction)
+        random_sub_micrographs=False, use_shrec_reconstruction=args.use_shrec_reconstruction,
+        z_slice_window=args.z_slice_window)
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader, validation_dataloader = prepare_dataloaders(

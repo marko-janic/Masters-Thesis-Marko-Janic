@@ -323,7 +323,8 @@ class ShrecDataset(Dataset):
                  add_noise, heatmap_size, micrograph_size=512, sub_micrograph_size=224, model_number=None,
                  dataset_path='dataset/shrec21_full_dataset/', min_z=140, max_z=360, device="cpu", use_fbp=False,
                  fbp_min_angle=-torch.pi/3, fbp_max_angle=torch.pi/3, fbp_num_projections=60,
-                 shrec_specific_particle=None, random_sub_micrographs=False, use_shrec_reconstruction=False):
+                 shrec_specific_particle=None, random_sub_micrographs=False, use_shrec_reconstruction=False,
+                 z_slice_window=0):
         """
         Dataset Loader for Shrec21 Dataset.
 
@@ -417,8 +418,11 @@ class ShrecDataset(Dataset):
             self.heatmaps[model_num] = []
 
             for i in tqdm(range((max_z - min_z) // self.z_slice_size), desc=f"Loading Dataset for volume {model_num}"):
-                start_z = min_z + (i * self.z_slice_size)
-                end_z = start_z + z_slice_size
+                start_z = min_z + (i * self.z_slice_size) - z_slice_window
+                start_z = start_z if start_z >= 0 else 0
+                # We do 2* because we want the window to be above and below the current z so to speak
+                end_z = start_z + z_slice_size + 2 * z_slice_window
+                end_z = end_z if end_z <= 512 else 512  # TODO: don't hardcode this 512 and 511
 
                 # Here we get the z slices of the grandmodel volume and the heatmap volume
                 if not self.use_fbp:
