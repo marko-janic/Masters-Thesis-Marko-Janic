@@ -62,7 +62,7 @@ def generate_heatmaps_volume(dataset, vit_model, vit_image_processor, device, la
     for z in tqdm(range(z_eval_min, z_eval_max), desc="Generating heatmaps volume"):
         z_start = z - z_slice_window
         z_start = z_start if z_start > 0 else 0
-        z_end = z + z_slice_window
+        z_end = z + z_slice_window + 1
         z_end = z_end if z_end < z_max else z_max
 
         z_slice = volume[z_start:z_end].sum(dim=0)
@@ -453,17 +453,17 @@ def evaluate_predictions(target_coordinates_dict, output_heatmaps_volumes, model
                                                   threshold_abs=prediction_threshold))
     coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are half the size
 
-    #target_heatmap_volume = dataset.heatmaps_volume[model_num]
-    #viewer = napari.Viewer()
-    #viewer.add_points(coordinates, size=5, face_color='red')
-    #viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
-    #viewer.add_image(dataset.grandmodel_fbp[model_num].cpu().numpy(), name='Grandmodel FBP volume')
-    #this_output_heatmaps_volume = resize(this_output_heatmaps_volume, (512, 512, 512), order=1,
-    #                                    preserve_range=True, anti_aliasing=True)
-    #viewer.add_image(this_output_heatmaps_volume, name='Output Heatmaps Volume', colormap='magenta')
-    #viewer.add_image(dataset.grandmodel[model_num].cpu().numpy(), name='Grandmodel Volume',
-    #                colormap='gray')
-    #napari.run()
+    target_heatmap_volume = dataset.heatmaps_volume[model_num]
+    viewer = napari.Viewer()
+    viewer.add_points(coordinates, size=5, face_color='red')
+    viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
+    viewer.add_image(dataset.grandmodel_fbp[model_num].cpu().numpy(), name='Grandmodel FBP volume')
+    this_output_heatmaps_volume = resize(this_output_heatmaps_volume, (512, 512, 512), order=1,
+                                        preserve_range=True, anti_aliasing=True)
+    viewer.add_image(this_output_heatmaps_volume, name='Output Heatmaps Volume', colormap='magenta')
+    viewer.add_image(dataset.grandmodel[model_num].cpu().numpy(), name='Grandmodel Volume',
+                    colormap='gray')
+    napari.run()
 
     target_coordinates_df = target_coordinates_dict[model_num]
     # We take order z, y, x because that's how peak_local_max returns them as well
