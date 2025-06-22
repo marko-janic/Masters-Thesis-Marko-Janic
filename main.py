@@ -411,7 +411,7 @@ def main():
                     torch.save(model.state_dict(), os.path.join(
                         args.result_dir, f'checkpoints/checkpoint_epoch_{epoch}_batch_{batch_index}.pth'))
 
-                    if args.finetune_vit:
+                    if args.finetune_vit or args.train_vit_from_scratch:
                         torch.save(vit_model.state_dict(), os.path.join(
                             args.result_dir, f"checkpoints/vit_checkpoint_epoch{epoch}_batch_{batch_index}.pth"))
 
@@ -466,7 +466,7 @@ def main():
 
         # Save final checkpoint
         torch.save(model.state_dict(), os.path.join(args.result_dir, f"checkpoint_final.pth"))
-        if args.finetune_vit:
+        if args.finetune_vit or args.train_vit_from_scratch:
             torch.save(vit_model.state_dict(), os.path.join(args.result_dir, f"vit_checkpoint_final.pth"))
 
         # Plot the loss log after training
