@@ -6,7 +6,7 @@
     "checkpoint_interval": 100000,
     "loss_log_file": "loss_log.txt",
     "result_dir_appended_name": "base_model",
-    "patience": 5,
+    "patience": 10,
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
@@ -23,10 +23,10 @@
     "train_eval_split": 1,
     "num_patch_embeddings": 196,
     "heatmap_size": 112,
-    "model_deconv_filters": [64, 32, 16],
+    "model_deconv_filters": [256, 128, 64],
     "dropout_prob": 0.1,
-    "finetune_vit": true,
-    "num_vit_finetune_layers": 1,
+    "finetune_vit": false,
+    "num_vit_finetune_layers": 0,
     "vit_model": "google/vit-large-patch16-224-in21k",
     "latent_dim": 1024,
 
