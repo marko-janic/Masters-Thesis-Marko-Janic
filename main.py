@@ -254,7 +254,8 @@ def main():
     else:
         config = ViTConfig()
         vit_model = ViTModel(config)
-        print(f"Training ViT model from scratch with parameters {vit_model.config}")
+        print(f"Training ViT model from scratch")
+    print(f"ViT model parameters: {vit_model.config}")
 
     vit_model.to(args.device)
     if args.mode == "eval" and (args.finetune_vit or args.train_vit_from_scratch):
@@ -285,16 +286,20 @@ def main():
                            use_shrec_reconstruction=args.use_shrec_reconstruction,
                            z_slice_window=args.z_slice_window)
 
-    validation_dataset = ShrecDataset(
-        sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
-        model_number=args.shrec_validation_model_number,  # Important difference, we use the validation volumes
-        min_z=args.shrec_min_z, max_z=args.shrec_max_z, particle_height=args.particle_height,
-        particle_width=args.particle_width, particle_depth=args.particle_depth, noise=args.noise,
-        add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
-        fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
-        shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-        random_sub_micrographs=False, use_shrec_reconstruction=args.use_shrec_reconstruction,
-        z_slice_window=args.z_slice_window)
+    if not args.mode == "eval":
+        validation_dataset = ShrecDataset(
+            sampling_points=args.shrec_sampling_points, z_slice_size=args.shrec_z_slice_size,
+            model_number=args.shrec_validation_model_number,  # Important difference, we use the validation volumes
+            min_z=args.shrec_min_z, max_z=args.shrec_max_z, particle_height=args.particle_height,
+            particle_width=args.particle_width, particle_depth=args.particle_depth, noise=args.noise,
+            add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
+            fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
+            shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
+            random_sub_micrographs=False, use_shrec_reconstruction=args.use_shrec_reconstruction,
+            z_slice_window=args.z_slice_window)
+    else:
+        # Hacky way to not unnecessarily compute the validation dataset
+        validation_dataset = dataset
 
     # We only need to create the split file if were training, otherwise we read from it
     train_dataloader, test_dataloader, validation_dataloader = prepare_dataloaders(
