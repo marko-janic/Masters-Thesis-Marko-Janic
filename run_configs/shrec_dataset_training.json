@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 100000,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "base_model_shrec_reconstruction",
+    "result_dir_appended_name": "base_model_-5dB",
     "patience": 7,
 
     "dataset": "shrec",
@@ -13,8 +13,8 @@
     "particle_width": 12,
     "particle_height": 12,
     "particle_depth": 6,
-    "add_noise": false,
-    "noise": 0,
+    "add_noise": true,
+    "noise": -5,
     "use_fbp": true,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,
@@ -37,5 +37,5 @@
     "shrec_min_z": 166,
     "shrec_max_z": 345,
     "shrec_specific_particle": "",
-    "use_shrec_reconstruction": true
+    "use_shrec_reconstruction": false
 }
