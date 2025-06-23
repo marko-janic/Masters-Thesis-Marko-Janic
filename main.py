@@ -5,6 +5,7 @@ import datetime
 import time
 import json
 import random
+import math
 
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -142,9 +143,6 @@ def get_args():
                         help="Minimum angle of fbp simulation given in radians")
     parser.add_argument("--fbp_max_angle", type=float, default=torch.pi/3,
                         help="Maximum angle of fbp simulation given in radians")
-    parser.add_argument("--z_slice_window", type=int, default=0,
-                        help="If set to a value larger than 0, the input heatmaps will include extra z slices equal"
-                             "to z_slice_window on top and below the current z slice that is being processed.")
 
     # Shrec Dataset
     parser.add_argument("--shrec_sampling_points", type=int,
@@ -197,13 +195,16 @@ def get_args():
                         "experiment folder in which the existing evaluation folder exists.")
     if args.vit_model not in [
         'google/vit-base-patch16-224-in21k',
-        'google/vit-large-patch16-224-in21k'
+        'google/vit-large-patch16-224-in21k',
+        'google/vit-huge-patch14-224-in21k'
     ]:
         raise Exception(f"The specified ViT model {args.vit_model} is not supported.")
     if args.vit_model == 'google/vit-base-patch16-224-in21k' and args.latent_dim != 768:
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 768, you specified {args.latent_dim}")
     if args.vit_model == 'google/vit-large-patch16-224-in21k' and args.latent_dim != 1024:
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 1024, you specified {args.latent_dim}")
+    if args.vit_model == 'google/vit-huge-patch14-224-in21k' and args.latent_dim != 1280:
+        raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 1280, you specified {args.latent_dim}")
     if args.num_vit_finetune_layers > 8:
         raise Exception(f"Are you sure you want to finetune {args.num_vit_finetune_layers} layers of the ViT? "
                         f"The base 16x16 ViT only has 11 transformer layers."
@@ -283,8 +284,7 @@ def main():
                            fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
                            shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
                            random_sub_micrographs=args.random_sub_micrographs,
-                           use_shrec_reconstruction=args.use_shrec_reconstruction,
-                           z_slice_window=args.z_slice_window)
+                           use_shrec_reconstruction=args.use_shrec_reconstruction)
 
     if not args.mode == "eval":
         validation_dataset = ShrecDataset(
@@ -295,8 +295,7 @@ def main():
             add_noise=args.add_noise, device=args.device, use_fbp=args.use_fbp, fbp_min_angle=args.fbp_min_angle,
             fbp_max_angle=args.fbp_max_angle, fbp_num_projections=args.fbp_num_projections,
             shrec_specific_particle=args.shrec_specific_particle, heatmap_size=args.heatmap_size,
-            random_sub_micrographs=False, use_shrec_reconstruction=args.use_shrec_reconstruction,
-            z_slice_window=args.z_slice_window)
+            random_sub_micrographs=False, use_shrec_reconstruction=args.use_shrec_reconstruction)
     else:
         # Hacky way to not unnecessarily compute the validation dataset
         validation_dataset = dataset
@@ -351,7 +350,7 @@ def main():
                     in enumerate(train_dataloader):
                 batch_counter += 1
 
-                if plotted < 20:  # TODO: move this into seperate function
+                if plotted < 20:
                     save_image_with_bounding_object(
                         micrographs[0].cpu(), target_coordinates_list[0].cpu()*args.vit_input_size,
                         "circle", {"circle_radius": 6}, os.path.join(args.result_dir, 'training_examples'),
@@ -394,16 +393,9 @@ def main():
                     plt.close()
                     plotted += 1
 
-                encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor, device=args.device)
-
-                # 1: here because we don't need the class token
-                latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-                # Right shape for model, we permute the hidden dimension to the second place
-                # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you
-                #  don't change the vit input size
-                latent_micrographs = latent_micrographs.permute(0, 2, 1)
-                latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0), latent_micrographs.size(1),
-                                                                14, 14)
+                latent_micrographs = get_encoded_image(micrographs, vit_model, vit_image_processor,
+                                                       device=args.device,
+                                                       num_patch_embeddings=args.num_patch_embeddings)
                 outputs = model(latent_micrographs)
 
                 losses = mse_loss(outputs["heatmaps"], target_heatmaps)
@@ -442,15 +434,10 @@ def main():
                         in enumerate(validation_dataloader):
                     validation_batch_counter += 1
 
-                    encoded_image = get_encoded_image(micrographs, vit_model, vit_image_processor, device=args.device)
-                    # 1: here because we don't need the class token
-                    latent_micrographs = encoded_image['last_hidden_state'].to(args.device)[:, 1:, :]
-                    # Right shape for model, we permute the hidden dimension to the second place
-                    # TODO: technically you could adjust the 14, 14 to be calculated but its unnecessary as long as you
-                    #  don't change the vit input size
-                    latent_micrographs = latent_micrographs.permute(0, 2, 1)
-                    latent_micrographs = latent_micrographs.reshape(latent_micrographs.size(0),
-                                                                    latent_micrographs.size(1), 14, 14)
+                    latent_micrographs = get_encoded_image(micrographs, vit_model, vit_image_processor,
+                                                           device=args.device,
+                                                           num_patch_embeddings=args.num_patch_embeddings)
+
                     outputs = model(latent_micrographs)
 
                     validation_losses = mse_loss(outputs["heatmaps"], target_heatmaps)

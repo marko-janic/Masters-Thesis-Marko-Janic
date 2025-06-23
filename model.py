@@ -200,6 +200,14 @@ class TopdownHeatmapSimpleHead(nn.Module):
         x = self.deconv_layers(x)
         heatmaps = self.final_layer(x)
 
+        # Resize to (112, 112)
+        heatmaps = torch.nn.functional.interpolate(
+            heatmaps,
+            size=(112, 112),
+            mode='bilinear',
+            align_corners=self.align_corners
+        )
+
         boxes, scores = _get_max_preds(heatmaps)
 
         return {"heatmaps": heatmaps, "pred_boxes": boxes}
