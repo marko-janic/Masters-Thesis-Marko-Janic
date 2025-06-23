@@ -11,7 +11,7 @@ save_folder = "plots"
 
 
 def plot_f1_scores_parameters():
-    models = ["base_model_0dB"]
+    models = ["base_model_0dB", "base_model_10dB"]
 
     for model in models:
         with open(os.path.join(results_folder, f"{model}_grid_search_parameters.json"), "r") as f:

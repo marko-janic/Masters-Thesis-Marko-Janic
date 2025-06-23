@@ -314,7 +314,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                         f"\nBest neighborhood size: {best_neighborhood_size},"
                         f"\nArray with all checked results: \n"
                         f"{results}")
-                with open(os.path.join(this_evaluation_result_dir, "gird_search_parameters.json"), "w") as f:
+                with open(os.path.join(this_evaluation_result_dir, "grid_search_parameters.json"), "w") as f:
                     json.dump(results, f)
 
             avg_f1_score = 0
