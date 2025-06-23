@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 100000,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "huge_vit",
+    "result_dir_appended_name": "base_model_10dB_x4",
     "patience": 7,
 
     "dataset": "shrec",
@@ -21,14 +21,14 @@
 
     "device": "cuda",
     "train_eval_split": 1,
-    "num_patch_embeddings": 256,
+    "num_patch_embeddings": 196,
     "heatmap_size": 112,
-    "model_deconv_filters": [256, 128, 64],
+    "model_deconv_filters": [512, 256, 128],
     "dropout_prob": 0.1,
     "finetune_vit": false,
     "num_vit_finetune_layers": 0,
-    "vit_model": "google/vit-huge-patch14-224-in21k",
-    "latent_dim": 1280,
+    "vit_model": "google/vit-large-patch16-224-in21k",
+    "latent_dim": 1024,
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,

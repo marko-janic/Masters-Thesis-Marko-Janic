@@ -194,7 +194,9 @@ def get_args():
         raise Exception("You specified an existing evaluation folder but not an experiment folder, please specify the "
                         "experiment folder in which the existing evaluation folder exists.")
     if args.vit_model not in [
+        'google/vit-base-patch16-224',
         'google/vit-base-patch16-224-in21k',
+        'google/vit-large-patch16-224',
         'google/vit-large-patch16-224-in21k',
         'google/vit-huge-patch14-224-in21k'
     ]:
@@ -252,7 +254,7 @@ def main():
         print(f"Loading ViT model: {args.vit_model}")
         vit_model = ViTModel.from_pretrained(args.vit_model)
     else:
-        config = ViTConfig()
+        config = ViTConfig.from_pretrained(args.vit_model)
         vit_model = ViTModel(config)
         print(f"Training ViT model from scratch")
     print(f"ViT model parameters: {vit_model.config}")
