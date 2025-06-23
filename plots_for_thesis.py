@@ -1,5 +1,6 @@
 import torch
 import os
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,6 +8,26 @@ import pandas as pd
 
 results_folder = "ablation_studies_results"
 save_folder = "plots"
+
+
+def plot_f1_scores_parameters():
+    models = ["base_model_0dB"]
+
+    for model in models:
+        with open(os.path.join(results_folder, f"{model}_grid_search_parameters.json"), "r") as f:
+            data = json.load(f)
+
+        prediction_thresholds = data["prediction_thresholds"]
+        neighborhood_sizes = data["neighborhood_sizes"]
+        avg_f1_scores = data["avg_f1_scores"]
+
+        plt.scatter(prediction_thresholds, neighborhood_sizes, c=avg_f1_scores, cmap='viridis', s=100)
+        plt.colorbar(label='f1 score')
+        plt.xlabel('prediction thresholds')
+        plt.ylabel('neighborhood sizes')
+        plt.title(f'Avg f1 score for different parameters, {model}')
+        plt.savefig(os.path.join(save_folder, f"parameters_{model}.png"))
+        plt.close()
 
 
 def plot_finetuning():
@@ -80,6 +101,7 @@ def main():
     plot_model_size()
     plot_noise_levels()
     plot_training_volumes()
+    plot_f1_scores_parameters()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import math
 import os
 import datetime
-
+import json
 import napari
 import torch
 
@@ -314,10 +314,13 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                         f"\nBest neighborhood size: {best_neighborhood_size},"
                         f"\nArray with all checked results: \n"
                         f"{results}")
+                with open(os.path.join(this_evaluation_result_dir, "gird_search_parameters.json"), "w") as f:
+                    json.dump(results, f)
 
             avg_f1_score = 0
             avg_precision = 0
             avg_recall = 0
+            avg_avg_pixels_off = 0
             for model_num in args.shrec_model_number:
                 evaluation_dict = evaluate_predictions(
                     target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
@@ -327,6 +330,7 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
                 avg_f1_score += evaluation_dict['f1_score']
                 avg_precision += evaluation_dict['precision']
                 avg_recall += evaluation_dict['recall']
+                avg_avg_pixels_off += evaluation_dict['avg_pixel_loss']
 
                 output = (f"\nEvaluation: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} for shrec volume"
                           f"{model_num}"
@@ -351,14 +355,15 @@ def evaluate(args, model, vit_model, vit_image_processor, dataset, test_dataload
             avg_f1_score = avg_f1_score / len(args.shrec_model_number)
             avg_precision = avg_precision / len(args.shrec_model_number)
             avg_recall = avg_recall / len(args.shrec_model_number)
+            avg_avg_pixels_off = avg_avg_pixels_off / len(args.shrec_model_number)
 
             # Logging the running loss to a txt file
             log_file_path = os.path.join(this_evaluation_result_dir, "evaluation_log.txt")
             with open(log_file_path, "a") as log_file:
                 log_file.write(f"\nAverage f1 score of last {len(args.shrec_model_number)} evaluations "
                                f"with models {args.shrec_model_number}: {avg_f1_score}"
-                               f"\nAverage precision: {avg_precision}"
-                               f"\nAverage recall: {avg_recall}")
+                               f"\nAverage f1 score, precision and recal: {avg_f1_score},{avg_precision},{avg_recall}"
+                               f"\nAverage pixels off: {avg_avg_pixels_off}")
 
 
 def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatmaps_volumes,
@@ -372,8 +377,8 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
     :return: best_f1_score, best_prediction_threshold, best_neighborhood_size, results
         where results is a dictionary with the lists of parameters and avg_f1_scores that were checked
     """
-    prediction_threshold_range = torch.arange(0.3, 1, 0.05)
-    neighborhood_size_range = torch.arange(3, 7, 1)
+    prediction_threshold_range = torch.arange(0.1, 0.7, 0.025)
+    neighborhood_size_range = torch.arange(1, 10, 1)
     best_f1_score = 0
     best_prediction_threshold = 0
     best_neighborhood_size = 0
@@ -391,8 +396,8 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
                 avg_f1_score += evaluation_dict["f1_score"]
             avg_f1_score = avg_f1_score / len(model_numbers)
 
-            results["prediction_thresholds"].append(prediction_threshold)
-            results["neighborhood_sizes"].append(neighborhood_size)
+            results["prediction_thresholds"].append(prediction_threshold.item())
+            results["neighborhood_sizes"].append(neighborhood_size.item())
             results["avg_f1_scores"].append(avg_f1_score)
 
             if avg_f1_score > best_f1_score:
@@ -414,17 +419,17 @@ def evaluate_predictions(target_coordinates_dict, output_heatmaps_volumes, model
                                                   threshold_abs=prediction_threshold))
     coordinates[:, 1:] = coordinates[:, 1:] * 2  # Scale them since heatmaps are half the size
 
-    target_heatmap_volume = dataset.heatmaps_volume[model_num]
-    viewer = napari.Viewer()
-    viewer.add_points(coordinates, size=5, face_color='red')
-    viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
-    viewer.add_image(dataset.grandmodel_fbp[model_num].cpu().numpy(), name='Grandmodel FBP volume')
-    this_output_heatmaps_volume = resize(this_output_heatmaps_volume, (512, 512, 512), order=1,
-                                        preserve_range=True, anti_aliasing=True)
-    viewer.add_image(this_output_heatmaps_volume, name='Output Heatmaps Volume', colormap='magenta')
-    viewer.add_image(dataset.grandmodel[model_num].cpu().numpy(), name='Grandmodel Volume',
-                    colormap='gray')
-    napari.run()
+    # target_heatmap_volume = dataset.heatmaps_volume[model_num]
+    # viewer = napari.Viewer()
+    # viewer.add_points(coordinates, size=5, face_color='red')
+    # viewer.add_image(target_heatmap_volume.cpu().numpy(), name='Target Heatmaps Volume', colormap='blue')
+    # viewer.add_image(dataset.grandmodel_fbp[model_num].cpu().numpy(), name='Grandmodel FBP volume')
+    # this_output_heatmaps_volume = resize(this_output_heatmaps_volume, (512, 512, 512), order=1,
+    #                                     preserve_range=True, anti_aliasing=True)
+    # viewer.add_image(this_output_heatmaps_volume, name='Output Heatmaps Volume', colormap='magenta')
+    # viewer.add_image(dataset.grandmodel[model_num].cpu().numpy(), name='Grandmodel Volume',
+    #                 colormap='gray')
+    # napari.run()
 
     target_coordinates_df = target_coordinates_dict[model_num]
     # We take order z, y, x because that's how peak_local_max returns them as well
