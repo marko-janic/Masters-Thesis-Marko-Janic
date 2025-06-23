@@ -43,18 +43,19 @@ def generate_heatmaps_volume(dataset, vit_model, vit_image_processor, model, mod
     for z in tqdm(range(args.shrec_min_z, args.shrec_max_z), desc="Generating heatmaps volume"):
         z_slice = volume[z]
 
+        x_step_size = x_max // (math.ceil(x_max / args.vit_input_size))
+        y_step_size = y_max // (math.ceil(y_max / args.vit_input_size))
         for y_index in range(math.ceil(y_max / args.vit_input_size)):
             for x_index in range(math.ceil(x_max / args.vit_input_size)):
-                y_end = min((y_index + 1) * args.vit_input_size, y_max)
-                x_end = min((x_index + 1) * args.vit_input_size, x_max)
-                if y_end - (y_index * args.vit_input_size) < args.vit_input_size:
-                    y_start = y_end - args.vit_input_size
-                else:
-                    y_start = args.vit_input_size * y_index
-                if x_end - (x_index * args.vit_input_size) < args.vit_input_size:
-                    x_start = x_end - args.vit_input_size
-                else:
-                    x_start = args.vit_input_size * x_index
+                y_start = y_index * y_step_size
+                if y_start > (y_max - args.vit_input_size):
+                    y_start = y_max - args.vit_input_size
+                y_end = y_start + args.vit_input_size
+
+                x_start = x_index * x_step_size
+                if x_start > (x_max - args.vit_input_size):
+                    x_start = x_max - args.vit_input_size
+                x_end = x_start + args.vit_input_size
 
                 sub_micrograph = z_slice[y_start:y_end, x_start:x_end]
                 if sub_micrograph.max() > sub_micrograph.min():  # We don't need to normalize if everything is 0
