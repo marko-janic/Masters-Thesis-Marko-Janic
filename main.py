@@ -205,10 +205,9 @@ def get_args():
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 1024, you specified {args.latent_dim}")
     if args.vit_model == 'google/vit-huge-patch14-224-in21k' and args.latent_dim != 1280:
         raise Exception(f"ViT Model {args.vit_model} has a latent dimension of 1280, you specified {args.latent_dim}")
-    if args.num_vit_finetune_layers > 8:
-        raise Exception(f"Are you sure you want to finetune {args.num_vit_finetune_layers} layers of the ViT? "
-                        f"The base 16x16 ViT only has 11 transformer layers."
-                        f"If this was not accidental, you can disable this exception message")
+    if args.vit_model == 'google/vit-huge-patch14-224-in21k' and args.num_patch_embeddings != 256:
+        raise Exception(f"ViT Model {args.vit_model} has a num_patch_embeddings of 256, you specified "
+                        f"{args.num_patch_embeddings}")
     if args.finetune_vit and (args.num_vit_finetune_layers is None or args.num_vit_finetune_layers <= 0):
         raise Exception(f"You want to finetune the ViT but you haven't specified the number of layers that you"
                         f"want to finetune, or the number of layers is negative which makes no sense.")
