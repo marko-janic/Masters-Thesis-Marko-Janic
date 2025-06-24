@@ -23,7 +23,7 @@
     "train_eval_split": 1,
     "num_patch_embeddings": 256,
     "heatmap_size": 112,
-    "model_deconv_filters": [256, 128, 64],
+    "model_deconv_filters": [128, 64, 32],
     "dropout_prob": 0.1,
     "finetune_vit": false,
     "num_vit_finetune_layers": 0,
