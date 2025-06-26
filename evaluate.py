@@ -378,7 +378,7 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
         where results is a dictionary with the lists of parameters and avg_f1_scores that were checked
     """
     prediction_threshold_range = torch.arange(0.1, 0.7, 0.025)
-    neighborhood_size_range = torch.arange(1, 10, 1)
+    neighborhood_size_range = torch.arange(5, 6, 1)
     best_f1_score = 0
     best_prediction_threshold = 0
     best_neighborhood_size = 0
@@ -387,6 +387,8 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
     for prediction_threshold in tqdm(prediction_threshold_range, desc="Grid search prediction threshold"):
         for neighborhood_size in tqdm(neighborhood_size_range, desc="Grid search neighborhood size"):
             avg_f1_score = 0
+            avg_precision = 0
+            avg_recall = 0
             for model_num in model_numbers:
                 evaluation_dict = evaluate_predictions(
                     target_coordinates_dict=target_coordinates_dict, output_heatmaps_volumes=output_heatmaps_volumes,
@@ -394,11 +396,17 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
                     prediction_threshold=prediction_threshold.item(), neighborhood_size=neighborhood_size.item(),
                     dataset=dataset)
                 avg_f1_score += evaluation_dict["f1_score"]
+                avg_recall += evaluation_dict["recall"]
+                avg_precision += evaluation_dict["precision"]
             avg_f1_score = avg_f1_score / len(model_numbers)
+            avg_recall = avg_recall / len(model_numbers)
+            avg_precision = avg_precision / len(model_numbers)
 
             results["prediction_thresholds"].append(prediction_threshold.item())
             results["neighborhood_sizes"].append(neighborhood_size.item())
             results["avg_f1_scores"].append(avg_f1_score)
+            results["avg_precision"].append(avg_precision)
+            results["avg_recall"].append(avg_recall)
 
             if avg_f1_score > best_f1_score:
                 best_f1_score = avg_f1_score

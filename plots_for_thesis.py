@@ -11,7 +11,7 @@ save_folder = "plots"
 
 
 def plot_f1_scores_parameters():
-    models = ["base_model_0dB", "base_model_10dB", "base_model_-10dB"]
+    models = ["base_model_0dB", "base_model_10dB", "base_model_-10dB", "base_model_-5dB", "shrec_reconstruction_volume"]
 
     for model in models:
         with open(os.path.join(results_folder, f"{model}_grid_search_parameters.json"), "r") as f:
@@ -25,43 +25,72 @@ def plot_f1_scores_parameters():
         plt.colorbar(label='f1 score')
         plt.xlabel('prediction thresholds')
         plt.ylabel('neighborhood sizes')
-        plt.title(f'Avg f1 score for different parameters, {model}')
+        plt.title(f'Parameter Comparison, {model}')
         plt.savefig(os.path.join(save_folder, f"parameters_{model}.png"))
         plt.close()
 
 
+def plot_vit_models():
+    models = ["vit_models"]
+
+    for model in models:
+        df = pd.read_csv(os.path.join(results_folder, f"{model}.txt"))
+
+        df['vit_model_name'] = df['vit_model_name'].astype(str)
+
+        plt.plot(df['vit_model_name'], df['avg_f1_score'], marker='o', label='F1 Score')
+        plt.plot(df['vit_model_name'], df['avg_precision'], marker='o', label='Precision')
+        plt.plot(df['vit_model_name'], df['avg_recall'], marker='o', label='Recall')
+
+        plt.xlabel("Vit Model Name")
+        plt.ylabel("Score")
+        plt.title("ViT model ablation study")
+        plt.legend()
+        plt.grid(True)
+        plt.xticks(rotation=20)
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_folder, f"{model}.png"))
+        plt.close()
+
+
 def plot_finetuning():
-    df = pd.read_csv(os.path.join(results_folder, "finetuning_vit.txt"))
+    models = ["finetuning_vit", "new_finetuning_vit"]
 
-    plt.plot(df['finetuning_layers'], df['avg_f1_score'], marker='o', label='F1 Score')
-    plt.plot(df['finetuning_layers'], df['avg_precision'], marker='o', label='Precision')
-    plt.plot(df['finetuning_layers'], df['avg_recall'], marker='o', label='Recall')
+    for model in models:
+        df = pd.read_csv(os.path.join(results_folder, f"{model}.txt"))
 
-    plt.xlabel('Finetuned Layers')
-    plt.ylabel('Score')
-    plt.title('Number of finetuned layers ablation study')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(save_folder, "finetuning_vit.png"))
-    plt.close()
+        plt.plot(df['finetuning_layers'], df['avg_f1_score'], marker='o', label='F1 Score')
+        plt.plot(df['finetuning_layers'], df['avg_precision'], marker='o', label='Precision')
+        plt.plot(df['finetuning_layers'], df['avg_recall'], marker='o', label='Recall')
+
+        plt.xlabel('Finetuned Layers')
+        plt.ylabel('Score')
+        plt.title('Number of finetuned layers ablation study')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(os.path.join(save_folder, f"{model}.png"))
+        plt.close()
 
 
 def plot_model_size():
-    df = pd.read_csv(os.path.join(results_folder, "model_size.txt"))
+    models = ["model_size", "new_model_size"]
 
-    df['filters'] = df['model_deconvolution_filters'].astype(str)
+    for model in models:
+        df = pd.read_csv(os.path.join(results_folder, f"{model}.txt"))
 
-    plt.plot(df['filters'], df['avg_f1_score'], marker='o', label='F1 Score')
-    plt.plot(df['filters'], df['avg_precision'], marker='o', label='Precision')
-    plt.plot(df['filters'], df['avg_recall'], marker='o', label='Recall')
+        df['filters'] = df['model_deconvolution_filters'].astype(str)
 
-    plt.xlabel("Model Deconvolution Filters")
-    plt.ylabel("Score")
-    plt.title("Deconvolution filters ablation studies")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(save_folder, "model_size.png"))
-    plt.close()
+        plt.plot(df['filters'], df['avg_f1_score'], marker='o', label='F1 Score')
+        plt.plot(df['filters'], df['avg_precision'], marker='o', label='Precision')
+        plt.plot(df['filters'], df['avg_recall'], marker='o', label='Recall')
+
+        plt.xlabel("Model Deconvolution Filters")
+        plt.ylabel("Score")
+        plt.title("Deconvolution filters ablation studies")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(os.path.join(save_folder, f"{model}.png"))
+        plt.close()
 
 
 def plot_noise_levels():
@@ -102,6 +131,7 @@ def main():
     plot_noise_levels()
     plot_training_volumes()
     plot_f1_scores_parameters()
+    plot_vit_models()
 
 
 if __name__ == "__main__":
