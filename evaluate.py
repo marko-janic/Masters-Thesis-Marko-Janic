@@ -377,8 +377,8 @@ def find_optimal_parameters(model_numbers, target_coordinates_dict, output_heatm
     :return: best_f1_score, best_prediction_threshold, best_neighborhood_size, results
         where results is a dictionary with the lists of parameters and avg_f1_scores that were checked
     """
-    prediction_threshold_range = torch.arange(0.0, 1.025, 0.025)
-    neighborhood_size_range = torch.arange(5, 6, 1)
+    prediction_threshold_range = torch.arange(0.1, 0.7, 0.025)
+    neighborhood_size_range = torch.arange(1, 10, 1)
     best_f1_score = 0
     best_prediction_threshold = 0
     best_neighborhood_size = 0
