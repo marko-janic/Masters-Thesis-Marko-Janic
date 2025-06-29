@@ -1,9 +1,9 @@
 {
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-23_10-11-10_base_model_10dB",
+    "existing_result_folder": "experiment_2025-06-27_00-21-55_train_vit_from_scratch_10dB",
     "existing_evaluation_folder": "",
     "volume_evaluation": true,
-    "find_optimal_parameters": true,
+    "find_optimal_parameters": false,
     "missing_pred_threshold": 7,
     "prediction_threshold": 0.45,
     "neighborhood_size": 5,
@@ -34,10 +34,11 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [0, 1, 2, 3, 4],
+    "shrec_model_number": [5, 6, 7],
     "shrec_validation_model_number": [8, 9],
     "shrec_min_z": 166,
     "shrec_max_z": 345,
     "shrec_specific_particle": "",
-    "use_shrec_reconstruction": false
+    "use_shrec_reconstruction": false,
+    "train_vit_from_scratch": true
 }

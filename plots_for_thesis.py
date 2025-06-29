@@ -10,6 +10,61 @@ results_folder = "ablation_studies_results"
 save_folder = "plots"
 
 
+def plot_roc_curve():
+    with open(os.path.join(results_folder, "studying_thresholds_for_recall_and_precision.json"), "r") as f:
+        data = json.load(f)
+
+    avg_precision = np.array(data["avg_precision"])
+    avg_recall = np.array(data["avg_recall"])
+
+    tpr = avg_recall
+
+    fpr = 1 - avg_precision
+
+    sorted_indices = np.argsort(fpr)
+    fpr_sorted = fpr[sorted_indices]
+    tpr_sorted = tpr[sorted_indices]
+
+    auc = np.trapz(tpr_sorted, fpr_sorted)
+
+    plt.figure(figsize=(8, 8))
+    plt.plot(fpr_sorted, tpr_sorted, marker='o', linewidth=2, label=f'ROC Curve (AUC = {auc:.3f})')
+    plt.plot([0, 1], [0, 1], 'k--', alpha=0.5, label='Random Classifier')
+
+    plt.xlabel('False Positive Rate (1 - Precision)')
+    plt.ylabel('True Positive Rate (Recall)')
+    plt.title('ROC Curve')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_folder, "roc_curve.png"), dpi=300)
+    plt.close()
+
+
+def plot_precision_recall_threshold():
+    with open(os.path.join(results_folder, "studying_thresholds_for_recall_and_precision.json"), "r") as f:
+        data = json.load(f)
+
+    prediction_thresholds = data["prediction_thresholds"]
+    avg_precision = data["avg_precision"]
+    avg_recall = data["avg_recall"]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(prediction_thresholds, avg_precision, marker='o', label='Precision', linewidth=2)
+    plt.plot(prediction_thresholds, avg_recall, marker='s', label='Recall', linewidth=2)
+
+    plt.xlabel('Prediction Threshold')
+    plt.ylabel('Score')
+    plt.title('Effect of Prediction Threshold on Precision and Recall')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_folder, "precision_recall_threshold.png"), dpi=300)
+    plt.close()
+
+
 def plot_f1_scores_parameters():
     models = ["base_model_0dB", "base_model_10dB", "base_model_-10dB", "base_model_-5dB", "shrec_reconstruction_volume"]
 
@@ -132,6 +187,8 @@ def main():
     plot_training_volumes()
     plot_f1_scores_parameters()
     plot_vit_models()
+    plot_precision_recall_threshold()
+    plot_roc_curve()
 
 
 if __name__ == "__main__":
