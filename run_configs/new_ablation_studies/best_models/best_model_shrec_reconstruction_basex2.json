@@ -6,7 +6,7 @@
     "checkpoint_interval": 100000,
     "loss_log_file": "loss_log.txt",
     "result_dir_appended_name": "best_model_shrec_reconstruction_basex2",
-    "patience": 7,
+    "patience": 5,
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
