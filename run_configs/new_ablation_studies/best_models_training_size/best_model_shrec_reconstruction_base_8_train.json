@@ -3,7 +3,7 @@
     "epochs": 100,
     "batch_size": 16,
     "learning_rate": 0.001,
-    "checkpoint_interval": 100000,
+    "checkpoint_interval": 3600,
     "loss_log_file": "loss_log.txt",
     "result_dir_appended_name": "ACTUAL_best_model_shrec_reconstruction_base_8_train",
     "patience": 5,
