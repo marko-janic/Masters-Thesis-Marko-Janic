@@ -76,11 +76,31 @@ def plot_f1_scores_parameters():
         neighborhood_sizes = data["neighborhood_sizes"]
         avg_f1_scores = data["avg_f1_scores"]
 
-        plt.scatter(prediction_thresholds, neighborhood_sizes, c=avg_f1_scores, cmap='viridis', s=100)
-        plt.colorbar(label='f1 score')
-        plt.xlabel('prediction thresholds')
-        plt.ylabel('neighborhood sizes')
-        plt.title(f'Parameter Comparison, {model}')
+        # Create unique sorted lists for axes
+        unique_thresholds = sorted(list(set(prediction_thresholds)))
+        unique_neighborhoods = sorted(list(set(neighborhood_sizes)))
+        
+        # Create a 2D array for the heatmap
+        heatmap_data = np.full((len(unique_neighborhoods), len(unique_thresholds)), np.nan)
+        
+        # Fill the heatmap data
+        for i, (thresh, neighbor, f1) in enumerate(zip(prediction_thresholds, neighborhood_sizes, avg_f1_scores)):
+            thresh_idx = unique_thresholds.index(thresh)
+            neighbor_idx = unique_neighborhoods.index(neighbor)
+            heatmap_data[neighbor_idx, thresh_idx] = f1
+        
+        plt.figure(figsize=(10, 8))
+        im = plt.imshow(heatmap_data, cmap='viridis', aspect='auto', origin='lower')
+        plt.colorbar(im, label='F1 Score')
+        
+        # Set axis labels and ticks
+        plt.xticks(range(len(unique_thresholds)), [f'{t:.3f}' for t in unique_thresholds], rotation=40)
+        plt.yticks(range(len(unique_neighborhoods)), unique_neighborhoods)
+        plt.xlabel('Prediction Thresholds')
+        plt.ylabel('Neighborhood Sizes')
+        plt.title(f'Parameter Comparison Heatmap, {model}')
+
+        plt.tight_layout()
         plt.savefig(os.path.join(save_folder, f"parameters_{model}.png"))
         plt.close()
 
