@@ -1,6 +1,6 @@
 {
     "mode": "eval",
-    "existing_result_folder": "experiment_2025-06-29_22-07-33_best_model_0dB_base_8_train",
+    "existing_result_folder": "experiment_2025-06-29_21-57-58_best_model_0dB_base_9_train",
     "existing_evaluation_folder": "",
     "volume_evaluation": true,
     "find_optimal_parameters": false,
@@ -34,7 +34,7 @@
 
     "shrec_sampling_points": 4,
     "shrec_z_slice_size": 1,
-    "shrec_model_number": [8, 9],
+    "shrec_model_number": [9],
     "shrec_validation_model_number": [8, 9],
     "shrec_min_z": 166,
     "shrec_max_z": 345,
