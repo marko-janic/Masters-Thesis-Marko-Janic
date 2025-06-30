@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 100000,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "best_model_shrec_reconstruction_base",
+    "result_dir_appended_name": "best_model_10dB_base",
     "patience": 7,
 
     "dataset": "shrec",
@@ -14,7 +14,7 @@
     "particle_height": 12,
     "particle_depth": 6,
     "add_noise": true,
-    "noise": 0,
+    "noise": 10,
     "use_fbp": true,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,

@@ -5,16 +5,16 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 100000,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "ACTUAL_best_model_shrec_reconstruction_basex4",
-    "patience": 5,
+    "result_dir_appended_name": "best_model_10dB_base",
+    "patience": 7,
 
     "dataset": "shrec",
     "dataset_path": "dataset/shrec21_full_dataset/",
     "particle_width": 12,
     "particle_height": 12,
     "particle_depth": 6,
-    "add_noise": false,
-    "noise": 0,
+    "add_noise": true,
+    "noise": 10,
     "use_fbp": true,
     "fbp_num_projections": 60,
     "random_sub_micrographs": true,
@@ -23,7 +23,7 @@
     "train_eval_split": 1,
     "num_patch_embeddings": 256,
     "heatmap_size": 112,
-    "model_deconv_filters": [512, 256, 128],
+    "model_deconv_filters": [128, 64, 32],
     "dropout_prob": 0.1,
     "finetune_vit": false,
     "num_vit_finetune_layers": 0,
@@ -37,5 +37,5 @@
     "shrec_min_z": 166,
     "shrec_max_z": 345,
     "shrec_specific_particle": "",
-    "use_shrec_reconstruction": true
+    "use_shrec_reconstruction": false
 }
