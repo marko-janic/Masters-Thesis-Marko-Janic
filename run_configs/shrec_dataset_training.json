@@ -5,7 +5,7 @@
     "learning_rate": 0.001,
     "checkpoint_interval": 100000,
     "loss_log_file": "loss_log.txt",
-    "result_dir_appended_name": "ACTUAL_best_model_shrec_reconstruction_basex2",
+    "result_dir_appended_name": "ACTUAL_best_model_shrec_reconstruction_basex4",
     "patience": 5,
 
     "dataset": "shrec",
@@ -23,7 +23,7 @@
     "train_eval_split": 1,
     "num_patch_embeddings": 256,
     "heatmap_size": 112,
-    "model_deconv_filters": [256, 128, 64],
+    "model_deconv_filters": [512, 256, 128],
     "dropout_prob": 0.1,
     "finetune_vit": false,
     "num_vit_finetune_layers": 0,
