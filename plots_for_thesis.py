@@ -185,19 +185,21 @@ def plot_noise_levels():
 
 
 def plot_training_volumes():
-    df = pd.read_csv(os.path.join(results_folder, "training_volumes.txt"))
+    models = ["training_volumes", "training_volumes_0dB", "training_volumes_shrec_reconstruction"]
 
-    plt.plot(df['num_training_volumes'], df['avg_f1_score'], marker='o', label='F1 Score')
-    plt.plot(df['num_training_volumes'], df['avg_precision'], marker='o', label='Precision')
-    plt.plot(df['num_training_volumes'], df['avg_recall'], marker='o', label='Recall')
+    for model in models:
+        df = pd.read_csv(os.path.join(results_folder, f"{model}.txt"))
+        plt.plot(df['num_training_volumes'], df['avg_f1_score'], marker='o', label='F1 Score')
+        plt.plot(df['num_training_volumes'], df['avg_precision'], marker='o', label='Precision')
+        plt.plot(df['num_training_volumes'], df['avg_recall'], marker='o', label='Recall')
 
-    plt.xlabel("Number of Training Volumes")
-    plt.ylabel("Score")
-    plt.title("Performance Metrics vs Number of Training Volumes")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(save_folder, "training_volumes.png"))
-    plt.close()
+        plt.xlabel("Number of Training Volumes")
+        plt.ylabel("Score")
+        plt.title(f"Train tomograms ablation study, {model}")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(os.path.join(save_folder, f"{model}.png"))
+        plt.close()
 
 
 def main():
